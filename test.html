@@ -1,0 +1,115 @@
+
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    </head>
+    <body>
+
+        <div id="elm"></div>
+    <body>
+</html>
+<script src="immutable.min.js" ></script>
+<script src="instrument.js" ></script>
+<script src="elm.js"></script>
+<script src="librarydb.js"></script>
+<script>
+    const app = Elm.Main.init({
+        node: document.getElementById("elm")
+    });
+
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const instruments = {sineBuf: sineBufInstrument(ctx)};
+
+    var BPM = 120;
+    var inplay = false;
+    let cursor = 0;
+    let timeoutid = null;
+    let sequence = [ [0, true, 48, "sineBuf", .5]
+                   , [.5, false, 48, "sineBuf"]
+                   , [1, true, 48, "sineBuf", .8]
+                   , [1.5, false, 48, "sineBuf"]
+                   , [2, true, 48, "sineBuf", 1]
+                   , [2.5, false, 48, "sineBuf"]
+                   , [3, true, 50, "sineBuf", 2]
+                   , [3.5, false, 50, "sineBuf"]
+                   , [4, true, 52, "sineBuf", .1]
+                   , [5.5, false, 52, "sineBuf"]
+                   , [6, true, 50, "sineBuf", .3]
+                   , [7.5, false, 50, "sineBuf"]];
+
+    const play_recur = (seq, time) => {
+        if (seq.length <= 0)
+            return seq;
+        if (time <= seq[0][0])
+            return seq;
+        if (seq[0][1])
+            instruments[seq[0][3]].startNote(seq[0][2], seq[0][4]);
+        else instruments[seq[0][3]].stopNote(seq[0][2]);
+        return play_recur(seq.slice(1), time);
+    };
+    const sched2 = sequence => prevtime => {
+        if (!inplay)
+            return;
+        const curtime = ctx.currentTime;
+        //const newcur = cursor + (curtime - prevtime)*BPM/60;
+        cursor = cursor + (curtime - prevtime)*BPM/60;
+        app.ports.cursorChanged.send(cursor);
+        const newseq = play_recur(sequence, cursor);
+        if (sequence.length > 0) {
+            timeoutid = window.setTimeout(() => sched2(newseq)(curtime), 20);
+        }
+        else {
+            app.ports.sequenceFinished.send(null);
+        }
+    };
+
+    const playFrom = () => {
+        stopAllInst();
+        if (timeoutid !== null)
+            window.clearTimeout(timeoutid);
+        let cut = 0;
+        while (cut < sequence.length && sequence[cut][0] < cursor) {
+            cut = cut + 1;
+        }
+        sched2(sequence.slice(cut))(ctx.currentTime);
+    };
+    const stopAllInst = () => {
+        for (let inst in instruments) {
+            instruments[inst].stopAllNotes();
+        }
+    };
+    //const setCursor = c => {
+
+    app.ports.play.subscribe(() => {
+        if (ctx.state == "suspended") {
+            ctx.resume();
+        }
+        inplay = true;
+        playFrom();
+        
+    });
+    app.ports.pause.subscribe(() => {
+        stopAllInst();
+        inplay = false;
+    });
+    app.ports.setCursor.subscribe(c => {
+        cursor = c;
+        app.ports.cursorChanged.send(cursor);
+        if (inplay)
+            playFrom();
+    });
+    app.ports.setBpm.subscribe(b => {
+        BPM = b;
+    });
+    app.ports.setSequence.subscribe(s => {
+        let newseq = s.map(el => [el.time , el.onset, el.pitch
+                                   , el.instrument, el.gain]);
+        newseq.sort((x, y) => x[0] > y[0] ? 1:-1);
+        sequence = newseq;
+        playFrom();
+    });
+</script>
