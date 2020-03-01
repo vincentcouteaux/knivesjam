@@ -2,6 +2,7 @@ module Generator exposing (..)
 import Random as R
 import Dict exposing (Dict)
 import Tune
+import Tuple3 as T3
 
 type NoteName = A | B | C | D | E | F | G
 type Alteration = Natural | Flat | Sharp
@@ -66,14 +67,39 @@ pitch2note n =
         10 -> Note B Flat
         _ -> Note B Natural
 
+getSemitonesOf : Int -> Chord -> Note
+getSemitonesOf s c = (note2pitch 0 c.note) + s |> pitch2note
+
 getFifthOf : Chord -> Note
 getFifthOf c = case c.type_ of
-    Min7b5 -> (note2pitch 0 c.note) + 6 |> pitch2note
-    Dim -> (note2pitch 0 c.note) + 6 |> pitch2note
-    Maj7s5 -> (note2pitch 0 c.note) + 8 |> pitch2note
-    Dom7s5 -> (note2pitch 0 c.note) + 8 |> pitch2note
-    Alt7 -> (note2pitch 0 c.note) + 8 |> pitch2note
-    _ -> (note2pitch 0 c.note) + 7 |> pitch2note
+    Min7b5 -> getSemitonesOf 6 c
+    Dim -> getSemitonesOf 6 c
+    Maj7s5 -> getSemitonesOf 8 c
+    Dom7s5 -> getSemitonesOf 8 c
+    Alt7 -> getSemitonesOf 8 c
+    _ -> getSemitonesOf 7 c
+
+getThirdOf : Chord -> Note
+getThirdOf c = case c.type_ of
+    Min7 -> getSemitonesOf 3 c
+    Min7b5 -> getSemitonesOf 3 c
+    Dim -> getSemitonesOf 3 c
+    MinMaj -> getSemitonesOf 3 c
+    _ -> getSemitonesOf 4 c
+
+getNinethOf : Chord -> Note
+getNinethOf c = case c.type_ of
+    Alt7 -> getSemitonesOf 3 c
+    Dom7b9 -> getSemitonesOf 3 c
+    _ -> getSemitonesOf 2 c
+
+getSeventhOf : Chord -> Note
+getSeventhOf c = case c.type_ of
+    Maj7 -> getSemitonesOf 11 c
+    Dim -> getSemitonesOf 11 c
+    MinMaj -> getSemitonesOf 11 c
+    Maj7s5 -> getSemitonesOf 11 c
+    _ -> getSemitonesOf 10 c
 
 blueBossa = ChordProg
                 [ { time=0, chord=chord C Natural Min7 }
@@ -109,7 +135,7 @@ basslineToSequence dic =
 
 fondaOnChange : ChordProg -> BassLine
 fondaOnChange cp =
-    List.foldl 
+    List.foldl
         (\evt bassline ->
             Dict.insert (floor evt.time) (R.constant (evt.chord.note)) bassline
         )
@@ -131,6 +157,35 @@ addPump bl cp signature =
             if (toFloat from) >= cp.end then bl_ else doRec (do2bars bl_ from) (from + 2*signature)
     in
         doRec bl 0
+
+barFillArray : Int -> { second : Chord -> Note, third : Chord -> Note, fourth : Chord -> Note}
+barFillArray n =
+    case n of
+        0 -> { second = getNinethOf, third = getThirdOf, fourth = getNinethOf }
+        1 -> { second = getSeventhOf, third = .note, fourth = getNinethOf }
+        2 -> { second = getThirdOf , third = getFifthOf , fourth = getSeventhOf }
+        3 -> { second = getSemitonesOf 1, third = getNinethOf , fourth = getThirdOf }
+        4 -> { second = getFifthOf , third = getThirdOf , fourth = getSeventhOf }
+        _ -> { second = getSeventhOf, third = getFifthOf, fourth = getNinethOf }
+
+fillBar : ChordProg -> Int -> R.Generator ((Int, Note), (Int, Note), (Int, Note))
+fillBar cp from =
+    let
+        funcGen = R.map barFillArray (R.int 0 5)
+        curChord = getChordAt cp (toFloat from)
+    in
+        R.map (\funcs -> ( (from + 1, funcs.second curChord)
+                         , (from + 2, funcs.third curChord)
+                         , (from + 3, funcs.fourth curChord)))
+              funcGen
+
+fillBarsRec : ChordProg -> Int -> List (R.Generator ((Int, Note), (Int, Note), (Int, Note)))
+fillBarsRec cp signature =
+    let
+        doRec l from =
+            if (toFloat from) >= cp.end then l else doRec ((fillBar cp from)::l) (from + signature)
+    in
+        doRec [] 0
 
 chromatism : Note -> R.Generator Note
 chromatism n =
@@ -169,7 +224,28 @@ dictGen2GenDict d =
     in
         R.map Dict.fromList <| listGen2GenList l
 
-bbbass = dictGen2GenDict 
-        <| addApproach 
-            (addPump (fondaOnChange blueBossa) blueBossa 4)
-            (floor blueBossa.end)
+
+addFill : Dict Int (R.Generator Note) -> List (R.Generator ((Int, Note), (Int, Note), (Int, Note))) -> R.Generator (Dict Int Note)
+addFill bl listgen = 
+    let
+        l = List.map (\(k, v) -> ( R.pair (R.constant k) v)) <| Dict.toList bl -- List (R.Generator (Int, Note))
+        f1 = listGen2GenList l -- R.Generator (List (Int, Note))
+        f2 = List.foldl
+                (\gen list -> R.map2 (\g3 l_ -> (T3.first g3)::(T3.second g3)::(T3.third g3)::l_) gen list)
+                f1
+                listgen
+    in
+        R.map Dict.fromList f2
+
+bassLineGenerator : ChordProg -> Int -> R.Generator (Dict Int Note)
+bassLineGenerator cp signature =
+    let
+        basslineNoFill = 
+            addApproach 
+                (addPump (fondaOnChange cp) cp signature)
+                (floor blueBossa.end)
+    in
+        addFill basslineNoFill (fillBarsRec cp signature)
+
+bbbass = bassLineGenerator blueBossa 4
+

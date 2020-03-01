@@ -22,7 +22,8 @@
     });
 
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const instruments = {sineBuf: sineBufInstrument(ctx)};
+    const instruments = {sineBuf: bassBufInstrument(ctx)};
+    //bassBufInstrument(ctx);
 
     var BPM = 120;
     var inplay = false;

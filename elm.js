@@ -5194,109 +5194,24 @@ var author$project$Generator$addApproach = F2(
 			});
 		return A3(elm$core$Dict$foldl, addbefore, bl, bl);
 	});
-var author$project$Generator$NA = {$: 'NA'};
-var elm$core$List$sortBy = _List_sortBy;
-var author$project$Generator$getChordAt = F2(
-	function (cp, time) {
-		var sortedChords = A2(
-			elm$core$List$sortBy,
-			function ($) {
-				return $.time;
-			},
-			cp.chords);
-		var chInSorted = F2(
-			function (sortList, ch) {
-				chInSorted:
-				while (true) {
-					if (!sortList.b) {
-						return ch;
-					} else {
-						var h = sortList.a;
-						var t = sortList.b;
-						if (_Utils_cmp(h.time, time) > 0) {
-							return ch;
-						} else {
-							var $temp$sortList = t,
-								$temp$ch = h.chord;
-							sortList = $temp$sortList;
-							ch = $temp$ch;
-							continue chInSorted;
-						}
-					}
-				}
-			});
-		if (!sortedChords.b) {
-			return A3(author$project$Generator$chord, author$project$Generator$C, author$project$Generator$Natural, author$project$Generator$NA);
-		} else {
-			var h = sortedChords.a;
-			var t = sortedChords.b;
-			return A2(chInSorted, t, h.chord);
-		}
-	});
-var author$project$Generator$getFifthOf = function (c) {
-	var _n0 = c.type_;
-	switch (_n0.$) {
-		case 'Min7b5':
-			return author$project$Generator$pitch2note(
-				A2(author$project$Generator$note2pitch, 0, c.note) + 6);
-		case 'Dim':
-			return author$project$Generator$pitch2note(
-				A2(author$project$Generator$note2pitch, 0, c.note) + 6);
-		case 'Maj7s5':
-			return author$project$Generator$pitch2note(
-				A2(author$project$Generator$note2pitch, 0, c.note) + 8);
-		case 'Dom7s5':
-			return author$project$Generator$pitch2note(
-				A2(author$project$Generator$note2pitch, 0, c.note) + 8);
-		case 'Alt7':
-			return author$project$Generator$pitch2note(
-				A2(author$project$Generator$note2pitch, 0, c.note) + 8);
-		default:
-			return author$project$Generator$pitch2note(
-				A2(author$project$Generator$note2pitch, 0, c.note) + 7);
-	}
+var TSFoster$elm_tuple_extra$Tuple3$first = function (_n0) {
+	var a = _n0.a;
+	return a;
 };
-var elm$core$Basics$ge = _Utils_ge;
+var TSFoster$elm_tuple_extra$Tuple3$second = function (_n0) {
+	var b = _n0.b;
+	return b;
+};
+var TSFoster$elm_tuple_extra$Tuple3$third = function (_n0) {
+	var c = _n0.c;
+	return c;
+};
 var elm$random$Random$constant = function (value) {
 	return elm$random$Random$Generator(
 		function (seed) {
 			return _Utils_Tuple2(value, seed);
 		});
 };
-var author$project$Generator$addPump = F3(
-	function (bl, cp, signature) {
-		var do2bars = F2(
-			function (bl_, from) {
-				return A3(
-					author$project$Generator$insertNoReplace,
-					from,
-					elm$random$Random$constant(
-						A2(author$project$Generator$getChordAt, cp, from).note),
-					A3(
-						author$project$Generator$insertNoReplace,
-						from + signature,
-						elm$random$Random$constant(
-							author$project$Generator$getFifthOf(
-								A2(author$project$Generator$getChordAt, cp, from + signature))),
-						bl_));
-			});
-		var doRec = F2(
-			function (bl_, from) {
-				doRec:
-				while (true) {
-					if (_Utils_cmp(from, cp.end) > -1) {
-						return bl_;
-					} else {
-						var $temp$bl_ = A2(do2bars, bl_, from),
-							$temp$from = from + (2 * signature);
-						bl_ = $temp$bl_;
-						from = $temp$from;
-						continue doRec;
-					}
-				}
-			});
-		return A2(doRec, bl, 0);
-	});
 var elm$random$Random$map2 = F3(
 	function (func, _n0, _n1) {
 		var genA = _n0.a;
@@ -5411,23 +5326,254 @@ var elm$random$Random$pair = F2(
 			genA,
 			genB);
 	});
-var author$project$Generator$dictGen2GenDict = function (d) {
-	var l = A2(
-		elm$core$List$map,
-		function (_n0) {
-			var k = _n0.a;
-			var v = _n0.b;
-			return A2(
-				elm$random$Random$pair,
-				elm$random$Random$constant(k),
-				v);
-		},
-		elm$core$Dict$toList(d));
-	return A2(
-		elm$random$Random$map,
-		elm$core$Dict$fromList,
-		author$project$Generator$listGen2GenList(l));
+var author$project$Generator$addFill = F2(
+	function (bl, listgen) {
+		var l = A2(
+			elm$core$List$map,
+			function (_n0) {
+				var k = _n0.a;
+				var v = _n0.b;
+				return A2(
+					elm$random$Random$pair,
+					elm$random$Random$constant(k),
+					v);
+			},
+			elm$core$Dict$toList(bl));
+		var f1 = author$project$Generator$listGen2GenList(l);
+		var f2 = A3(
+			elm$core$List$foldl,
+			F2(
+				function (gen, list) {
+					return A3(
+						elm$random$Random$map2,
+						F2(
+							function (g3, l_) {
+								return A2(
+									elm$core$List$cons,
+									TSFoster$elm_tuple_extra$Tuple3$first(g3),
+									A2(
+										elm$core$List$cons,
+										TSFoster$elm_tuple_extra$Tuple3$second(g3),
+										A2(
+											elm$core$List$cons,
+											TSFoster$elm_tuple_extra$Tuple3$third(g3),
+											l_)));
+							}),
+						gen,
+						list);
+				}),
+			f1,
+			listgen);
+		return A2(elm$random$Random$map, elm$core$Dict$fromList, f2);
+	});
+var author$project$Generator$NA = {$: 'NA'};
+var elm$core$List$sortBy = _List_sortBy;
+var author$project$Generator$getChordAt = F2(
+	function (cp, time) {
+		var sortedChords = A2(
+			elm$core$List$sortBy,
+			function ($) {
+				return $.time;
+			},
+			cp.chords);
+		var chInSorted = F2(
+			function (sortList, ch) {
+				chInSorted:
+				while (true) {
+					if (!sortList.b) {
+						return ch;
+					} else {
+						var h = sortList.a;
+						var t = sortList.b;
+						if (_Utils_cmp(h.time, time) > 0) {
+							return ch;
+						} else {
+							var $temp$sortList = t,
+								$temp$ch = h.chord;
+							sortList = $temp$sortList;
+							ch = $temp$ch;
+							continue chInSorted;
+						}
+					}
+				}
+			});
+		if (!sortedChords.b) {
+			return A3(author$project$Generator$chord, author$project$Generator$C, author$project$Generator$Natural, author$project$Generator$NA);
+		} else {
+			var h = sortedChords.a;
+			var t = sortedChords.b;
+			return A2(chInSorted, t, h.chord);
+		}
+	});
+var author$project$Generator$getSemitonesOf = F2(
+	function (s, c) {
+		return author$project$Generator$pitch2note(
+			A2(author$project$Generator$note2pitch, 0, c.note) + s);
+	});
+var author$project$Generator$getFifthOf = function (c) {
+	var _n0 = c.type_;
+	switch (_n0.$) {
+		case 'Min7b5':
+			return A2(author$project$Generator$getSemitonesOf, 6, c);
+		case 'Dim':
+			return A2(author$project$Generator$getSemitonesOf, 6, c);
+		case 'Maj7s5':
+			return A2(author$project$Generator$getSemitonesOf, 8, c);
+		case 'Dom7s5':
+			return A2(author$project$Generator$getSemitonesOf, 8, c);
+		case 'Alt7':
+			return A2(author$project$Generator$getSemitonesOf, 8, c);
+		default:
+			return A2(author$project$Generator$getSemitonesOf, 7, c);
+	}
 };
+var elm$core$Basics$ge = _Utils_ge;
+var author$project$Generator$addPump = F3(
+	function (bl, cp, signature) {
+		var do2bars = F2(
+			function (bl_, from) {
+				return A3(
+					author$project$Generator$insertNoReplace,
+					from,
+					elm$random$Random$constant(
+						A2(author$project$Generator$getChordAt, cp, from).note),
+					A3(
+						author$project$Generator$insertNoReplace,
+						from + signature,
+						elm$random$Random$constant(
+							author$project$Generator$getFifthOf(
+								A2(author$project$Generator$getChordAt, cp, from + signature))),
+						bl_));
+			});
+		var doRec = F2(
+			function (bl_, from) {
+				doRec:
+				while (true) {
+					if (_Utils_cmp(from, cp.end) > -1) {
+						return bl_;
+					} else {
+						var $temp$bl_ = A2(do2bars, bl_, from),
+							$temp$from = from + (2 * signature);
+						bl_ = $temp$bl_;
+						from = $temp$from;
+						continue doRec;
+					}
+				}
+			});
+		return A2(doRec, bl, 0);
+	});
+var author$project$Generator$getNinethOf = function (c) {
+	var _n0 = c.type_;
+	switch (_n0.$) {
+		case 'Alt7':
+			return A2(author$project$Generator$getSemitonesOf, 3, c);
+		case 'Dom7b9':
+			return A2(author$project$Generator$getSemitonesOf, 3, c);
+		default:
+			return A2(author$project$Generator$getSemitonesOf, 2, c);
+	}
+};
+var author$project$Generator$getSeventhOf = function (c) {
+	var _n0 = c.type_;
+	switch (_n0.$) {
+		case 'Maj7':
+			return A2(author$project$Generator$getSemitonesOf, 11, c);
+		case 'Dim':
+			return A2(author$project$Generator$getSemitonesOf, 11, c);
+		case 'MinMaj':
+			return A2(author$project$Generator$getSemitonesOf, 11, c);
+		case 'Maj7s5':
+			return A2(author$project$Generator$getSemitonesOf, 11, c);
+		default:
+			return A2(author$project$Generator$getSemitonesOf, 10, c);
+	}
+};
+var author$project$Generator$getThirdOf = function (c) {
+	var _n0 = c.type_;
+	switch (_n0.$) {
+		case 'Min7':
+			return A2(author$project$Generator$getSemitonesOf, 3, c);
+		case 'Min7b5':
+			return A2(author$project$Generator$getSemitonesOf, 3, c);
+		case 'Dim':
+			return A2(author$project$Generator$getSemitonesOf, 3, c);
+		case 'MinMaj':
+			return A2(author$project$Generator$getSemitonesOf, 3, c);
+		default:
+			return A2(author$project$Generator$getSemitonesOf, 4, c);
+	}
+};
+var author$project$Generator$barFillArray = function (n) {
+	switch (n) {
+		case 0:
+			return {fourth: author$project$Generator$getNinethOf, second: author$project$Generator$getNinethOf, third: author$project$Generator$getThirdOf};
+		case 1:
+			return {
+				fourth: author$project$Generator$getNinethOf,
+				second: author$project$Generator$getSeventhOf,
+				third: function ($) {
+					return $.note;
+				}
+			};
+		case 2:
+			return {fourth: author$project$Generator$getSeventhOf, second: author$project$Generator$getThirdOf, third: author$project$Generator$getFifthOf};
+		case 3:
+			return {
+				fourth: author$project$Generator$getThirdOf,
+				second: author$project$Generator$getSemitonesOf(1),
+				third: author$project$Generator$getNinethOf
+			};
+		case 4:
+			return {fourth: author$project$Generator$getSeventhOf, second: author$project$Generator$getFifthOf, third: author$project$Generator$getThirdOf};
+		default:
+			return {fourth: author$project$Generator$getNinethOf, second: author$project$Generator$getSeventhOf, third: author$project$Generator$getFifthOf};
+	}
+};
+var author$project$Generator$fillBar = F2(
+	function (cp, from) {
+		var funcGen = A2(
+			elm$random$Random$map,
+			author$project$Generator$barFillArray,
+			A2(elm$random$Random$int, 0, 5));
+		var curChord = A2(author$project$Generator$getChordAt, cp, from);
+		return A2(
+			elm$random$Random$map,
+			function (funcs) {
+				return _Utils_Tuple3(
+					_Utils_Tuple2(
+						from + 1,
+						funcs.second(curChord)),
+					_Utils_Tuple2(
+						from + 2,
+						funcs.third(curChord)),
+					_Utils_Tuple2(
+						from + 3,
+						funcs.fourth(curChord)));
+			},
+			funcGen);
+	});
+var author$project$Generator$fillBarsRec = F2(
+	function (cp, signature) {
+		var doRec = F2(
+			function (l, from) {
+				doRec:
+				while (true) {
+					if (_Utils_cmp(from, cp.end) > -1) {
+						return l;
+					} else {
+						var $temp$l = A2(
+							elm$core$List$cons,
+							A2(author$project$Generator$fillBar, cp, from),
+							l),
+							$temp$from = from + signature;
+						l = $temp$l;
+						from = $temp$from;
+						continue doRec;
+					}
+				}
+			});
+		return A2(doRec, _List_Nil, 0);
+	});
 var author$project$Generator$fondaOnChange = function (cp) {
 	return A3(
 		elm$core$List$foldl,
@@ -5442,15 +5588,22 @@ var author$project$Generator$fondaOnChange = function (cp) {
 		elm$core$Dict$empty,
 		cp.chords);
 };
-var author$project$Generator$bbbass = author$project$Generator$dictGen2GenDict(
-	A2(
-		author$project$Generator$addApproach,
-		A3(
-			author$project$Generator$addPump,
-			author$project$Generator$fondaOnChange(author$project$Generator$blueBossa),
-			author$project$Generator$blueBossa,
-			4),
-		elm$core$Basics$floor(author$project$Generator$blueBossa.end)));
+var author$project$Generator$bassLineGenerator = F2(
+	function (cp, signature) {
+		var basslineNoFill = A2(
+			author$project$Generator$addApproach,
+			A3(
+				author$project$Generator$addPump,
+				author$project$Generator$fondaOnChange(cp),
+				cp,
+				signature),
+			elm$core$Basics$floor(author$project$Generator$blueBossa.end));
+		return A2(
+			author$project$Generator$addFill,
+			basslineNoFill,
+			A2(author$project$Generator$fillBarsRec, cp, signature));
+	});
+var author$project$Generator$bbbass = A2(author$project$Generator$bassLineGenerator, author$project$Generator$blueBossa, 4);
 var author$project$PlayerPage$SequenceGenerated = function (a) {
 	return {$: 'SequenceGenerated', a: a};
 };
