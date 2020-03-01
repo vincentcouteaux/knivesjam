@@ -128,8 +128,8 @@ type alias BassLine = (Dict Int (R.Generator Note))
 basslineToSequence : Dict Int Note -> Tune.Sequence
 basslineToSequence dic =
     List.concatMap 
-        (\(k, v) -> [ Tune.Event (toFloat k) True (note2pitch 1 v) "sineBuf" 1
-                 , Tune.Event (toFloat (k+1)) False (note2pitch 1 v) "sineBuf" 1 ]
+        (\(k, v) -> [ Tune.Event (toFloat k) True (note2pitch 1 v) "bass" 1
+                 , Tune.Event (toFloat (k+1)) False (note2pitch 1 v) "bass" 1 ]
         )
         (Dict.toList dic)
 
@@ -243,7 +243,7 @@ bassLineGenerator cp signature =
         basslineNoFill = 
             addApproach 
                 (addPump (fondaOnChange cp) cp signature)
-                (floor blueBossa.end)
+                (floor cp.end)
     in
         addFill basslineNoFill (fillBarsRec cp signature)
 

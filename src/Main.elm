@@ -106,7 +106,7 @@ update msg model =
                                 |> asPlayerModIn model
                                 |> setLibrary (L.addSong model.libraryModel newsong)
                     in
-                    ({ newmod | curPage = Player }, Cmd.none) 
+                    ({ newmod | curPage = Player }, Cmd.map (\sm -> PpEvent sm) (Pp.genBassLine newmod.playerModel)) 
                 _ ->
                     let 
                         (newmod, newcmd) = E.update submsg model.editorModel

@@ -70,10 +70,9 @@ const bassBufInstrument = ctx => {
             }
         },
         startNote: function(pitch, gain) {
-            //console.log(buffersMap);
-            //console.log(this.buffers.get(pitch));
             this.stopNote(pitch);
             if (pitch in buffersMap) {
+                // TODO investigate when the same note is played twice consecutively
                 let bufferSource = ctx.createBufferSource()
                 const gainNode = ctx.createGain();
                 gainNode.gain.setValueAtTime(gain, ctx.currentTime);
@@ -83,6 +82,7 @@ const bassBufInstrument = ctx => {
                 bufferSource.start();
                 sources[pitch] = gainNode;
             }
+            else console.log(pitch, " not playable");
         },
         stopAllNotes: function() {
             sources.forEach((_, i) => this.stopNote(i));

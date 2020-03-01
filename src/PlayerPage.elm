@@ -58,13 +58,16 @@ update msg model =
                       )
         SetBpm f -> ({ model | bpm=f }, Tune.setBpm f)
         SetCursor f -> (model, Cmd.batch [ Tune.setCursor f
-                                         , R.generate SequenceGenerated G.bbbass ]
+                                         , genBassLine model ]
                        )
         SeqFinished -> ( model, Cmd.batch [ Tune.setCursor 0
-                                          , R.generate SequenceGenerated G.bbbass ]
+                                          , genBassLine model ]
                        )
         SequenceGenerated b -> (model, Tune.setSequence <| G.basslineToSequence b)
         _ -> (model, Cmd.none)
+
+genBassLine : SubModel -> Cmd SubMsg
+genBassLine m = R.generate SequenceGenerated (G.bassLineGenerator m.song.chordProg m.song.beatsPerBar)
 
 
 type alias Grid = List { len : Float, chord : (Maybe G.Chord, Float) }

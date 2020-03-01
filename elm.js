@@ -5597,7 +5597,7 @@ var author$project$Generator$bassLineGenerator = F2(
 				author$project$Generator$fondaOnChange(cp),
 				cp,
 				signature),
-			elm$core$Basics$floor(author$project$Generator$blueBossa.end));
+			elm$core$Basics$floor(cp.end));
 		return A2(
 			author$project$Generator$addFill,
 			basslineNoFill,
@@ -7028,6 +7028,12 @@ var author$project$PlayerPage$asSongIn = F2(
 			sm,
 			{song: s});
 	});
+var author$project$PlayerPage$genBassLine = function (m) {
+	return A2(
+		elm$random$Random$generate,
+		author$project$PlayerPage$SequenceGenerated,
+		A2(author$project$Generator$bassLineGenerator, m.song.chordProg, m.song.beatsPerBar));
+};
 var author$project$PlayerPage$setComposer = F2(
 	function (c, s) {
 		return _Utils_update(
@@ -7061,14 +7067,14 @@ var author$project$Generator$basslineToSequence = function (dic) {
 					k,
 					true,
 					A2(author$project$Generator$note2pitch, 1, v),
-					'sineBuf',
+					'bass',
 					1),
 					A5(
 					author$project$Tune$Event,
 					k + 1,
 					false,
 					A2(author$project$Generator$note2pitch, 1, v),
-					'sineBuf',
+					'bass',
 					1)
 				]);
 		},
@@ -7167,7 +7173,7 @@ var author$project$PlayerPage$update = F2(
 						_List_fromArray(
 							[
 								author$project$Tune$setCursor(f),
-								A2(elm$random$Random$generate, author$project$PlayerPage$SequenceGenerated, author$project$Generator$bbbass)
+								author$project$PlayerPage$genBassLine(model)
 							])));
 			case 'SeqFinished':
 				return _Utils_Tuple2(
@@ -7176,7 +7182,7 @@ var author$project$PlayerPage$update = F2(
 						_List_fromArray(
 							[
 								author$project$Tune$setCursor(0),
-								A2(elm$random$Random$generate, author$project$PlayerPage$SequenceGenerated, author$project$Generator$bbbass)
+								author$project$PlayerPage$genBassLine(model)
 							])));
 			case 'SequenceGenerated':
 				var b = msg.a;
@@ -7284,7 +7290,12 @@ var author$project$Main$update = F2(
 							_Utils_update(
 								newmod,
 								{curPage: author$project$Main$Player}),
-							elm$core$Platform$Cmd$none);
+							A2(
+								elm$core$Platform$Cmd$map,
+								function (sm) {
+									return author$project$Main$PpEvent(sm);
+								},
+								author$project$PlayerPage$genBassLine(newmod.playerModel)));
 					default:
 						var _n4 = A2(author$project$Editor$update, submsg, model.editorModel);
 						var newmod = _n4.a;
