@@ -30,7 +30,6 @@ const bufInstrument = (bufMap, ctx) => ({
 
 const sineBufInstrument = ctx => {
     const getBuffer = freq => {
-        console.log(freq);
         var buf = ctx.createBuffer(1, ctx.sampleRate/3, ctx.sampleRate);
         for (var i=0; i<(ctx.sampleRate/3); i++) {
             buf.getChannelData(0)[i] = Math.cos(2*freq*Math.PI*i/ctx.sampleRate)/3;
@@ -45,7 +44,6 @@ const sineBufInstrument = ctx => {
 };
 
 const bassBufInstrument = ctx => {
-    console.log("qdsfqdf");
     let buffersMap = [];
     //let decodeCallbacks = [];
     for (var i=1; i<=25; i++) {
@@ -86,6 +84,100 @@ const bassBufInstrument = ctx => {
         },
         stopAllNotes: function() {
             sources.forEach((_, i) => this.stopNote(i));
+        }
+    };
+};
+
+const drumsBufInstrument = ctx => {
+    let ride_buffer;
+    let snare_buffer;
+    let kick_buffer;
+    let hh_buffer;
+    let rim_buffer;
+    let crash_buffer;
+    var request1 = new XMLHttpRequest();
+    request1.open("GET", "wavs/drums/kick.wav", true);
+    request1.responseType = "arraybuffer";
+    request1.onload = () => {
+        ctx.decodeAudioData(request1.response,
+                            buf => {
+                                kick_buffer = buf;
+                            },
+                            e => console.log("error: ", e));
+    };
+    request1.send();
+    var request2 = new XMLHttpRequest();
+    request2.open("GET", "wavs/drums/snare.wav", true);
+    request2.responseType = "arraybuffer";
+    request2.onload = () => {
+        ctx.decodeAudioData(request2.response,
+                            buf => {
+                                snare_buffer = buf;
+                            },
+                            e => console.log("error: ", e));
+    };
+    request2.send();
+    var request3 = new XMLHttpRequest();
+    request3.open("GET", "wavs/drums/ride.wav", true);
+    request3.responseType = "arraybuffer";
+    request3.onload = () => {
+        ctx.decodeAudioData(request3.response,
+                            buf => {
+                                ride_buffer = buf;
+                            },
+                            e => console.log("error: ", e));
+    };
+    request3.send();
+    var request4 = new XMLHttpRequest();
+    request4.open("GET", "wavs/drums/hh.wav", true);
+    request4.responseType = "arraybuffer";
+    request4.onload = () => {
+        ctx.decodeAudioData(request4.response,
+                            buf => {
+                                hh_buffer = buf;
+                            },
+                            e => console.log("error: ", e));
+    };
+    request4.send();
+    var request5 = new XMLHttpRequest();
+    request5.open("GET", "wavs/drums/rim.wav", true);
+    request5.responseType = "arraybuffer";
+    request5.onload = () => {
+        ctx.decodeAudioData(request5.response,
+                            buf => {
+                                rim_buffer = buf;
+                            },
+                            e => console.log("error: ", e));
+    };
+    request5.send();
+    var request6 = new XMLHttpRequest();
+    request6.open("GET", "wavs/drums/crash.wav", true);
+    request6.responseType = "arraybuffer";
+    request6.onload = () => {
+        ctx.decodeAudioData(request6.response,
+                            buf => {
+                                crash_buffer = buf;
+                            },
+                            e => console.log("error: ", e));
+    };
+    request6.send();
+    return {
+        stopNote: function(pitch) {
+            },
+        startNote: function(pitch, gain) {
+            let bufferSource = ctx.createBufferSource()
+            const gainNode = ctx.createGain();
+            gainNode.gain.setValueAtTime(gain, ctx.currentTime);
+            bufferSource.buffer = pitch==0?kick_buffer:
+                                  pitch==1?snare_buffer:
+                                  pitch==2?ride_buffer:
+                                  pitch==3?hh_buffer:
+                                  pitch==4?rim_buffer:crash_buffer;
+            bufferSource.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            bufferSource.start();
+        },
+        stopAllNotes: function() {
         }
     };
 };

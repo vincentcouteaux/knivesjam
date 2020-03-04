@@ -6,6 +6,7 @@ import Html.Events exposing (..)
 import Tune
 import Random as R
 import Dict exposing (Dict)
+import JazzDrums
 
 type alias Song = { chordProg : G.ChordProg
                   , title : String
@@ -63,7 +64,8 @@ update msg model =
         SeqFinished -> ( model, Cmd.batch [ Tune.setCursor 0
                                           , genBassLine model ]
                        )
-        SequenceGenerated b -> (model, Tune.setSequence <| G.basslineToSequence b)
+        SequenceGenerated b -> (model, Tune.setSequence 
+                                       <| (G.basslineToSequence b) ++ (JazzDrums.drumseq model.song.chordProg.end))
         _ -> (model, Cmd.none)
 
 genBassLine : SubModel -> Cmd SubMsg

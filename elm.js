@@ -7054,31 +7054,102 @@ var author$project$Tune$Event = F5(
 	function (time, onset, pitch, instrument, gain) {
 		return {gain: gain, instrument: instrument, onset: onset, pitch: pitch, time: time};
 	});
-var author$project$Generator$basslineToSequence = function (dic) {
+var elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
+};
+var elm$core$Basics$min = F2(
+	function (x, y) {
+		return (_Utils_cmp(x, y) < 0) ? x : y;
+	});
+var author$project$Generator$bassline2seq = F3(
+	function (vmin, vmax, dic) {
+		var closest = F2(
+			function (pitch, note) {
+				var oct = ((pitch / 12) | 0) - 1;
+				var center = A2(author$project$Generator$note2pitch, oct, note);
+				var c_gap = elm$core$Basics$abs(center - pitch);
+				var below = A2(author$project$Generator$note2pitch, oct - 1, note);
+				var b_gap = elm$core$Basics$abs(below - pitch);
+				var above = A2(author$project$Generator$note2pitch, oct + 1, note);
+				var a_gap = elm$core$Basics$abs(above - pitch);
+				var min3 = A2(
+					elm$core$Basics$min,
+					b_gap,
+					A2(elm$core$Basics$min, c_gap, a_gap));
+				var closestnote = _Utils_eq(min3, b_gap) ? below : (_Utils_eq(min3, c_gap) ? center : above);
+				return (_Utils_cmp(closestnote, vmin) < 0) ? (closestnote + 12) : ((_Utils_cmp(closestnote, vmax) > 0) ? (closestnote - 12) : closestnote);
+			});
+		return A2(
+			elm$core$List$concatMap,
+			function (_n2) {
+				var k = _n2.a;
+				var p = _n2.b;
+				return _List_fromArray(
+					[
+						A5(author$project$Tune$Event, k, true, p, 'bass', 1),
+						A5(author$project$Tune$Event, k + 1, false, p, 'bass', 1)
+					]);
+			},
+			A3(
+				elm$core$List$foldl,
+				F2(
+					function (_n0, l) {
+						var k = _n0.a;
+						var v = _n0.b;
+						if (!l.b) {
+							return _List_fromArray(
+								[
+									_Utils_Tuple2(
+									k,
+									A2(author$project$Generator$note2pitch, 1, v))
+								]);
+						} else {
+							var h = l.a;
+							return A2(
+								elm$core$List$cons,
+								_Utils_Tuple2(
+									k,
+									A2(closest, h.b, v)),
+								l);
+						}
+					}),
+				_List_Nil,
+				A2(
+					elm$core$List$sortBy,
+					elm$core$Tuple$first,
+					elm$core$Dict$toList(dic))));
+	});
+var author$project$Generator$basslineToSequence = A2(author$project$Generator$bassline2seq, 16, 40);
+var author$project$JazzDrums$chabada = function (end) {
 	return A2(
 		elm$core$List$concatMap,
-		function (_n0) {
-			var k = _n0.a;
-			var v = _n0.b;
+		function (i) {
+			var fb = i;
 			return _List_fromArray(
 				[
-					A5(
-					author$project$Tune$Event,
-					k,
-					true,
-					A2(author$project$Generator$note2pitch, 1, v),
-					'bass',
-					1),
-					A5(
-					author$project$Tune$Event,
-					k + 1,
-					false,
-					A2(author$project$Generator$note2pitch, 1, v),
-					'bass',
-					1)
+					A5(author$project$Tune$Event, fb, true, 2, 'drums', 0.5),
+					A5(author$project$Tune$Event, fb + 1, true, 2, 'drums', 0.5),
+					A5(author$project$Tune$Event, fb + 1, true, 3, 'drums', 1),
+					A5(author$project$Tune$Event, fb + 1.66, true, 2, 'drums', 0.7),
+					A5(author$project$Tune$Event, fb + 2, true, 2, 'drums', 0.5),
+					A5(author$project$Tune$Event, fb + 3, true, 2, 'drums', 0.5),
+					A5(author$project$Tune$Event, fb + 3, true, 3, 'drums', 1),
+					A5(author$project$Tune$Event, fb + 3.66, true, 2, 'drums', 0.7)
 				]);
 		},
-		elm$core$Dict$toList(dic));
+		A2(
+			elm$core$List$map,
+			elm$core$Basics$mul(4),
+			A2(
+				elm$core$List$range,
+				0,
+				elm$core$Basics$floor((end - 1) / 4))));
+};
+var author$project$JazzDrums$drumseq = function (end) {
+	return A2(
+		elm$core$List$cons,
+		A5(author$project$Tune$Event, 0, true, 5, 'drums', 1),
+		author$project$JazzDrums$chabada(end));
 };
 var elm$json$Json$Encode$null = _Json_encodeNull;
 var author$project$Tune$pause = _Platform_outgoingPort(
@@ -7189,7 +7260,9 @@ var author$project$PlayerPage$update = F2(
 				return _Utils_Tuple2(
 					model,
 					author$project$Tune$setSequence(
-						author$project$Generator$basslineToSequence(b)));
+						_Utils_ap(
+							author$project$Generator$basslineToSequence(b),
+							author$project$JazzDrums$drumseq(model.song.chordProg.end))));
 			default:
 				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
 		}

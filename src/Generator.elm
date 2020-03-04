@@ -125,8 +125,43 @@ insertNoReplace k v d =
 --- GENERATE WALKING BASS
 type alias BassLine = (Dict Int (R.Generator Note))
 
+bassline2seq : Int -> Int -> Dict Int Note -> Tune.Sequence
+bassline2seq vmin vmax dic =
+    let
+        closest pitch note =
+            let
+                oct = pitch//12 - 1
+                below = note2pitch (oct-1) note
+                center = note2pitch oct note
+                above = note2pitch (oct+1) note
+                b_gap = abs (below-pitch)
+                c_gap = abs (center-pitch)
+                a_gap = abs (above-pitch)
+                min3 = min b_gap (min c_gap a_gap)
+                closestnote = if min3 == b_gap then below else if min3 == c_gap then center else above
+            in
+                if closestnote < vmin then closestnote + 12 else if closestnote > vmax then closestnote-12 else closestnote
+
+    in
+        Dict.toList dic |>
+        List.sortBy Tuple.first |>
+        List.foldl
+            (\(k, v) l -> case l of
+                [] -> [(k, note2pitch 1 v)]
+                h::_ -> (k, closest (Tuple.second h) v)::l)
+            []
+        |> List.concatMap
+            (\(k, p) -> [ Tune.Event (toFloat k) True p "bass" 1
+                        , Tune.Event (toFloat (k+1)) False p "bass" 1 ]
+            )
+
 basslineToSequence : Dict Int Note -> Tune.Sequence
-basslineToSequence dic =
+basslineToSequence = bassline2seq 16 40
+
+
+
+basslineToSequence_old : Dict Int Note -> Tune.Sequence
+basslineToSequence_old dic =
     List.concatMap 
         (\(k, v) -> [ Tune.Event (toFloat k) True (note2pitch 1 v) "bass" 1
                  , Tune.Event (toFloat (k+1)) False (note2pitch 1 v) "bass" 1 ]

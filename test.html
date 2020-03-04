@@ -22,7 +22,8 @@
     });
 
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const instruments = {bass: bassBufInstrument(ctx)};
+    const instruments = { bass: bassBufInstrument(ctx)
+                        , drums: drumsBufInstrument(ctx) };
     //bassBufInstrument(ctx);
 
     var BPM = 120;
