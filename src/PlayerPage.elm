@@ -65,16 +65,13 @@ update msg model =
         SeqFinished -> ( model, Cmd.batch [ Tune.setCursor 0
                                           , genSequence model ]
                        )
-        SequenceGenerated b -> (model, Tune.setSequence 
-                                       <| b ++ (JazzDrums.drumseq model.song.chordProg.end))
+        SequenceGenerated b -> (model, Tune.setSequence b)
         _ -> (model, Cmd.none)
-
---genBassLine : SubModel -> Cmd SubMsg
---genBassLine m = R.generate SequenceGenerated (JazzBass.bassLineGenerator m.song.chordProg m.song.beatsPerBar)
 
 genSequence : SubModel -> Cmd SubMsg
 genSequence m =
-    G.mergeSeqGenerators [ JazzBass.sequenceGenerator ] m.song.chordProg m.song.beatsPerBar
+    G.mergeSeqGenerators [ JazzBass.sequenceGenerator
+                         , JazzDrums.sequenceGenerator ] m.song.chordProg m.song.beatsPerBar
     |> R.generate SequenceGenerated
 
 type alias Grid = List { len : Float, chord : (Maybe G.Chord, Float) }

@@ -165,6 +165,7 @@ const drumsBufInstrument = ctx => {
         stopNote: function(pitch) {
             },
         startNote: function(pitch, gain) {
+            console.log(pitch);
             let bufferSource = ctx.createBufferSource()
             const gainNode = ctx.createGain();
             gainNode.gain.setValueAtTime(gain, ctx.currentTime);
