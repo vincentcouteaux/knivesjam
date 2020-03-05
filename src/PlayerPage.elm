@@ -7,6 +7,7 @@ import Tune
 import Random as R
 import Dict exposing (Dict)
 import JazzDrums
+import JazzBass
 
 type alias Song = { chordProg : G.ChordProg
                   , title : String
@@ -37,7 +38,7 @@ type SubMsg =
     | SetBpm Float
     | SetCursor Float
     | SeqFinished
-    | SequenceGenerated (Dict Int G.Note)
+    | SequenceGenerated Tune.Sequence
     | Edit
     | ToLibrary
     
@@ -48,7 +49,7 @@ init = { barsPerLine = 4
        , bpm = 120
        , cursor = 0
        }
-initCmd = R.generate SequenceGenerated G.bbbass
+initCmd = Cmd.none --R.generate SequenceGenerated JazzBass.bbbass
 
 update : SubMsg -> SubModel -> (SubModel, Cmd SubMsg)
 update msg model = 
@@ -59,18 +60,22 @@ update msg model =
                       )
         SetBpm f -> ({ model | bpm=f }, Tune.setBpm f)
         SetCursor f -> (model, Cmd.batch [ Tune.setCursor f
-                                         , genBassLine model ]
+                                         , genSequence model ]
                        )
         SeqFinished -> ( model, Cmd.batch [ Tune.setCursor 0
-                                          , genBassLine model ]
+                                          , genSequence model ]
                        )
         SequenceGenerated b -> (model, Tune.setSequence 
-                                       <| (G.basslineToSequence b) ++ (JazzDrums.drumseq model.song.chordProg.end))
+                                       <| b ++ (JazzDrums.drumseq model.song.chordProg.end))
         _ -> (model, Cmd.none)
 
-genBassLine : SubModel -> Cmd SubMsg
-genBassLine m = R.generate SequenceGenerated (G.bassLineGenerator m.song.chordProg m.song.beatsPerBar)
+--genBassLine : SubModel -> Cmd SubMsg
+--genBassLine m = R.generate SequenceGenerated (JazzBass.bassLineGenerator m.song.chordProg m.song.beatsPerBar)
 
+genSequence : SubModel -> Cmd SubMsg
+genSequence m =
+    G.mergeSeqGenerators [ JazzBass.sequenceGenerator ] m.song.chordProg m.song.beatsPerBar
+    |> R.generate SequenceGenerated
 
 type alias Grid = List { len : Float, chord : (Maybe G.Chord, Float) }
 

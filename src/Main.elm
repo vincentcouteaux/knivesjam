@@ -106,7 +106,7 @@ update msg model =
                                 |> asPlayerModIn model
                                 |> setLibrary (L.addSong model.libraryModel newsong)
                     in
-                    ({ newmod | curPage = Player }, Cmd.map (\sm -> PpEvent sm) (Pp.genBassLine newmod.playerModel)) 
+                    ({ newmod | curPage = Player }, genSequence newmod) 
                 _ ->
                     let 
                         (newmod, newcmd) = E.update submsg model.editorModel
@@ -122,9 +122,9 @@ update msg model =
                             s |> Pp.asSongIn model.playerModel
                               |> asPlayerModIn model
                     in
-                        ({ newmod | curPage = Player }, Cmd.none)
+                        ({ newmod | curPage = Player }, genSequence newmod)
                 L.Close ->
-                    ({ model | curPage = Player }, Cmd.none)
+                    ({ model | curPage = Player }, genSequence model)
 
                 L.NewSong ->
                     ({ model | editorModel = E.init, curPage = Editor }, Cmd.none)
@@ -138,6 +138,9 @@ update msg model =
         ChangePage newp -> ({ model | curPage = newp }, Cmd.none)
 
         ResetDialog -> (resetDialog model, Cmd.none)
+
+genSequence : Model -> Cmd Msg
+genSequence m = Cmd.map (\sm -> PpEvent sm) (Pp.genSequence m.playerModel)
 
 subscriptions : Model -> Sub Msg
 subscriptions model =

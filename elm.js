@@ -853,280 +853,6 @@ var _Basics_xor = F2(function(a, b) { return a !== b; });
 
 
 
-var _Bitwise_and = F2(function(a, b)
-{
-	return a & b;
-});
-
-var _Bitwise_or = F2(function(a, b)
-{
-	return a | b;
-});
-
-var _Bitwise_xor = F2(function(a, b)
-{
-	return a ^ b;
-});
-
-function _Bitwise_complement(a)
-{
-	return ~a;
-};
-
-var _Bitwise_shiftLeftBy = F2(function(offset, a)
-{
-	return a << offset;
-});
-
-var _Bitwise_shiftRightBy = F2(function(offset, a)
-{
-	return a >> offset;
-});
-
-var _Bitwise_shiftRightZfBy = F2(function(offset, a)
-{
-	return a >>> offset;
-});
-
-
-
-// TASKS
-
-function _Scheduler_succeed(value)
-{
-	return {
-		$: 0,
-		a: value
-	};
-}
-
-function _Scheduler_fail(error)
-{
-	return {
-		$: 1,
-		a: error
-	};
-}
-
-function _Scheduler_binding(callback)
-{
-	return {
-		$: 2,
-		b: callback,
-		c: null
-	};
-}
-
-var _Scheduler_andThen = F2(function(callback, task)
-{
-	return {
-		$: 3,
-		b: callback,
-		d: task
-	};
-});
-
-var _Scheduler_onError = F2(function(callback, task)
-{
-	return {
-		$: 4,
-		b: callback,
-		d: task
-	};
-});
-
-function _Scheduler_receive(callback)
-{
-	return {
-		$: 5,
-		b: callback
-	};
-}
-
-
-// PROCESSES
-
-var _Scheduler_guid = 0;
-
-function _Scheduler_rawSpawn(task)
-{
-	var proc = {
-		$: 0,
-		e: _Scheduler_guid++,
-		f: task,
-		g: null,
-		h: []
-	};
-
-	_Scheduler_enqueue(proc);
-
-	return proc;
-}
-
-function _Scheduler_spawn(task)
-{
-	return _Scheduler_binding(function(callback) {
-		callback(_Scheduler_succeed(_Scheduler_rawSpawn(task)));
-	});
-}
-
-function _Scheduler_rawSend(proc, msg)
-{
-	proc.h.push(msg);
-	_Scheduler_enqueue(proc);
-}
-
-var _Scheduler_send = F2(function(proc, msg)
-{
-	return _Scheduler_binding(function(callback) {
-		_Scheduler_rawSend(proc, msg);
-		callback(_Scheduler_succeed(_Utils_Tuple0));
-	});
-});
-
-function _Scheduler_kill(proc)
-{
-	return _Scheduler_binding(function(callback) {
-		var task = proc.f;
-		if (task.$ === 2 && task.c)
-		{
-			task.c();
-		}
-
-		proc.f = null;
-
-		callback(_Scheduler_succeed(_Utils_Tuple0));
-	});
-}
-
-
-/* STEP PROCESSES
-
-type alias Process =
-  { $ : tag
-  , id : unique_id
-  , root : Task
-  , stack : null | { $: SUCCEED | FAIL, a: callback, b: stack }
-  , mailbox : [msg]
-  }
-
-*/
-
-
-var _Scheduler_working = false;
-var _Scheduler_queue = [];
-
-
-function _Scheduler_enqueue(proc)
-{
-	_Scheduler_queue.push(proc);
-	if (_Scheduler_working)
-	{
-		return;
-	}
-	_Scheduler_working = true;
-	while (proc = _Scheduler_queue.shift())
-	{
-		_Scheduler_step(proc);
-	}
-	_Scheduler_working = false;
-}
-
-
-function _Scheduler_step(proc)
-{
-	while (proc.f)
-	{
-		var rootTag = proc.f.$;
-		if (rootTag === 0 || rootTag === 1)
-		{
-			while (proc.g && proc.g.$ !== rootTag)
-			{
-				proc.g = proc.g.i;
-			}
-			if (!proc.g)
-			{
-				return;
-			}
-			proc.f = proc.g.b(proc.f.a);
-			proc.g = proc.g.i;
-		}
-		else if (rootTag === 2)
-		{
-			proc.f.c = proc.f.b(function(newRoot) {
-				proc.f = newRoot;
-				_Scheduler_enqueue(proc);
-			});
-			return;
-		}
-		else if (rootTag === 5)
-		{
-			if (proc.h.length === 0)
-			{
-				return;
-			}
-			proc.f = proc.f.b(proc.h.shift());
-		}
-		else // if (rootTag === 3 || rootTag === 4)
-		{
-			proc.g = {
-				$: rootTag === 3 ? 0 : 1,
-				b: proc.f.b,
-				i: proc.g
-			};
-			proc.f = proc.f.d;
-		}
-	}
-}
-
-
-
-function _Time_now(millisToPosix)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		callback(_Scheduler_succeed(millisToPosix(Date.now())));
-	});
-}
-
-var _Time_setInterval = F2(function(interval, task)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		var id = setInterval(function() { _Scheduler_rawSpawn(task); }, interval);
-		return function() { clearInterval(id); };
-	});
-});
-
-function _Time_here()
-{
-	return _Scheduler_binding(function(callback)
-	{
-		callback(_Scheduler_succeed(
-			A2(elm$time$Time$customZone, -(new Date().getTimezoneOffset()), _List_Nil)
-		));
-	});
-}
-
-
-function _Time_getZoneName()
-{
-	return _Scheduler_binding(function(callback)
-	{
-		try
-		{
-			var name = elm$time$Time$Name(Intl.DateTimeFormat().resolvedOptions().timeZone);
-		}
-		catch (e)
-		{
-			var name = elm$time$Time$Offset(new Date().getTimezoneOffset());
-		}
-		callback(_Scheduler_succeed(name));
-	});
-}
-
-
-
 function _Char_toCode(char)
 {
 	var code = char.charCodeAt(0);
@@ -1915,6 +1641,197 @@ function _Json_addEntry(func)
 }
 
 var _Json_encodeNull = _Json_wrap(null);
+
+
+
+// TASKS
+
+function _Scheduler_succeed(value)
+{
+	return {
+		$: 0,
+		a: value
+	};
+}
+
+function _Scheduler_fail(error)
+{
+	return {
+		$: 1,
+		a: error
+	};
+}
+
+function _Scheduler_binding(callback)
+{
+	return {
+		$: 2,
+		b: callback,
+		c: null
+	};
+}
+
+var _Scheduler_andThen = F2(function(callback, task)
+{
+	return {
+		$: 3,
+		b: callback,
+		d: task
+	};
+});
+
+var _Scheduler_onError = F2(function(callback, task)
+{
+	return {
+		$: 4,
+		b: callback,
+		d: task
+	};
+});
+
+function _Scheduler_receive(callback)
+{
+	return {
+		$: 5,
+		b: callback
+	};
+}
+
+
+// PROCESSES
+
+var _Scheduler_guid = 0;
+
+function _Scheduler_rawSpawn(task)
+{
+	var proc = {
+		$: 0,
+		e: _Scheduler_guid++,
+		f: task,
+		g: null,
+		h: []
+	};
+
+	_Scheduler_enqueue(proc);
+
+	return proc;
+}
+
+function _Scheduler_spawn(task)
+{
+	return _Scheduler_binding(function(callback) {
+		callback(_Scheduler_succeed(_Scheduler_rawSpawn(task)));
+	});
+}
+
+function _Scheduler_rawSend(proc, msg)
+{
+	proc.h.push(msg);
+	_Scheduler_enqueue(proc);
+}
+
+var _Scheduler_send = F2(function(proc, msg)
+{
+	return _Scheduler_binding(function(callback) {
+		_Scheduler_rawSend(proc, msg);
+		callback(_Scheduler_succeed(_Utils_Tuple0));
+	});
+});
+
+function _Scheduler_kill(proc)
+{
+	return _Scheduler_binding(function(callback) {
+		var task = proc.f;
+		if (task.$ === 2 && task.c)
+		{
+			task.c();
+		}
+
+		proc.f = null;
+
+		callback(_Scheduler_succeed(_Utils_Tuple0));
+	});
+}
+
+
+/* STEP PROCESSES
+
+type alias Process =
+  { $ : tag
+  , id : unique_id
+  , root : Task
+  , stack : null | { $: SUCCEED | FAIL, a: callback, b: stack }
+  , mailbox : [msg]
+  }
+
+*/
+
+
+var _Scheduler_working = false;
+var _Scheduler_queue = [];
+
+
+function _Scheduler_enqueue(proc)
+{
+	_Scheduler_queue.push(proc);
+	if (_Scheduler_working)
+	{
+		return;
+	}
+	_Scheduler_working = true;
+	while (proc = _Scheduler_queue.shift())
+	{
+		_Scheduler_step(proc);
+	}
+	_Scheduler_working = false;
+}
+
+
+function _Scheduler_step(proc)
+{
+	while (proc.f)
+	{
+		var rootTag = proc.f.$;
+		if (rootTag === 0 || rootTag === 1)
+		{
+			while (proc.g && proc.g.$ !== rootTag)
+			{
+				proc.g = proc.g.i;
+			}
+			if (!proc.g)
+			{
+				return;
+			}
+			proc.f = proc.g.b(proc.f.a);
+			proc.g = proc.g.i;
+		}
+		else if (rootTag === 2)
+		{
+			proc.f.c = proc.f.b(function(newRoot) {
+				proc.f = newRoot;
+				_Scheduler_enqueue(proc);
+			});
+			return;
+		}
+		else if (rootTag === 5)
+		{
+			if (proc.h.length === 0)
+			{
+				return;
+			}
+			proc.f = proc.f.b(proc.h.shift());
+		}
+		else // if (rootTag === 3 || rootTag === 4)
+		{
+			proc.g = {
+				$: rootTag === 3 ? 0 : 1,
+				b: proc.f.b,
+				i: proc.g
+			};
+			proc.f = proc.f.d;
+		}
+	}
+}
 
 
 
@@ -4000,6 +3917,89 @@ function _VirtualDom_dekey(keyedNode)
 
 
 
+var _Bitwise_and = F2(function(a, b)
+{
+	return a & b;
+});
+
+var _Bitwise_or = F2(function(a, b)
+{
+	return a | b;
+});
+
+var _Bitwise_xor = F2(function(a, b)
+{
+	return a ^ b;
+});
+
+function _Bitwise_complement(a)
+{
+	return ~a;
+};
+
+var _Bitwise_shiftLeftBy = F2(function(offset, a)
+{
+	return a << offset;
+});
+
+var _Bitwise_shiftRightBy = F2(function(offset, a)
+{
+	return a >> offset;
+});
+
+var _Bitwise_shiftRightZfBy = F2(function(offset, a)
+{
+	return a >>> offset;
+});
+
+
+
+function _Time_now(millisToPosix)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(millisToPosix(Date.now())));
+	});
+}
+
+var _Time_setInterval = F2(function(interval, task)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var id = setInterval(function() { _Scheduler_rawSpawn(task); }, interval);
+		return function() { clearInterval(id); };
+	});
+});
+
+function _Time_here()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(
+			A2(elm$time$Time$customZone, -(new Date().getTimezoneOffset()), _List_Nil)
+		));
+	});
+}
+
+
+function _Time_getZoneName()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		try
+		{
+			var name = elm$time$Time$Name(Intl.DateTimeFormat().resolvedOptions().timeZone);
+		}
+		catch (e)
+		{
+			var name = elm$time$Time$Offset(new Date().getTimezoneOffset());
+		}
+		callback(_Scheduler_succeed(name));
+	});
+}
+
+
+
 
 // ELEMENT
 
@@ -4945,710 +4945,6 @@ var author$project$PlayerPage$init = {
 	playing: false,
 	song: A4(author$project$PlayerPage$Song, author$project$Generator$blueBossa, 'Blue Bossa', 'Dexter Gordon', 4)
 };
-var elm$core$Basics$negate = function (n) {
-	return -n;
-};
-var author$project$Generator$note2pitch = F2(
-	function (oct, n) {
-		var base = function () {
-			var _n1 = n.name;
-			switch (_n1.$) {
-				case 'C':
-					return 0;
-				case 'D':
-					return 2;
-				case 'E':
-					return 4;
-				case 'F':
-					return 5;
-				case 'G':
-					return 7;
-				case 'A':
-					return 9;
-				default:
-					return 11;
-			}
-		}();
-		var alt = function () {
-			var _n0 = n.alt;
-			switch (_n0.$) {
-				case 'Natural':
-					return 0;
-				case 'Flat':
-					return -1;
-				default:
-					return 1;
-			}
-		}();
-		return ((12 * (oct + 1)) + base) + alt;
-	});
-var author$project$Generator$B = {$: 'B'};
-var author$project$Generator$Sharp = {$: 'Sharp'};
-var elm$core$Basics$modBy = _Basics_modBy;
-var author$project$Generator$pitch2note = function (n) {
-	var _n0 = A2(elm$core$Basics$modBy, 12, n);
-	switch (_n0) {
-		case 0:
-			return A2(author$project$Generator$Note, author$project$Generator$C, author$project$Generator$Natural);
-		case 1:
-			return A2(author$project$Generator$Note, author$project$Generator$D, author$project$Generator$Flat);
-		case 2:
-			return A2(author$project$Generator$Note, author$project$Generator$D, author$project$Generator$Natural);
-		case 3:
-			return A2(author$project$Generator$Note, author$project$Generator$E, author$project$Generator$Flat);
-		case 4:
-			return A2(author$project$Generator$Note, author$project$Generator$E, author$project$Generator$Natural);
-		case 5:
-			return A2(author$project$Generator$Note, author$project$Generator$F, author$project$Generator$Natural);
-		case 6:
-			return A2(author$project$Generator$Note, author$project$Generator$F, author$project$Generator$Sharp);
-		case 7:
-			return A2(author$project$Generator$Note, author$project$Generator$G, author$project$Generator$Natural);
-		case 8:
-			return A2(author$project$Generator$Note, author$project$Generator$A, author$project$Generator$Flat);
-		case 9:
-			return A2(author$project$Generator$Note, author$project$Generator$A, author$project$Generator$Natural);
-		case 10:
-			return A2(author$project$Generator$Note, author$project$Generator$B, author$project$Generator$Flat);
-		default:
-			return A2(author$project$Generator$Note, author$project$Generator$B, author$project$Generator$Natural);
-	}
-};
-var elm$core$Basics$remainderBy = _Basics_remainderBy;
-var elm$core$Bitwise$and = _Bitwise_and;
-var elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
-var elm$random$Random$Generator = function (a) {
-	return {$: 'Generator', a: a};
-};
-var elm$random$Random$Seed = F2(
-	function (a, b) {
-		return {$: 'Seed', a: a, b: b};
-	});
-var elm$random$Random$next = function (_n0) {
-	var state0 = _n0.a;
-	var incr = _n0.b;
-	return A2(elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
-};
-var elm$core$Bitwise$xor = _Bitwise_xor;
-var elm$random$Random$peel = function (_n0) {
-	var state = _n0.a;
-	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
-	return ((word >>> 22) ^ word) >>> 0;
-};
-var elm$random$Random$int = F2(
-	function (a, b) {
-		return elm$random$Random$Generator(
-			function (seed0) {
-				var _n0 = (_Utils_cmp(a, b) < 0) ? _Utils_Tuple2(a, b) : _Utils_Tuple2(b, a);
-				var lo = _n0.a;
-				var hi = _n0.b;
-				var range = (hi - lo) + 1;
-				if (!((range - 1) & range)) {
-					return _Utils_Tuple2(
-						(((range - 1) & elm$random$Random$peel(seed0)) >>> 0) + lo,
-						elm$random$Random$next(seed0));
-				} else {
-					var threshhold = (((-range) >>> 0) % range) >>> 0;
-					var accountForBias = function (seed) {
-						accountForBias:
-						while (true) {
-							var x = elm$random$Random$peel(seed);
-							var seedN = elm$random$Random$next(seed);
-							if (_Utils_cmp(x, threshhold) < 0) {
-								var $temp$seed = seedN;
-								seed = $temp$seed;
-								continue accountForBias;
-							} else {
-								return _Utils_Tuple2((x % range) + lo, seedN);
-							}
-						}
-					};
-					return accountForBias(seed0);
-				}
-			});
-	});
-var elm$random$Random$map = F2(
-	function (func, _n0) {
-		var genA = _n0.a;
-		return elm$random$Random$Generator(
-			function (seed0) {
-				var _n1 = genA(seed0);
-				var a = _n1.a;
-				var seed1 = _n1.b;
-				return _Utils_Tuple2(
-					func(a),
-					seed1);
-			});
-	});
-var author$project$Generator$chromatism = function (n) {
-	var below = author$project$Generator$pitch2note(
-		A2(author$project$Generator$note2pitch, 0, n) - 1);
-	var above = author$project$Generator$pitch2note(
-		A2(author$project$Generator$note2pitch, 0, n) + 1);
-	return A2(
-		elm$random$Random$map,
-		function (flip) {
-			return (!flip) ? above : below;
-		},
-		A2(elm$random$Random$int, 0, 1));
-};
-var elm$core$Maybe$Just = function (a) {
-	return {$: 'Just', a: a};
-};
-var elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _n1 = A2(elm$core$Basics$compare, targetKey, key);
-				switch (_n1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
-	});
-var elm$core$Dict$member = F2(
-	function (key, dict) {
-		var _n0 = A2(elm$core$Dict$get, key, dict);
-		if (_n0.$ === 'Just') {
-			return true;
-		} else {
-			return false;
-		}
-	});
-var author$project$Generator$insertNoReplace = F3(
-	function (k, v, d) {
-		return A2(elm$core$Dict$member, k, d) ? d : A3(elm$core$Dict$insert, k, v, d);
-	});
-var elm$core$Dict$foldl = F3(
-	function (func, acc, dict) {
-		foldl:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return acc;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var $temp$func = func,
-					$temp$acc = A3(
-					func,
-					key,
-					value,
-					A3(elm$core$Dict$foldl, func, acc, left)),
-					$temp$dict = right;
-				func = $temp$func;
-				acc = $temp$acc;
-				dict = $temp$dict;
-				continue foldl;
-			}
-		}
-	});
-var elm$random$Random$andThen = F2(
-	function (callback, _n0) {
-		var genA = _n0.a;
-		return elm$random$Random$Generator(
-			function (seed) {
-				var _n1 = genA(seed);
-				var result = _n1.a;
-				var newSeed = _n1.b;
-				var _n2 = callback(result);
-				var genB = _n2.a;
-				return genB(newSeed);
-			});
-	});
-var author$project$Generator$addApproach = F2(
-	function (bl, cplen) {
-		var addbefore = F3(
-			function (k, v, newdic) {
-				return A3(
-					author$project$Generator$insertNoReplace,
-					A2(elm$core$Basics$modBy, cplen, k - 1),
-					A2(
-						elm$random$Random$andThen,
-						function (n) {
-							return author$project$Generator$chromatism(n);
-						},
-						v),
-					newdic);
-			});
-		return A3(elm$core$Dict$foldl, addbefore, bl, bl);
-	});
-var TSFoster$elm_tuple_extra$Tuple3$first = function (_n0) {
-	var a = _n0.a;
-	return a;
-};
-var TSFoster$elm_tuple_extra$Tuple3$second = function (_n0) {
-	var b = _n0.b;
-	return b;
-};
-var TSFoster$elm_tuple_extra$Tuple3$third = function (_n0) {
-	var c = _n0.c;
-	return c;
-};
-var elm$random$Random$constant = function (value) {
-	return elm$random$Random$Generator(
-		function (seed) {
-			return _Utils_Tuple2(value, seed);
-		});
-};
-var elm$random$Random$map2 = F3(
-	function (func, _n0, _n1) {
-		var genA = _n0.a;
-		var genB = _n1.a;
-		return elm$random$Random$Generator(
-			function (seed0) {
-				var _n2 = genA(seed0);
-				var a = _n2.a;
-				var seed1 = _n2.b;
-				var _n3 = genB(seed1);
-				var b = _n3.a;
-				var seed2 = _n3.b;
-				return _Utils_Tuple2(
-					A2(func, a, b),
-					seed2);
-			});
-	});
-var author$project$Generator$listGen2GenList = function (l) {
-	return A3(
-		elm$core$List$foldl,
-		F2(
-			function (gen, list) {
-				return A3(
-					elm$random$Random$map2,
-					F2(
-						function (g, l_) {
-							return A2(elm$core$List$cons, g, l_);
-						}),
-					gen,
-					list);
-			}),
-		elm$random$Random$constant(_List_Nil),
-		l);
-};
-var elm$core$List$foldrHelper = F4(
-	function (fn, acc, ctr, ls) {
-		if (!ls.b) {
-			return acc;
-		} else {
-			var a = ls.a;
-			var r1 = ls.b;
-			if (!r1.b) {
-				return A2(fn, a, acc);
-			} else {
-				var b = r1.a;
-				var r2 = r1.b;
-				if (!r2.b) {
-					return A2(
-						fn,
-						a,
-						A2(fn, b, acc));
-				} else {
-					var c = r2.a;
-					var r3 = r2.b;
-					if (!r3.b) {
-						return A2(
-							fn,
-							a,
-							A2(
-								fn,
-								b,
-								A2(fn, c, acc)));
-					} else {
-						var d = r3.a;
-						var r4 = r3.b;
-						var res = (ctr > 500) ? A3(
-							elm$core$List$foldl,
-							fn,
-							acc,
-							elm$core$List$reverse(r4)) : A4(elm$core$List$foldrHelper, fn, acc, ctr + 1, r4);
-						return A2(
-							fn,
-							a,
-							A2(
-								fn,
-								b,
-								A2(
-									fn,
-									c,
-									A2(fn, d, res))));
-					}
-				}
-			}
-		}
-	});
-var elm$core$List$foldr = F3(
-	function (fn, acc, ls) {
-		return A4(elm$core$List$foldrHelper, fn, acc, 0, ls);
-	});
-var elm$core$List$map = F2(
-	function (f, xs) {
-		return A3(
-			elm$core$List$foldr,
-			F2(
-				function (x, acc) {
-					return A2(
-						elm$core$List$cons,
-						f(x),
-						acc);
-				}),
-			_List_Nil,
-			xs);
-	});
-var elm$random$Random$pair = F2(
-	function (genA, genB) {
-		return A3(
-			elm$random$Random$map2,
-			F2(
-				function (a, b) {
-					return _Utils_Tuple2(a, b);
-				}),
-			genA,
-			genB);
-	});
-var author$project$Generator$addFill = F2(
-	function (bl, listgen) {
-		var l = A2(
-			elm$core$List$map,
-			function (_n0) {
-				var k = _n0.a;
-				var v = _n0.b;
-				return A2(
-					elm$random$Random$pair,
-					elm$random$Random$constant(k),
-					v);
-			},
-			elm$core$Dict$toList(bl));
-		var f1 = author$project$Generator$listGen2GenList(l);
-		var f2 = A3(
-			elm$core$List$foldl,
-			F2(
-				function (gen, list) {
-					return A3(
-						elm$random$Random$map2,
-						F2(
-							function (g3, l_) {
-								return A2(
-									elm$core$List$cons,
-									TSFoster$elm_tuple_extra$Tuple3$first(g3),
-									A2(
-										elm$core$List$cons,
-										TSFoster$elm_tuple_extra$Tuple3$second(g3),
-										A2(
-											elm$core$List$cons,
-											TSFoster$elm_tuple_extra$Tuple3$third(g3),
-											l_)));
-							}),
-						gen,
-						list);
-				}),
-			f1,
-			listgen);
-		return A2(elm$random$Random$map, elm$core$Dict$fromList, f2);
-	});
-var author$project$Generator$NA = {$: 'NA'};
-var elm$core$List$sortBy = _List_sortBy;
-var author$project$Generator$getChordAt = F2(
-	function (cp, time) {
-		var sortedChords = A2(
-			elm$core$List$sortBy,
-			function ($) {
-				return $.time;
-			},
-			cp.chords);
-		var chInSorted = F2(
-			function (sortList, ch) {
-				chInSorted:
-				while (true) {
-					if (!sortList.b) {
-						return ch;
-					} else {
-						var h = sortList.a;
-						var t = sortList.b;
-						if (_Utils_cmp(h.time, time) > 0) {
-							return ch;
-						} else {
-							var $temp$sortList = t,
-								$temp$ch = h.chord;
-							sortList = $temp$sortList;
-							ch = $temp$ch;
-							continue chInSorted;
-						}
-					}
-				}
-			});
-		if (!sortedChords.b) {
-			return A3(author$project$Generator$chord, author$project$Generator$C, author$project$Generator$Natural, author$project$Generator$NA);
-		} else {
-			var h = sortedChords.a;
-			var t = sortedChords.b;
-			return A2(chInSorted, t, h.chord);
-		}
-	});
-var author$project$Generator$getSemitonesOf = F2(
-	function (s, c) {
-		return author$project$Generator$pitch2note(
-			A2(author$project$Generator$note2pitch, 0, c.note) + s);
-	});
-var author$project$Generator$getFifthOf = function (c) {
-	var _n0 = c.type_;
-	switch (_n0.$) {
-		case 'Min7b5':
-			return A2(author$project$Generator$getSemitonesOf, 6, c);
-		case 'Dim':
-			return A2(author$project$Generator$getSemitonesOf, 6, c);
-		case 'Maj7s5':
-			return A2(author$project$Generator$getSemitonesOf, 8, c);
-		case 'Dom7s5':
-			return A2(author$project$Generator$getSemitonesOf, 8, c);
-		case 'Alt7':
-			return A2(author$project$Generator$getSemitonesOf, 8, c);
-		default:
-			return A2(author$project$Generator$getSemitonesOf, 7, c);
-	}
-};
-var elm$core$Basics$ge = _Utils_ge;
-var author$project$Generator$addPump = F3(
-	function (bl, cp, signature) {
-		var do2bars = F2(
-			function (bl_, from) {
-				return A3(
-					author$project$Generator$insertNoReplace,
-					from,
-					elm$random$Random$constant(
-						A2(author$project$Generator$getChordAt, cp, from).note),
-					A3(
-						author$project$Generator$insertNoReplace,
-						from + signature,
-						elm$random$Random$constant(
-							author$project$Generator$getFifthOf(
-								A2(author$project$Generator$getChordAt, cp, from + signature))),
-						bl_));
-			});
-		var doRec = F2(
-			function (bl_, from) {
-				doRec:
-				while (true) {
-					if (_Utils_cmp(from, cp.end) > -1) {
-						return bl_;
-					} else {
-						var $temp$bl_ = A2(do2bars, bl_, from),
-							$temp$from = from + (2 * signature);
-						bl_ = $temp$bl_;
-						from = $temp$from;
-						continue doRec;
-					}
-				}
-			});
-		return A2(doRec, bl, 0);
-	});
-var author$project$Generator$getNinethOf = function (c) {
-	var _n0 = c.type_;
-	switch (_n0.$) {
-		case 'Alt7':
-			return A2(author$project$Generator$getSemitonesOf, 3, c);
-		case 'Dom7b9':
-			return A2(author$project$Generator$getSemitonesOf, 3, c);
-		default:
-			return A2(author$project$Generator$getSemitonesOf, 2, c);
-	}
-};
-var author$project$Generator$getSeventhOf = function (c) {
-	var _n0 = c.type_;
-	switch (_n0.$) {
-		case 'Maj7':
-			return A2(author$project$Generator$getSemitonesOf, 11, c);
-		case 'Dim':
-			return A2(author$project$Generator$getSemitonesOf, 11, c);
-		case 'MinMaj':
-			return A2(author$project$Generator$getSemitonesOf, 11, c);
-		case 'Maj7s5':
-			return A2(author$project$Generator$getSemitonesOf, 11, c);
-		default:
-			return A2(author$project$Generator$getSemitonesOf, 10, c);
-	}
-};
-var author$project$Generator$getThirdOf = function (c) {
-	var _n0 = c.type_;
-	switch (_n0.$) {
-		case 'Min7':
-			return A2(author$project$Generator$getSemitonesOf, 3, c);
-		case 'Min7b5':
-			return A2(author$project$Generator$getSemitonesOf, 3, c);
-		case 'Dim':
-			return A2(author$project$Generator$getSemitonesOf, 3, c);
-		case 'MinMaj':
-			return A2(author$project$Generator$getSemitonesOf, 3, c);
-		default:
-			return A2(author$project$Generator$getSemitonesOf, 4, c);
-	}
-};
-var author$project$Generator$barFillArray = function (n) {
-	switch (n) {
-		case 0:
-			return {fourth: author$project$Generator$getNinethOf, second: author$project$Generator$getNinethOf, third: author$project$Generator$getThirdOf};
-		case 1:
-			return {
-				fourth: author$project$Generator$getNinethOf,
-				second: author$project$Generator$getSeventhOf,
-				third: function ($) {
-					return $.note;
-				}
-			};
-		case 2:
-			return {fourth: author$project$Generator$getSeventhOf, second: author$project$Generator$getThirdOf, third: author$project$Generator$getFifthOf};
-		case 3:
-			return {
-				fourth: author$project$Generator$getThirdOf,
-				second: author$project$Generator$getSemitonesOf(1),
-				third: author$project$Generator$getNinethOf
-			};
-		case 4:
-			return {fourth: author$project$Generator$getSeventhOf, second: author$project$Generator$getFifthOf, third: author$project$Generator$getThirdOf};
-		default:
-			return {fourth: author$project$Generator$getNinethOf, second: author$project$Generator$getSeventhOf, third: author$project$Generator$getFifthOf};
-	}
-};
-var author$project$Generator$fillBar = F2(
-	function (cp, from) {
-		var funcGen = A2(
-			elm$random$Random$map,
-			author$project$Generator$barFillArray,
-			A2(elm$random$Random$int, 0, 5));
-		var curChord = A2(author$project$Generator$getChordAt, cp, from);
-		return A2(
-			elm$random$Random$map,
-			function (funcs) {
-				return _Utils_Tuple3(
-					_Utils_Tuple2(
-						from + 1,
-						funcs.second(curChord)),
-					_Utils_Tuple2(
-						from + 2,
-						funcs.third(curChord)),
-					_Utils_Tuple2(
-						from + 3,
-						funcs.fourth(curChord)));
-			},
-			funcGen);
-	});
-var author$project$Generator$fillBarsRec = F2(
-	function (cp, signature) {
-		var doRec = F2(
-			function (l, from) {
-				doRec:
-				while (true) {
-					if (_Utils_cmp(from, cp.end) > -1) {
-						return l;
-					} else {
-						var $temp$l = A2(
-							elm$core$List$cons,
-							A2(author$project$Generator$fillBar, cp, from),
-							l),
-							$temp$from = from + signature;
-						l = $temp$l;
-						from = $temp$from;
-						continue doRec;
-					}
-				}
-			});
-		return A2(doRec, _List_Nil, 0);
-	});
-var author$project$Generator$fondaOnChange = function (cp) {
-	return A3(
-		elm$core$List$foldl,
-		F2(
-			function (evt, bassline) {
-				return A3(
-					elm$core$Dict$insert,
-					elm$core$Basics$floor(evt.time),
-					elm$random$Random$constant(evt.chord.note),
-					bassline);
-			}),
-		elm$core$Dict$empty,
-		cp.chords);
-};
-var author$project$Generator$bassLineGenerator = F2(
-	function (cp, signature) {
-		var basslineNoFill = A2(
-			author$project$Generator$addApproach,
-			A3(
-				author$project$Generator$addPump,
-				author$project$Generator$fondaOnChange(cp),
-				cp,
-				signature),
-			elm$core$Basics$floor(cp.end));
-		return A2(
-			author$project$Generator$addFill,
-			basslineNoFill,
-			A2(author$project$Generator$fillBarsRec, cp, signature));
-	});
-var author$project$Generator$bbbass = A2(author$project$Generator$bassLineGenerator, author$project$Generator$blueBossa, 4);
-var author$project$PlayerPage$SequenceGenerated = function (a) {
-	return {$: 'SequenceGenerated', a: a};
-};
-var elm$random$Random$Generate = function (a) {
-	return {$: 'Generate', a: a};
-};
-var elm$core$Task$andThen = _Scheduler_andThen;
-var elm$core$Task$succeed = _Scheduler_succeed;
-var elm$random$Random$initialSeed = function (x) {
-	var _n0 = elm$random$Random$next(
-		A2(elm$random$Random$Seed, 0, 1013904223));
-	var state1 = _n0.a;
-	var incr = _n0.b;
-	var state2 = (state1 + x) >>> 0;
-	return elm$random$Random$next(
-		A2(elm$random$Random$Seed, state2, incr));
-};
-var elm$time$Time$Name = function (a) {
-	return {$: 'Name', a: a};
-};
-var elm$time$Time$Offset = function (a) {
-	return {$: 'Offset', a: a};
-};
-var elm$time$Time$Zone = F2(
-	function (a, b) {
-		return {$: 'Zone', a: a, b: b};
-	});
-var elm$time$Time$customZone = elm$time$Time$Zone;
-var elm$time$Time$Posix = function (a) {
-	return {$: 'Posix', a: a};
-};
-var elm$time$Time$millisToPosix = elm$time$Time$Posix;
-var elm$time$Time$now = _Time_now(elm$time$Time$millisToPosix);
-var elm$time$Time$posixToMillis = function (_n0) {
-	var millis = _n0.a;
-	return millis;
-};
-var elm$random$Random$init = A2(
-	elm$core$Task$andThen,
-	function (time) {
-		return elm$core$Task$succeed(
-			elm$random$Random$initialSeed(
-				elm$time$Time$posixToMillis(time)));
-	},
-	elm$time$Time$now);
 var elm$core$Result$isOk = function (result) {
 	if (result.$ === 'Ok') {
 		return true;
@@ -5685,6 +4981,7 @@ var elm$core$Array$initializeHelp = F5(
 		}
 	});
 var elm$core$Basics$le = _Utils_le;
+var elm$core$Basics$remainderBy = _Basics_remainderBy;
 var elm$core$Array$initialize = F2(
 	function (len, fn) {
 		if (len <= 0) {
@@ -5696,6 +4993,9 @@ var elm$core$Array$initialize = F2(
 			return A5(elm$core$Array$initializeHelp, fn, initialFromIndex, len, _List_Nil, tail);
 		}
 	});
+var elm$core$Maybe$Just = function (a) {
+	return {$: 'Just', a: a};
+};
 var elm$core$Result$Err = function (a) {
 	return {$: 'Err', a: a};
 };
@@ -5907,49 +5207,9 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 			}
 		}
 	});
-var elm$core$Platform$sendToApp = _Platform_sendToApp;
-var elm$random$Random$step = F2(
-	function (_n0, seed) {
-		var generator = _n0.a;
-		return generator(seed);
-	});
-var elm$random$Random$onEffects = F3(
-	function (router, commands, seed) {
-		if (!commands.b) {
-			return elm$core$Task$succeed(seed);
-		} else {
-			var generator = commands.a.a;
-			var rest = commands.b;
-			var _n1 = A2(elm$random$Random$step, generator, seed);
-			var value = _n1.a;
-			var newSeed = _n1.b;
-			return A2(
-				elm$core$Task$andThen,
-				function (_n2) {
-					return A3(elm$random$Random$onEffects, router, rest, newSeed);
-				},
-				A2(elm$core$Platform$sendToApp, router, value));
-		}
-	});
-var elm$random$Random$onSelfMsg = F3(
-	function (_n0, _n1, seed) {
-		return elm$core$Task$succeed(seed);
-	});
-var elm$random$Random$cmdMap = F2(
-	function (func, _n0) {
-		var generator = _n0.a;
-		return elm$random$Random$Generate(
-			A2(elm$random$Random$map, func, generator));
-	});
-_Platform_effectManagers['Random'] = _Platform_createManager(elm$random$Random$init, elm$random$Random$onEffects, elm$random$Random$onSelfMsg, elm$random$Random$cmdMap);
-var elm$random$Random$command = _Platform_leaf('Random');
-var elm$random$Random$generate = F2(
-	function (tagger, generator) {
-		return elm$random$Random$command(
-			elm$random$Random$Generate(
-				A2(elm$random$Random$map, tagger, generator)));
-	});
-var author$project$PlayerPage$initCmd = A2(elm$random$Random$generate, author$project$PlayerPage$SequenceGenerated, author$project$Generator$bbbass);
+var elm$core$Platform$Cmd$batch = _Platform_batch;
+var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
+var author$project$PlayerPage$initCmd = elm$core$Platform$Cmd$none;
 var elm$core$Platform$Cmd$map = _Platform_map;
 var author$project$Main$init = function (_n0) {
 	return _Utils_Tuple2(
@@ -6040,6 +5300,62 @@ var author$project$PlayerPage$substract2to2 = function (l) {
 		}
 	}
 };
+var elm$core$Basics$ge = _Utils_ge;
+var elm$core$List$foldrHelper = F4(
+	function (fn, acc, ctr, ls) {
+		if (!ls.b) {
+			return acc;
+		} else {
+			var a = ls.a;
+			var r1 = ls.b;
+			if (!r1.b) {
+				return A2(fn, a, acc);
+			} else {
+				var b = r1.a;
+				var r2 = r1.b;
+				if (!r2.b) {
+					return A2(
+						fn,
+						a,
+						A2(fn, b, acc));
+				} else {
+					var c = r2.a;
+					var r3 = r2.b;
+					if (!r3.b) {
+						return A2(
+							fn,
+							a,
+							A2(
+								fn,
+								b,
+								A2(fn, c, acc)));
+					} else {
+						var d = r3.a;
+						var r4 = r3.b;
+						var res = (ctr > 500) ? A3(
+							elm$core$List$foldl,
+							fn,
+							acc,
+							elm$core$List$reverse(r4)) : A4(elm$core$List$foldrHelper, fn, acc, ctr + 1, r4);
+						return A2(
+							fn,
+							a,
+							A2(
+								fn,
+								b,
+								A2(
+									fn,
+									c,
+									A2(fn, d, res))));
+					}
+				}
+			}
+		}
+	});
+var elm$core$List$foldr = F3(
+	function (fn, acc, ls) {
+		return A4(elm$core$List$foldrHelper, fn, acc, 0, ls);
+	});
 var elm$core$List$append = F2(
 	function (xs, ys) {
 		if (!ys.b) {
@@ -6051,6 +5367,20 @@ var elm$core$List$append = F2(
 var elm$core$List$concat = function (lists) {
 	return A3(elm$core$List$foldr, elm$core$List$append, _List_Nil, lists);
 };
+var elm$core$List$map = F2(
+	function (f, xs) {
+		return A3(
+			elm$core$List$foldr,
+			F2(
+				function (x, acc) {
+					return A2(
+						elm$core$List$cons,
+						f(x),
+						acc);
+				}),
+			_List_Nil,
+			xs);
+	});
 var elm$core$List$concatMap = F2(
 	function (f, list) {
 		return elm$core$List$concat(
@@ -6067,6 +5397,7 @@ var elm$core$List$filter = F2(
 			_List_Nil,
 			list);
 	});
+var elm$core$List$sortBy = _List_sortBy;
 var elm$core$Tuple$second = function (_n0) {
 	var y = _n0.b;
 	return y;
@@ -6217,7 +5548,9 @@ var elm$core$Array$appendHelpBuilder = F2(
 			tail: elm$core$Elm$JsArray$empty
 		} : {nodeList: builder.nodeList, nodeListSize: builder.nodeListSize, tail: appended});
 	});
+var elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
 var elm$core$Array$bitMask = 4294967295 >>> (32 - elm$core$Array$shiftStep);
+var elm$core$Bitwise$and = _Bitwise_and;
 var elm$core$Elm$JsArray$push = _JsArray_push;
 var elm$core$Elm$JsArray$singleton = _JsArray_singleton;
 var elm$core$Elm$JsArray$unsafeGet = _JsArray_unsafeGet;
@@ -6801,8 +6134,6 @@ var author$project$Editor$splitCell = F2(
 				newg);
 		}
 	});
-var elm$core$Platform$Cmd$batch = _Platform_batch;
-var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var author$project$Editor$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -7005,50 +6336,605 @@ var author$project$Main$asPlayerModIn = F2(
 			mod,
 			{playerModel: ppmod});
 	});
-var author$project$Main$resetDialog = function (m) {
-	return _Utils_update(
-		m,
-		{dialogBox: elm$core$Maybe$Nothing});
+var elm$random$Random$Generator = function (a) {
+	return {$: 'Generator', a: a};
 };
-var author$project$Main$setLibrary = F2(
-	function (l, m) {
-		return _Utils_update(
-			m,
-			{libraryModel: l});
+var elm$random$Random$constant = function (value) {
+	return elm$random$Random$Generator(
+		function (seed) {
+			return _Utils_Tuple2(value, seed);
+		});
+};
+var elm$random$Random$map2 = F3(
+	function (func, _n0, _n1) {
+		var genA = _n0.a;
+		var genB = _n1.a;
+		return elm$random$Random$Generator(
+			function (seed0) {
+				var _n2 = genA(seed0);
+				var a = _n2.a;
+				var seed1 = _n2.b;
+				var _n3 = genB(seed1);
+				var b = _n3.a;
+				var seed2 = _n3.b;
+				return _Utils_Tuple2(
+					A2(func, a, b),
+					seed2);
+			});
 	});
-var author$project$PlayerPage$asChordProgIn = F2(
-	function (s, cp) {
-		return _Utils_update(
-			s,
-			{chordProg: cp});
+var author$project$Generator$mergeSeqGenerators = F3(
+	function (l, cp, signature) {
+		return A3(
+			elm$core$List$foldl,
+			F2(
+				function (f, gen) {
+					var curgen = A2(f, cp, signature);
+					return A3(
+						elm$random$Random$map2,
+						F2(
+							function (seq1, seq2) {
+								return _Utils_ap(seq1, seq2);
+							}),
+						curgen,
+						gen);
+				}),
+			elm$random$Random$constant(_List_Nil),
+			l);
 	});
-var author$project$PlayerPage$asSongIn = F2(
-	function (sm, s) {
-		return _Utils_update(
-			sm,
-			{song: s});
+var elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _n1 = A2(elm$core$Basics$compare, targetKey, key);
+				switch (_n1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
+		}
 	});
-var author$project$PlayerPage$genBassLine = function (m) {
+var elm$core$Dict$member = F2(
+	function (key, dict) {
+		var _n0 = A2(elm$core$Dict$get, key, dict);
+		if (_n0.$ === 'Just') {
+			return true;
+		} else {
+			return false;
+		}
+	});
+var author$project$Generator$insertNoReplace = F3(
+	function (k, v, d) {
+		return A2(elm$core$Dict$member, k, d) ? d : A3(elm$core$Dict$insert, k, v, d);
+	});
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var author$project$Generator$note2pitch = F2(
+	function (oct, n) {
+		var base = function () {
+			var _n1 = n.name;
+			switch (_n1.$) {
+				case 'C':
+					return 0;
+				case 'D':
+					return 2;
+				case 'E':
+					return 4;
+				case 'F':
+					return 5;
+				case 'G':
+					return 7;
+				case 'A':
+					return 9;
+				default:
+					return 11;
+			}
+		}();
+		var alt = function () {
+			var _n0 = n.alt;
+			switch (_n0.$) {
+				case 'Natural':
+					return 0;
+				case 'Flat':
+					return -1;
+				default:
+					return 1;
+			}
+		}();
+		return ((12 * (oct + 1)) + base) + alt;
+	});
+var author$project$Generator$B = {$: 'B'};
+var author$project$Generator$Sharp = {$: 'Sharp'};
+var elm$core$Basics$modBy = _Basics_modBy;
+var author$project$Generator$pitch2note = function (n) {
+	var _n0 = A2(elm$core$Basics$modBy, 12, n);
+	switch (_n0) {
+		case 0:
+			return A2(author$project$Generator$Note, author$project$Generator$C, author$project$Generator$Natural);
+		case 1:
+			return A2(author$project$Generator$Note, author$project$Generator$D, author$project$Generator$Flat);
+		case 2:
+			return A2(author$project$Generator$Note, author$project$Generator$D, author$project$Generator$Natural);
+		case 3:
+			return A2(author$project$Generator$Note, author$project$Generator$E, author$project$Generator$Flat);
+		case 4:
+			return A2(author$project$Generator$Note, author$project$Generator$E, author$project$Generator$Natural);
+		case 5:
+			return A2(author$project$Generator$Note, author$project$Generator$F, author$project$Generator$Natural);
+		case 6:
+			return A2(author$project$Generator$Note, author$project$Generator$F, author$project$Generator$Sharp);
+		case 7:
+			return A2(author$project$Generator$Note, author$project$Generator$G, author$project$Generator$Natural);
+		case 8:
+			return A2(author$project$Generator$Note, author$project$Generator$A, author$project$Generator$Flat);
+		case 9:
+			return A2(author$project$Generator$Note, author$project$Generator$A, author$project$Generator$Natural);
+		case 10:
+			return A2(author$project$Generator$Note, author$project$Generator$B, author$project$Generator$Flat);
+		default:
+			return A2(author$project$Generator$Note, author$project$Generator$B, author$project$Generator$Natural);
+	}
+};
+var elm$random$Random$Seed = F2(
+	function (a, b) {
+		return {$: 'Seed', a: a, b: b};
+	});
+var elm$random$Random$next = function (_n0) {
+	var state0 = _n0.a;
+	var incr = _n0.b;
+	return A2(elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
+};
+var elm$core$Bitwise$xor = _Bitwise_xor;
+var elm$random$Random$peel = function (_n0) {
+	var state = _n0.a;
+	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
+	return ((word >>> 22) ^ word) >>> 0;
+};
+var elm$random$Random$int = F2(
+	function (a, b) {
+		return elm$random$Random$Generator(
+			function (seed0) {
+				var _n0 = (_Utils_cmp(a, b) < 0) ? _Utils_Tuple2(a, b) : _Utils_Tuple2(b, a);
+				var lo = _n0.a;
+				var hi = _n0.b;
+				var range = (hi - lo) + 1;
+				if (!((range - 1) & range)) {
+					return _Utils_Tuple2(
+						(((range - 1) & elm$random$Random$peel(seed0)) >>> 0) + lo,
+						elm$random$Random$next(seed0));
+				} else {
+					var threshhold = (((-range) >>> 0) % range) >>> 0;
+					var accountForBias = function (seed) {
+						accountForBias:
+						while (true) {
+							var x = elm$random$Random$peel(seed);
+							var seedN = elm$random$Random$next(seed);
+							if (_Utils_cmp(x, threshhold) < 0) {
+								var $temp$seed = seedN;
+								seed = $temp$seed;
+								continue accountForBias;
+							} else {
+								return _Utils_Tuple2((x % range) + lo, seedN);
+							}
+						}
+					};
+					return accountForBias(seed0);
+				}
+			});
+	});
+var elm$random$Random$map = F2(
+	function (func, _n0) {
+		var genA = _n0.a;
+		return elm$random$Random$Generator(
+			function (seed0) {
+				var _n1 = genA(seed0);
+				var a = _n1.a;
+				var seed1 = _n1.b;
+				return _Utils_Tuple2(
+					func(a),
+					seed1);
+			});
+	});
+var author$project$JazzBass$chromatism = function (n) {
+	var below = author$project$Generator$pitch2note(
+		A2(author$project$Generator$note2pitch, 0, n) - 1);
+	var above = author$project$Generator$pitch2note(
+		A2(author$project$Generator$note2pitch, 0, n) + 1);
 	return A2(
-		elm$random$Random$generate,
-		author$project$PlayerPage$SequenceGenerated,
-		A2(author$project$Generator$bassLineGenerator, m.song.chordProg, m.song.beatsPerBar));
+		elm$random$Random$map,
+		function (flip) {
+			return (!flip) ? above : below;
+		},
+		A2(elm$random$Random$int, 0, 1));
 };
-var author$project$PlayerPage$setComposer = F2(
-	function (c, s) {
-		return _Utils_update(
-			s,
-			{composer: c});
+var elm$core$Dict$foldl = F3(
+	function (func, acc, dict) {
+		foldl:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return acc;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var $temp$func = func,
+					$temp$acc = A3(
+					func,
+					key,
+					value,
+					A3(elm$core$Dict$foldl, func, acc, left)),
+					$temp$dict = right;
+				func = $temp$func;
+				acc = $temp$acc;
+				dict = $temp$dict;
+				continue foldl;
+			}
+		}
 	});
-var author$project$PlayerPage$asTitleIn = F2(
-	function (s, t) {
-		return _Utils_update(
-			s,
-			{title: t});
+var elm$random$Random$andThen = F2(
+	function (callback, _n0) {
+		var genA = _n0.a;
+		return elm$random$Random$Generator(
+			function (seed) {
+				var _n1 = genA(seed);
+				var result = _n1.a;
+				var newSeed = _n1.b;
+				var _n2 = callback(result);
+				var genB = _n2.a;
+				return genB(newSeed);
+			});
 	});
-var author$project$PlayerPage$setTitle = F2(
-	function (t, s) {
-		return A2(author$project$PlayerPage$asTitleIn, s, t);
+var author$project$JazzBass$addApproach = F2(
+	function (bl, cplen) {
+		var addbefore = F3(
+			function (k, v, newdic) {
+				return A3(
+					author$project$Generator$insertNoReplace,
+					A2(elm$core$Basics$modBy, cplen, k - 1),
+					A2(
+						elm$random$Random$andThen,
+						function (n) {
+							return author$project$JazzBass$chromatism(n);
+						},
+						v),
+					newdic);
+			});
+		return A3(elm$core$Dict$foldl, addbefore, bl, bl);
+	});
+var TSFoster$elm_tuple_extra$Tuple3$first = function (_n0) {
+	var a = _n0.a;
+	return a;
+};
+var TSFoster$elm_tuple_extra$Tuple3$second = function (_n0) {
+	var b = _n0.b;
+	return b;
+};
+var TSFoster$elm_tuple_extra$Tuple3$third = function (_n0) {
+	var c = _n0.c;
+	return c;
+};
+var author$project$JazzBass$listGen2GenList = function (l) {
+	return A3(
+		elm$core$List$foldl,
+		F2(
+			function (gen, list) {
+				return A3(
+					elm$random$Random$map2,
+					F2(
+						function (g, l_) {
+							return A2(elm$core$List$cons, g, l_);
+						}),
+					gen,
+					list);
+			}),
+		elm$random$Random$constant(_List_Nil),
+		l);
+};
+var elm$random$Random$pair = F2(
+	function (genA, genB) {
+		return A3(
+			elm$random$Random$map2,
+			F2(
+				function (a, b) {
+					return _Utils_Tuple2(a, b);
+				}),
+			genA,
+			genB);
+	});
+var author$project$JazzBass$addFill = F2(
+	function (bl, listgen) {
+		var l = A2(
+			elm$core$List$map,
+			function (_n0) {
+				var k = _n0.a;
+				var v = _n0.b;
+				return A2(
+					elm$random$Random$pair,
+					elm$random$Random$constant(k),
+					v);
+			},
+			elm$core$Dict$toList(bl));
+		var f1 = author$project$JazzBass$listGen2GenList(l);
+		var f2 = A3(
+			elm$core$List$foldl,
+			F2(
+				function (gen, list) {
+					return A3(
+						elm$random$Random$map2,
+						F2(
+							function (g3, l_) {
+								return A2(
+									elm$core$List$cons,
+									TSFoster$elm_tuple_extra$Tuple3$first(g3),
+									A2(
+										elm$core$List$cons,
+										TSFoster$elm_tuple_extra$Tuple3$second(g3),
+										A2(
+											elm$core$List$cons,
+											TSFoster$elm_tuple_extra$Tuple3$third(g3),
+											l_)));
+							}),
+						gen,
+						list);
+				}),
+			f1,
+			listgen);
+		return A2(elm$random$Random$map, elm$core$Dict$fromList, f2);
+	});
+var author$project$Generator$NA = {$: 'NA'};
+var author$project$Generator$getChordAt = F2(
+	function (cp, time) {
+		var sortedChords = A2(
+			elm$core$List$sortBy,
+			function ($) {
+				return $.time;
+			},
+			cp.chords);
+		var chInSorted = F2(
+			function (sortList, ch) {
+				chInSorted:
+				while (true) {
+					if (!sortList.b) {
+						return ch;
+					} else {
+						var h = sortList.a;
+						var t = sortList.b;
+						if (_Utils_cmp(h.time, time) > 0) {
+							return ch;
+						} else {
+							var $temp$sortList = t,
+								$temp$ch = h.chord;
+							sortList = $temp$sortList;
+							ch = $temp$ch;
+							continue chInSorted;
+						}
+					}
+				}
+			});
+		if (!sortedChords.b) {
+			return A3(author$project$Generator$chord, author$project$Generator$C, author$project$Generator$Natural, author$project$Generator$NA);
+		} else {
+			var h = sortedChords.a;
+			var t = sortedChords.b;
+			return A2(chInSorted, t, h.chord);
+		}
+	});
+var author$project$Generator$getSemitonesOf = F2(
+	function (s, c) {
+		return author$project$Generator$pitch2note(
+			A2(author$project$Generator$note2pitch, 0, c.note) + s);
+	});
+var author$project$Generator$getFifthOf = function (c) {
+	var _n0 = c.type_;
+	switch (_n0.$) {
+		case 'Min7b5':
+			return A2(author$project$Generator$getSemitonesOf, 6, c);
+		case 'Dim':
+			return A2(author$project$Generator$getSemitonesOf, 6, c);
+		case 'Maj7s5':
+			return A2(author$project$Generator$getSemitonesOf, 8, c);
+		case 'Dom7s5':
+			return A2(author$project$Generator$getSemitonesOf, 8, c);
+		case 'Alt7':
+			return A2(author$project$Generator$getSemitonesOf, 8, c);
+		default:
+			return A2(author$project$Generator$getSemitonesOf, 7, c);
+	}
+};
+var author$project$JazzBass$addPump = F3(
+	function (bl, cp, signature) {
+		var do2bars = F2(
+			function (bl_, from) {
+				return A3(
+					author$project$Generator$insertNoReplace,
+					from,
+					elm$random$Random$constant(
+						A2(author$project$Generator$getChordAt, cp, from).note),
+					A3(
+						author$project$Generator$insertNoReplace,
+						from + signature,
+						elm$random$Random$constant(
+							author$project$Generator$getFifthOf(
+								A2(author$project$Generator$getChordAt, cp, from + signature))),
+						bl_));
+			});
+		var doRec = F2(
+			function (bl_, from) {
+				doRec:
+				while (true) {
+					if (_Utils_cmp(from, cp.end) > -1) {
+						return bl_;
+					} else {
+						var $temp$bl_ = A2(do2bars, bl_, from),
+							$temp$from = from + (2 * signature);
+						bl_ = $temp$bl_;
+						from = $temp$from;
+						continue doRec;
+					}
+				}
+			});
+		return A2(doRec, bl, 0);
+	});
+var author$project$Generator$getNinethOf = function (c) {
+	var _n0 = c.type_;
+	switch (_n0.$) {
+		case 'Alt7':
+			return A2(author$project$Generator$getSemitonesOf, 3, c);
+		case 'Dom7b9':
+			return A2(author$project$Generator$getSemitonesOf, 3, c);
+		default:
+			return A2(author$project$Generator$getSemitonesOf, 2, c);
+	}
+};
+var author$project$Generator$getSeventhOf = function (c) {
+	var _n0 = c.type_;
+	switch (_n0.$) {
+		case 'Maj7':
+			return A2(author$project$Generator$getSemitonesOf, 11, c);
+		case 'Dim':
+			return A2(author$project$Generator$getSemitonesOf, 11, c);
+		case 'MinMaj':
+			return A2(author$project$Generator$getSemitonesOf, 11, c);
+		case 'Maj7s5':
+			return A2(author$project$Generator$getSemitonesOf, 11, c);
+		default:
+			return A2(author$project$Generator$getSemitonesOf, 10, c);
+	}
+};
+var author$project$Generator$getThirdOf = function (c) {
+	var _n0 = c.type_;
+	switch (_n0.$) {
+		case 'Min7':
+			return A2(author$project$Generator$getSemitonesOf, 3, c);
+		case 'Min7b5':
+			return A2(author$project$Generator$getSemitonesOf, 3, c);
+		case 'Dim':
+			return A2(author$project$Generator$getSemitonesOf, 3, c);
+		case 'MinMaj':
+			return A2(author$project$Generator$getSemitonesOf, 3, c);
+		default:
+			return A2(author$project$Generator$getSemitonesOf, 4, c);
+	}
+};
+var author$project$JazzBass$barFillArray = function (n) {
+	switch (n) {
+		case 0:
+			return {fourth: author$project$Generator$getNinethOf, second: author$project$Generator$getNinethOf, third: author$project$Generator$getThirdOf};
+		case 1:
+			return {
+				fourth: author$project$Generator$getNinethOf,
+				second: author$project$Generator$getSeventhOf,
+				third: function ($) {
+					return $.note;
+				}
+			};
+		case 2:
+			return {fourth: author$project$Generator$getSeventhOf, second: author$project$Generator$getThirdOf, third: author$project$Generator$getFifthOf};
+		case 3:
+			return {
+				fourth: author$project$Generator$getThirdOf,
+				second: author$project$Generator$getSemitonesOf(1),
+				third: author$project$Generator$getNinethOf
+			};
+		case 4:
+			return {fourth: author$project$Generator$getSeventhOf, second: author$project$Generator$getFifthOf, third: author$project$Generator$getThirdOf};
+		default:
+			return {fourth: author$project$Generator$getNinethOf, second: author$project$Generator$getSeventhOf, third: author$project$Generator$getFifthOf};
+	}
+};
+var author$project$JazzBass$fillBar = F2(
+	function (cp, from) {
+		var funcGen = A2(
+			elm$random$Random$map,
+			author$project$JazzBass$barFillArray,
+			A2(elm$random$Random$int, 0, 5));
+		var curChord = A2(author$project$Generator$getChordAt, cp, from);
+		return A2(
+			elm$random$Random$map,
+			function (funcs) {
+				return _Utils_Tuple3(
+					_Utils_Tuple2(
+						from + 1,
+						funcs.second(curChord)),
+					_Utils_Tuple2(
+						from + 2,
+						funcs.third(curChord)),
+					_Utils_Tuple2(
+						from + 3,
+						funcs.fourth(curChord)));
+			},
+			funcGen);
+	});
+var author$project$JazzBass$fillBarsRec = F2(
+	function (cp, signature) {
+		var doRec = F2(
+			function (l, from) {
+				doRec:
+				while (true) {
+					if (_Utils_cmp(from, cp.end) > -1) {
+						return l;
+					} else {
+						var $temp$l = A2(
+							elm$core$List$cons,
+							A2(author$project$JazzBass$fillBar, cp, from),
+							l),
+							$temp$from = from + signature;
+						l = $temp$l;
+						from = $temp$from;
+						continue doRec;
+					}
+				}
+			});
+		return A2(doRec, _List_Nil, 0);
+	});
+var author$project$JazzBass$fondaOnChange = function (cp) {
+	return A3(
+		elm$core$List$foldl,
+		F2(
+			function (evt, bassline) {
+				return A3(
+					elm$core$Dict$insert,
+					elm$core$Basics$floor(evt.time),
+					elm$random$Random$constant(evt.chord.note),
+					bassline);
+			}),
+		elm$core$Dict$empty,
+		cp.chords);
+};
+var author$project$JazzBass$bassLineGenerator = F2(
+	function (cp, signature) {
+		var basslineNoFill = A2(
+			author$project$JazzBass$addApproach,
+			A3(
+				author$project$JazzBass$addPump,
+				author$project$JazzBass$fondaOnChange(cp),
+				cp,
+				signature),
+			elm$core$Basics$floor(cp.end));
+		return A2(
+			author$project$JazzBass$addFill,
+			basslineNoFill,
+			A2(author$project$JazzBass$fillBarsRec, cp, signature));
 	});
 var author$project$Tune$Event = F5(
 	function (time, onset, pitch, instrument, gain) {
@@ -7061,7 +6947,7 @@ var elm$core$Basics$min = F2(
 	function (x, y) {
 		return (_Utils_cmp(x, y) < 0) ? x : y;
 	});
-var author$project$Generator$bassline2seq = F3(
+var author$project$JazzBass$bassline2seq = F3(
 	function (vmin, vmax, dic) {
 		var closest = F2(
 			function (pitch, note) {
@@ -7119,7 +7005,159 @@ var author$project$Generator$bassline2seq = F3(
 					elm$core$Tuple$first,
 					elm$core$Dict$toList(dic))));
 	});
-var author$project$Generator$basslineToSequence = A2(author$project$Generator$bassline2seq, 16, 40);
+var author$project$JazzBass$basslineToSequence = A2(author$project$JazzBass$bassline2seq, 16, 40);
+var author$project$JazzBass$sequenceGenerator = F2(
+	function (cp, signature) {
+		return A2(
+			elm$random$Random$map,
+			author$project$JazzBass$basslineToSequence,
+			A2(author$project$JazzBass$bassLineGenerator, cp, signature));
+	});
+var author$project$PlayerPage$SequenceGenerated = function (a) {
+	return {$: 'SequenceGenerated', a: a};
+};
+var elm$random$Random$Generate = function (a) {
+	return {$: 'Generate', a: a};
+};
+var elm$core$Task$andThen = _Scheduler_andThen;
+var elm$core$Task$succeed = _Scheduler_succeed;
+var elm$random$Random$initialSeed = function (x) {
+	var _n0 = elm$random$Random$next(
+		A2(elm$random$Random$Seed, 0, 1013904223));
+	var state1 = _n0.a;
+	var incr = _n0.b;
+	var state2 = (state1 + x) >>> 0;
+	return elm$random$Random$next(
+		A2(elm$random$Random$Seed, state2, incr));
+};
+var elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var elm$time$Time$customZone = elm$time$Time$Zone;
+var elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var elm$time$Time$millisToPosix = elm$time$Time$Posix;
+var elm$time$Time$now = _Time_now(elm$time$Time$millisToPosix);
+var elm$time$Time$posixToMillis = function (_n0) {
+	var millis = _n0.a;
+	return millis;
+};
+var elm$random$Random$init = A2(
+	elm$core$Task$andThen,
+	function (time) {
+		return elm$core$Task$succeed(
+			elm$random$Random$initialSeed(
+				elm$time$Time$posixToMillis(time)));
+	},
+	elm$time$Time$now);
+var elm$core$Platform$sendToApp = _Platform_sendToApp;
+var elm$random$Random$step = F2(
+	function (_n0, seed) {
+		var generator = _n0.a;
+		return generator(seed);
+	});
+var elm$random$Random$onEffects = F3(
+	function (router, commands, seed) {
+		if (!commands.b) {
+			return elm$core$Task$succeed(seed);
+		} else {
+			var generator = commands.a.a;
+			var rest = commands.b;
+			var _n1 = A2(elm$random$Random$step, generator, seed);
+			var value = _n1.a;
+			var newSeed = _n1.b;
+			return A2(
+				elm$core$Task$andThen,
+				function (_n2) {
+					return A3(elm$random$Random$onEffects, router, rest, newSeed);
+				},
+				A2(elm$core$Platform$sendToApp, router, value));
+		}
+	});
+var elm$random$Random$onSelfMsg = F3(
+	function (_n0, _n1, seed) {
+		return elm$core$Task$succeed(seed);
+	});
+var elm$random$Random$cmdMap = F2(
+	function (func, _n0) {
+		var generator = _n0.a;
+		return elm$random$Random$Generate(
+			A2(elm$random$Random$map, func, generator));
+	});
+_Platform_effectManagers['Random'] = _Platform_createManager(elm$random$Random$init, elm$random$Random$onEffects, elm$random$Random$onSelfMsg, elm$random$Random$cmdMap);
+var elm$random$Random$command = _Platform_leaf('Random');
+var elm$random$Random$generate = F2(
+	function (tagger, generator) {
+		return elm$random$Random$command(
+			elm$random$Random$Generate(
+				A2(elm$random$Random$map, tagger, generator)));
+	});
+var author$project$PlayerPage$genSequence = function (m) {
+	return A2(
+		elm$random$Random$generate,
+		author$project$PlayerPage$SequenceGenerated,
+		A3(
+			author$project$Generator$mergeSeqGenerators,
+			_List_fromArray(
+				[author$project$JazzBass$sequenceGenerator]),
+			m.song.chordProg,
+			m.song.beatsPerBar));
+};
+var author$project$Main$genSequence = function (m) {
+	return A2(
+		elm$core$Platform$Cmd$map,
+		function (sm) {
+			return author$project$Main$PpEvent(sm);
+		},
+		author$project$PlayerPage$genSequence(m.playerModel));
+};
+var author$project$Main$resetDialog = function (m) {
+	return _Utils_update(
+		m,
+		{dialogBox: elm$core$Maybe$Nothing});
+};
+var author$project$Main$setLibrary = F2(
+	function (l, m) {
+		return _Utils_update(
+			m,
+			{libraryModel: l});
+	});
+var author$project$PlayerPage$asChordProgIn = F2(
+	function (s, cp) {
+		return _Utils_update(
+			s,
+			{chordProg: cp});
+	});
+var author$project$PlayerPage$asSongIn = F2(
+	function (sm, s) {
+		return _Utils_update(
+			sm,
+			{song: s});
+	});
+var author$project$PlayerPage$setComposer = F2(
+	function (c, s) {
+		return _Utils_update(
+			s,
+			{composer: c});
+	});
+var author$project$PlayerPage$asTitleIn = F2(
+	function (s, t) {
+		return _Utils_update(
+			s,
+			{title: t});
+	});
+var author$project$PlayerPage$setTitle = F2(
+	function (t, s) {
+		return A2(author$project$PlayerPage$asTitleIn, s, t);
+	});
 var author$project$JazzDrums$chabada = function (end) {
 	return A2(
 		elm$core$List$concatMap,
@@ -7244,7 +7282,7 @@ var author$project$PlayerPage$update = F2(
 						_List_fromArray(
 							[
 								author$project$Tune$setCursor(f),
-								author$project$PlayerPage$genBassLine(model)
+								author$project$PlayerPage$genSequence(model)
 							])));
 			case 'SeqFinished':
 				return _Utils_Tuple2(
@@ -7253,7 +7291,7 @@ var author$project$PlayerPage$update = F2(
 						_List_fromArray(
 							[
 								author$project$Tune$setCursor(0),
-								author$project$PlayerPage$genBassLine(model)
+								author$project$PlayerPage$genSequence(model)
 							])));
 			case 'SequenceGenerated':
 				var b = msg.a;
@@ -7261,7 +7299,7 @@ var author$project$PlayerPage$update = F2(
 					model,
 					author$project$Tune$setSequence(
 						_Utils_ap(
-							author$project$Generator$basslineToSequence(b),
+							b,
 							author$project$JazzDrums$drumseq(model.song.chordProg.end))));
 			default:
 				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
@@ -7363,12 +7401,7 @@ var author$project$Main$update = F2(
 							_Utils_update(
 								newmod,
 								{curPage: author$project$Main$Player}),
-							A2(
-								elm$core$Platform$Cmd$map,
-								function (sm) {
-									return author$project$Main$PpEvent(sm);
-								},
-								author$project$PlayerPage$genBassLine(newmod.playerModel)));
+							author$project$Main$genSequence(newmod));
 					default:
 						var _n4 = A2(author$project$Editor$update, submsg, model.editorModel);
 						var newmod = _n4.a;
@@ -7397,13 +7430,13 @@ var author$project$Main$update = F2(
 							_Utils_update(
 								newmod,
 								{curPage: author$project$Main$Player}),
-							elm$core$Platform$Cmd$none);
+							author$project$Main$genSequence(newmod));
 					case 'Close':
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
 								{curPage: author$project$Main$Player}),
-							elm$core$Platform$Cmd$none);
+							author$project$Main$genSequence(model));
 					default:
 						return _Utils_Tuple2(
 							_Utils_update(
