@@ -77,7 +77,191 @@ function A9(fun, a, b, c, d, e, f, g, h, i) {
   return fun.a === 9 ? fun.f(a, b, c, d, e, f, g, h, i) : fun(a)(b)(c)(d)(e)(f)(g)(h)(i);
 }
 
-console.warn('Compiled in DEV mode. Follow the advice at https://elm-lang.org/0.19.0/optimize for better performance and smaller assets.');
+console.warn('Compiled in DEV mode. Follow the advice at https://elm-lang.org/0.19.1/optimize for better performance and smaller assets.');
+
+
+// EQUALITY
+
+function _Utils_eq(x, y)
+{
+	for (
+		var pair, stack = [], isEqual = _Utils_eqHelp(x, y, 0, stack);
+		isEqual && (pair = stack.pop());
+		isEqual = _Utils_eqHelp(pair.a, pair.b, 0, stack)
+		)
+	{}
+
+	return isEqual;
+}
+
+function _Utils_eqHelp(x, y, depth, stack)
+{
+	if (x === y)
+	{
+		return true;
+	}
+
+	if (typeof x !== 'object' || x === null || y === null)
+	{
+		typeof x === 'function' && _Debug_crash(5);
+		return false;
+	}
+
+	if (depth > 100)
+	{
+		stack.push(_Utils_Tuple2(x,y));
+		return true;
+	}
+
+	/**/
+	if (x.$ === 'Set_elm_builtin')
+	{
+		x = $elm$core$Set$toList(x);
+		y = $elm$core$Set$toList(y);
+	}
+	if (x.$ === 'RBNode_elm_builtin' || x.$ === 'RBEmpty_elm_builtin')
+	{
+		x = $elm$core$Dict$toList(x);
+		y = $elm$core$Dict$toList(y);
+	}
+	//*/
+
+	/**_UNUSED/
+	if (x.$ < 0)
+	{
+		x = $elm$core$Dict$toList(x);
+		y = $elm$core$Dict$toList(y);
+	}
+	//*/
+
+	for (var key in x)
+	{
+		if (!_Utils_eqHelp(x[key], y[key], depth + 1, stack))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+var _Utils_equal = F2(_Utils_eq);
+var _Utils_notEqual = F2(function(a, b) { return !_Utils_eq(a,b); });
+
+
+
+// COMPARISONS
+
+// Code in Generate/JavaScript.hs, Basics.js, and List.js depends on
+// the particular integer values assigned to LT, EQ, and GT.
+
+function _Utils_cmp(x, y, ord)
+{
+	if (typeof x !== 'object')
+	{
+		return x === y ? /*EQ*/ 0 : x < y ? /*LT*/ -1 : /*GT*/ 1;
+	}
+
+	/**/
+	if (x instanceof String)
+	{
+		var a = x.valueOf();
+		var b = y.valueOf();
+		return a === b ? 0 : a < b ? -1 : 1;
+	}
+	//*/
+
+	/**_UNUSED/
+	if (typeof x.$ === 'undefined')
+	//*/
+	/**/
+	if (x.$[0] === '#')
+	//*/
+	{
+		return (ord = _Utils_cmp(x.a, y.a))
+			? ord
+			: (ord = _Utils_cmp(x.b, y.b))
+				? ord
+				: _Utils_cmp(x.c, y.c);
+	}
+
+	// traverse conses until end of a list or a mismatch
+	for (; x.b && y.b && !(ord = _Utils_cmp(x.a, y.a)); x = x.b, y = y.b) {} // WHILE_CONSES
+	return ord || (x.b ? /*GT*/ 1 : y.b ? /*LT*/ -1 : /*EQ*/ 0);
+}
+
+var _Utils_lt = F2(function(a, b) { return _Utils_cmp(a, b) < 0; });
+var _Utils_le = F2(function(a, b) { return _Utils_cmp(a, b) < 1; });
+var _Utils_gt = F2(function(a, b) { return _Utils_cmp(a, b) > 0; });
+var _Utils_ge = F2(function(a, b) { return _Utils_cmp(a, b) >= 0; });
+
+var _Utils_compare = F2(function(x, y)
+{
+	var n = _Utils_cmp(x, y);
+	return n < 0 ? $elm$core$Basics$LT : n ? $elm$core$Basics$GT : $elm$core$Basics$EQ;
+});
+
+
+// COMMON VALUES
+
+var _Utils_Tuple0_UNUSED = 0;
+var _Utils_Tuple0 = { $: '#0' };
+
+function _Utils_Tuple2_UNUSED(a, b) { return { a: a, b: b }; }
+function _Utils_Tuple2(a, b) { return { $: '#2', a: a, b: b }; }
+
+function _Utils_Tuple3_UNUSED(a, b, c) { return { a: a, b: b, c: c }; }
+function _Utils_Tuple3(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
+
+function _Utils_chr_UNUSED(c) { return c; }
+function _Utils_chr(c) { return new String(c); }
+
+
+// RECORDS
+
+function _Utils_update(oldRecord, updatedFields)
+{
+	var newRecord = {};
+
+	for (var key in oldRecord)
+	{
+		newRecord[key] = oldRecord[key];
+	}
+
+	for (var key in updatedFields)
+	{
+		newRecord[key] = updatedFields[key];
+	}
+
+	return newRecord;
+}
+
+
+// APPEND
+
+var _Utils_append = F2(_Utils_ap);
+
+function _Utils_ap(xs, ys)
+{
+	// append Strings
+	if (typeof xs === 'string')
+	{
+		return xs + ys;
+	}
+
+	// append Lists
+	if (!xs.b)
+	{
+		return ys;
+	}
+	var root = _List_Cons(xs.a, ys);
+	xs = xs.b
+	for (var curr = root; xs.b; xs = xs.b) // WHILE_CONS
+	{
+		curr = curr.b = _List_Cons(xs.a, ys);
+	}
+	return root;
+}
+
 
 
 var _List_Nil_UNUSED = { $: 0 };
@@ -155,193 +339,9 @@ var _List_sortWith = F2(function(f, xs)
 {
 	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
 		var ord = A2(f, a, b);
-		return ord === elm$core$Basics$EQ ? 0 : ord === elm$core$Basics$LT ? -1 : 1;
+		return ord === $elm$core$Basics$EQ ? 0 : ord === $elm$core$Basics$LT ? -1 : 1;
 	}));
 });
-
-
-
-// EQUALITY
-
-function _Utils_eq(x, y)
-{
-	for (
-		var pair, stack = [], isEqual = _Utils_eqHelp(x, y, 0, stack);
-		isEqual && (pair = stack.pop());
-		isEqual = _Utils_eqHelp(pair.a, pair.b, 0, stack)
-		)
-	{}
-
-	return isEqual;
-}
-
-function _Utils_eqHelp(x, y, depth, stack)
-{
-	if (x === y)
-	{
-		return true;
-	}
-
-	if (typeof x !== 'object' || x === null || y === null)
-	{
-		typeof x === 'function' && _Debug_crash(5);
-		return false;
-	}
-
-	if (depth > 100)
-	{
-		stack.push(_Utils_Tuple2(x,y));
-		return true;
-	}
-
-	/**/
-	if (x.$ === 'Set_elm_builtin')
-	{
-		x = elm$core$Set$toList(x);
-		y = elm$core$Set$toList(y);
-	}
-	if (x.$ === 'RBNode_elm_builtin' || x.$ === 'RBEmpty_elm_builtin')
-	{
-		x = elm$core$Dict$toList(x);
-		y = elm$core$Dict$toList(y);
-	}
-	//*/
-
-	/**_UNUSED/
-	if (x.$ < 0)
-	{
-		x = elm$core$Dict$toList(x);
-		y = elm$core$Dict$toList(y);
-	}
-	//*/
-
-	for (var key in x)
-	{
-		if (!_Utils_eqHelp(x[key], y[key], depth + 1, stack))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-var _Utils_equal = F2(_Utils_eq);
-var _Utils_notEqual = F2(function(a, b) { return !_Utils_eq(a,b); });
-
-
-
-// COMPARISONS
-
-// Code in Generate/JavaScript.hs, Basics.js, and List.js depends on
-// the particular integer values assigned to LT, EQ, and GT.
-
-function _Utils_cmp(x, y, ord)
-{
-	if (typeof x !== 'object')
-	{
-		return x === y ? /*EQ*/ 0 : x < y ? /*LT*/ -1 : /*GT*/ 1;
-	}
-
-	/**/
-	if (x instanceof String)
-	{
-		var a = x.valueOf();
-		var b = y.valueOf();
-		return a === b ? 0 : a < b ? -1 : 1;
-	}
-	//*/
-
-	/**_UNUSED/
-	if (typeof x.$ === 'undefined')
-	//*/
-	/**/
-	if (x.$[0] === '#')
-	//*/
-	{
-		return (ord = _Utils_cmp(x.a, y.a))
-			? ord
-			: (ord = _Utils_cmp(x.b, y.b))
-				? ord
-				: _Utils_cmp(x.c, y.c);
-	}
-
-	// traverse conses until end of a list or a mismatch
-	for (; x.b && y.b && !(ord = _Utils_cmp(x.a, y.a)); x = x.b, y = y.b) {} // WHILE_CONSES
-	return ord || (x.b ? /*GT*/ 1 : y.b ? /*LT*/ -1 : /*EQ*/ 0);
-}
-
-var _Utils_lt = F2(function(a, b) { return _Utils_cmp(a, b) < 0; });
-var _Utils_le = F2(function(a, b) { return _Utils_cmp(a, b) < 1; });
-var _Utils_gt = F2(function(a, b) { return _Utils_cmp(a, b) > 0; });
-var _Utils_ge = F2(function(a, b) { return _Utils_cmp(a, b) >= 0; });
-
-var _Utils_compare = F2(function(x, y)
-{
-	var n = _Utils_cmp(x, y);
-	return n < 0 ? elm$core$Basics$LT : n ? elm$core$Basics$GT : elm$core$Basics$EQ;
-});
-
-
-// COMMON VALUES
-
-var _Utils_Tuple0_UNUSED = 0;
-var _Utils_Tuple0 = { $: '#0' };
-
-function _Utils_Tuple2_UNUSED(a, b) { return { a: a, b: b }; }
-function _Utils_Tuple2(a, b) { return { $: '#2', a: a, b: b }; }
-
-function _Utils_Tuple3_UNUSED(a, b, c) { return { a: a, b: b, c: c }; }
-function _Utils_Tuple3(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
-
-function _Utils_chr_UNUSED(c) { return c; }
-function _Utils_chr(c) { return new String(c); }
-
-
-// RECORDS
-
-function _Utils_update(oldRecord, updatedFields)
-{
-	var newRecord = {};
-
-	for (var key in oldRecord)
-	{
-		newRecord[key] = oldRecord[key];
-	}
-
-	for (var key in updatedFields)
-	{
-		newRecord[key] = updatedFields[key];
-	}
-
-	return newRecord;
-}
-
-
-// APPEND
-
-var _Utils_append = F2(_Utils_ap);
-
-function _Utils_ap(xs, ys)
-{
-	// append Strings
-	if (typeof xs === 'string')
-	{
-		return xs + ys;
-	}
-
-	// append Lists
-	if (!xs.b)
-	{
-		return ys;
-	}
-	var root = _List_Cons(xs.a, ys);
-	xs = xs.b
-	for (var curr = root; xs.b; xs = xs.b) // WHILE_CONS
-	{
-		curr = curr.b = _List_Cons(xs.a, ys);
-	}
-	return root;
-}
 
 
 
@@ -591,21 +591,21 @@ function _Debug_toAnsiString(ansi, value)
 		{
 			return _Debug_ctorColor(ansi, 'Set')
 				+ _Debug_fadeColor(ansi, '.fromList') + ' '
-				+ _Debug_toAnsiString(ansi, elm$core$Set$toList(value));
+				+ _Debug_toAnsiString(ansi, $elm$core$Set$toList(value));
 		}
 
 		if (tag === 'RBNode_elm_builtin' || tag === 'RBEmpty_elm_builtin')
 		{
 			return _Debug_ctorColor(ansi, 'Dict')
 				+ _Debug_fadeColor(ansi, '.fromList') + ' '
-				+ _Debug_toAnsiString(ansi, elm$core$Dict$toList(value));
+				+ _Debug_toAnsiString(ansi, $elm$core$Dict$toList(value));
 		}
 
 		if (tag === 'Array_elm_builtin')
 		{
 			return _Debug_ctorColor(ansi, 'Array')
 				+ _Debug_fadeColor(ansi, '.fromList') + ' '
-				+ _Debug_toAnsiString(ansi, elm$core$Array$toList(value));
+				+ _Debug_toAnsiString(ansi, $elm$core$Array$toList(value));
 		}
 
 		if (tag === '::' || tag === '[]')
@@ -853,53 +853,6 @@ var _Basics_xor = F2(function(a, b) { return a !== b; });
 
 
 
-function _Char_toCode(char)
-{
-	var code = char.charCodeAt(0);
-	if (0xD800 <= code && code <= 0xDBFF)
-	{
-		return (code - 0xD800) * 0x400 + char.charCodeAt(1) - 0xDC00 + 0x10000
-	}
-	return code;
-}
-
-function _Char_fromCode(code)
-{
-	return _Utils_chr(
-		(code < 0 || 0x10FFFF < code)
-			? '\uFFFD'
-			:
-		(code <= 0xFFFF)
-			? String.fromCharCode(code)
-			:
-		(code -= 0x10000,
-			String.fromCharCode(Math.floor(code / 0x400) + 0xD800, code % 0x400 + 0xDC00)
-		)
-	);
-}
-
-function _Char_toUpper(char)
-{
-	return _Utils_chr(char.toUpperCase());
-}
-
-function _Char_toLower(char)
-{
-	return _Utils_chr(char.toLowerCase());
-}
-
-function _Char_toLocaleUpper(char)
-{
-	return _Utils_chr(char.toLocaleUpperCase());
-}
-
-function _Char_toLocaleLower(char)
-{
-	return _Utils_chr(char.toLocaleLowerCase());
-}
-
-
-
 var _String_cons = F2(function(chr, str)
 {
 	return chr + str;
@@ -909,12 +862,12 @@ function _String_uncons(string)
 {
 	var word = string.charCodeAt(0);
 	return !isNaN(word)
-		? elm$core$Maybe$Just(
+		? $elm$core$Maybe$Just(
 			0xD800 <= word && word <= 0xDBFF
 				? _Utils_Tuple2(_Utils_chr(string[0] + string[1]), string.slice(2))
 				: _Utils_Tuple2(_Utils_chr(string[0]), string.slice(1))
 		)
-		: elm$core$Maybe$Nothing;
+		: $elm$core$Maybe$Nothing;
 }
 
 var _String_append = F2(function(a, b)
@@ -1179,14 +1132,14 @@ function _String_toInt(str)
 		var code = str.charCodeAt(i);
 		if (code < 0x30 || 0x39 < code)
 		{
-			return elm$core$Maybe$Nothing;
+			return $elm$core$Maybe$Nothing;
 		}
 		total = 10 * total + code - 0x30;
 	}
 
 	return i == start
-		? elm$core$Maybe$Nothing
-		: elm$core$Maybe$Just(code0 == 0x2D ? -total : total);
+		? $elm$core$Maybe$Nothing
+		: $elm$core$Maybe$Just(code0 == 0x2D ? -total : total);
 }
 
 
@@ -1197,11 +1150,11 @@ function _String_toFloat(s)
 	// check if it is a hex, octal, or binary number
 	if (s.length === 0 || /[\sxbo]/.test(s))
 	{
-		return elm$core$Maybe$Nothing;
+		return $elm$core$Maybe$Nothing;
 	}
 	var n = +s;
 	// faster isNaN check
-	return n === n ? elm$core$Maybe$Just(n) : elm$core$Maybe$Nothing;
+	return n === n ? $elm$core$Maybe$Just(n) : $elm$core$Maybe$Nothing;
 }
 
 function _String_fromList(chars)
@@ -1212,10 +1165,57 @@ function _String_fromList(chars)
 
 
 
+function _Char_toCode(char)
+{
+	var code = char.charCodeAt(0);
+	if (0xD800 <= code && code <= 0xDBFF)
+	{
+		return (code - 0xD800) * 0x400 + char.charCodeAt(1) - 0xDC00 + 0x10000
+	}
+	return code;
+}
+
+function _Char_fromCode(code)
+{
+	return _Utils_chr(
+		(code < 0 || 0x10FFFF < code)
+			? '\uFFFD'
+			:
+		(code <= 0xFFFF)
+			? String.fromCharCode(code)
+			:
+		(code -= 0x10000,
+			String.fromCharCode(Math.floor(code / 0x400) + 0xD800, code % 0x400 + 0xDC00)
+		)
+	);
+}
+
+function _Char_toUpper(char)
+{
+	return _Utils_chr(char.toUpperCase());
+}
+
+function _Char_toLower(char)
+{
+	return _Utils_chr(char.toLowerCase());
+}
+
+function _Char_toLocaleUpper(char)
+{
+	return _Utils_chr(char.toLocaleUpperCase());
+}
+
+function _Char_toLocaleLower(char)
+{
+	return _Utils_chr(char.toLocaleLowerCase());
+}
+
+
+
 /**/
 function _Json_errorToString(error)
 {
-	return elm$json$Json$Decode$errorToString(error);
+	return $elm$json$Json$Decode$errorToString(error);
 }
 //*/
 
@@ -1248,34 +1248,34 @@ var _Json_decodeInt = _Json_decodePrim(function(value) {
 		? _Json_expecting('an INT', value)
 		:
 	(-2147483647 < value && value < 2147483647 && (value | 0) === value)
-		? elm$core$Result$Ok(value)
+		? $elm$core$Result$Ok(value)
 		:
 	(isFinite(value) && !(value % 1))
-		? elm$core$Result$Ok(value)
+		? $elm$core$Result$Ok(value)
 		: _Json_expecting('an INT', value);
 });
 
 var _Json_decodeBool = _Json_decodePrim(function(value) {
 	return (typeof value === 'boolean')
-		? elm$core$Result$Ok(value)
+		? $elm$core$Result$Ok(value)
 		: _Json_expecting('a BOOL', value);
 });
 
 var _Json_decodeFloat = _Json_decodePrim(function(value) {
 	return (typeof value === 'number')
-		? elm$core$Result$Ok(value)
+		? $elm$core$Result$Ok(value)
 		: _Json_expecting('a FLOAT', value);
 });
 
 var _Json_decodeValue = _Json_decodePrim(function(value) {
-	return elm$core$Result$Ok(_Json_wrap(value));
+	return $elm$core$Result$Ok(_Json_wrap(value));
 });
 
 var _Json_decodeString = _Json_decodePrim(function(value) {
 	return (typeof value === 'string')
-		? elm$core$Result$Ok(value)
+		? $elm$core$Result$Ok(value)
 		: (value instanceof String)
-			? elm$core$Result$Ok(value + '')
+			? $elm$core$Result$Ok(value + '')
 			: _Json_expecting('a STRING', value);
 });
 
@@ -1391,7 +1391,7 @@ var _Json_runOnString = F2(function(decoder, string)
 	}
 	catch (e)
 	{
-		return elm$core$Result$Err(A2(elm$json$Json$Decode$Failure, 'This is not valid JSON! ' + e.message, _Json_wrap(string)));
+		return $elm$core$Result$Err(A2($elm$json$Json$Decode$Failure, 'This is not valid JSON! ' + e.message, _Json_wrap(string)));
 	}
 });
 
@@ -1409,7 +1409,7 @@ function _Json_runHelp(decoder, value)
 
 		case 5:
 			return (value === null)
-				? elm$core$Result$Ok(decoder.c)
+				? $elm$core$Result$Ok(decoder.c)
 				: _Json_expecting('null', value);
 
 		case 3:
@@ -1433,7 +1433,7 @@ function _Json_runHelp(decoder, value)
 				return _Json_expecting('an OBJECT with a field named `' + field + '`', value);
 			}
 			var result = _Json_runHelp(decoder.b, value[field]);
-			return (elm$core$Result$isOk(result)) ? result : elm$core$Result$Err(A2(elm$json$Json$Decode$Field, field, result.a));
+			return ($elm$core$Result$isOk(result)) ? result : $elm$core$Result$Err(A2($elm$json$Json$Decode$Field, field, result.a));
 
 		case 7:
 			var index = decoder.e;
@@ -1446,7 +1446,7 @@ function _Json_runHelp(decoder, value)
 				return _Json_expecting('a LONGER array. Need index ' + index + ' but only see ' + value.length + ' entries', value);
 			}
 			var result = _Json_runHelp(decoder.b, value[index]);
-			return (elm$core$Result$isOk(result)) ? result : elm$core$Result$Err(A2(elm$json$Json$Decode$Index, index, result.a));
+			return ($elm$core$Result$isOk(result)) ? result : $elm$core$Result$Err(A2($elm$json$Json$Decode$Index, index, result.a));
 
 		case 8:
 			if (typeof value !== 'object' || value === null || _Json_isArray(value))
@@ -1461,14 +1461,14 @@ function _Json_runHelp(decoder, value)
 				if (value.hasOwnProperty(key))
 				{
 					var result = _Json_runHelp(decoder.b, value[key]);
-					if (!elm$core$Result$isOk(result))
+					if (!$elm$core$Result$isOk(result))
 					{
-						return elm$core$Result$Err(A2(elm$json$Json$Decode$Field, key, result.a));
+						return $elm$core$Result$Err(A2($elm$json$Json$Decode$Field, key, result.a));
 					}
 					keyValuePairs = _List_Cons(_Utils_Tuple2(key, result.a), keyValuePairs);
 				}
 			}
-			return elm$core$Result$Ok(elm$core$List$reverse(keyValuePairs));
+			return $elm$core$Result$Ok($elm$core$List$reverse(keyValuePairs));
 
 		case 9:
 			var answer = decoder.f;
@@ -1476,17 +1476,17 @@ function _Json_runHelp(decoder, value)
 			for (var i = 0; i < decoders.length; i++)
 			{
 				var result = _Json_runHelp(decoders[i], value);
-				if (!elm$core$Result$isOk(result))
+				if (!$elm$core$Result$isOk(result))
 				{
 					return result;
 				}
 				answer = answer(result.a);
 			}
-			return elm$core$Result$Ok(answer);
+			return $elm$core$Result$Ok(answer);
 
 		case 10:
 			var result = _Json_runHelp(decoder.b, value);
-			return (!elm$core$Result$isOk(result))
+			return (!$elm$core$Result$isOk(result))
 				? result
 				: _Json_runHelp(decoder.h(result.a), value);
 
@@ -1495,19 +1495,19 @@ function _Json_runHelp(decoder, value)
 			for (var temp = decoder.g; temp.b; temp = temp.b) // WHILE_CONS
 			{
 				var result = _Json_runHelp(temp.a, value);
-				if (elm$core$Result$isOk(result))
+				if ($elm$core$Result$isOk(result))
 				{
 					return result;
 				}
 				errors = _List_Cons(result.a, errors);
 			}
-			return elm$core$Result$Err(elm$json$Json$Decode$OneOf(elm$core$List$reverse(errors)));
+			return $elm$core$Result$Err($elm$json$Json$Decode$OneOf($elm$core$List$reverse(errors)));
 
 		case 1:
-			return elm$core$Result$Err(A2(elm$json$Json$Decode$Failure, decoder.a, _Json_wrap(value)));
+			return $elm$core$Result$Err(A2($elm$json$Json$Decode$Failure, decoder.a, _Json_wrap(value)));
 
 		case 0:
-			return elm$core$Result$Ok(decoder.a);
+			return $elm$core$Result$Ok(decoder.a);
 	}
 }
 
@@ -1518,13 +1518,13 @@ function _Json_runArrayDecoder(decoder, value, toElmValue)
 	for (var i = 0; i < len; i++)
 	{
 		var result = _Json_runHelp(decoder, value[i]);
-		if (!elm$core$Result$isOk(result))
+		if (!$elm$core$Result$isOk(result))
 		{
-			return elm$core$Result$Err(A2(elm$json$Json$Decode$Index, i, result.a));
+			return $elm$core$Result$Err(A2($elm$json$Json$Decode$Index, i, result.a));
 		}
 		array[i] = result.a;
 	}
-	return elm$core$Result$Ok(toElmValue(array));
+	return $elm$core$Result$Ok(toElmValue(array));
 }
 
 function _Json_isArray(value)
@@ -1534,12 +1534,12 @@ function _Json_isArray(value)
 
 function _Json_toElmArray(array)
 {
-	return A2(elm$core$Array$initialize, array.length, function(i) { return array[i]; });
+	return A2($elm$core$Array$initialize, array.length, function(i) { return array[i]; });
 }
 
 function _Json_expecting(type, value)
 {
-	return elm$core$Result$Err(A2(elm$json$Json$Decode$Failure, 'Expecting ' + type, _Json_wrap(value)));
+	return $elm$core$Result$Err(A2($elm$json$Json$Decode$Failure, 'Expecting ' + type, _Json_wrap(value)));
 }
 
 
@@ -1872,7 +1872,7 @@ var _Platform_worker = F4(function(impl, flagDecoder, debugMetadata, args)
 function _Platform_initialize(flagDecoder, args, init, update, subscriptions, stepperBuilder)
 {
 	var result = A2(_Json_run, flagDecoder, _Json_wrap(args ? args['flags'] : undefined));
-	elm$core$Result$isOk(result) || _Debug_crash(2 /**/, _Json_errorToString(result.a) /**/);
+	$elm$core$Result$isOk(result) || _Debug_crash(2 /**/, _Json_errorToString(result.a) /**/);
 	var managers = {};
 	result = init(result.a);
 	var model = result.a;
@@ -2295,7 +2295,7 @@ function _Platform_setupIncomingPort(name, sendToApp)
 	{
 		var result = A2(_Json_run, converter, _Json_wrap(incomingValue));
 
-		elm$core$Result$isOk(result) || _Debug_crash(4, name, result.a);
+		$elm$core$Result$isOk(result) || _Debug_crash(4, name, result.a);
 
 		var value = result.a;
 		for (var temp = subs; temp.b; temp = temp.b) // WHILE_CONS
@@ -2673,7 +2673,7 @@ var _VirtualDom_mapAttribute = F2(function(func, attr)
 
 function _VirtualDom_mapHandler(func, handler)
 {
-	var tag = elm$virtual_dom$VirtualDom$toHandlerInt(handler);
+	var tag = $elm$virtual_dom$VirtualDom$toHandlerInt(handler);
 
 	// 0 = Normal
 	// 1 = MayStopPropagation
@@ -2684,13 +2684,13 @@ function _VirtualDom_mapHandler(func, handler)
 		$: handler.$,
 		a:
 			!tag
-				? A2(elm$json$Json$Decode$map, func, handler.a)
+				? A2($elm$json$Json$Decode$map, func, handler.a)
 				:
-			A3(elm$json$Json$Decode$map2,
+			A3($elm$json$Json$Decode$map2,
 				tag < 3
 					? _VirtualDom_mapEventTuple
 					: _VirtualDom_mapEventRecord,
-				elm$json$Json$Decode$succeed(func),
+				$elm$json$Json$Decode$succeed(func),
 				handler.a
 			)
 	};
@@ -2928,7 +2928,7 @@ function _VirtualDom_applyEvents(domNode, eventNode, events)
 		oldCallback = _VirtualDom_makeCallback(eventNode, newHandler);
 		domNode.addEventListener(key, oldCallback,
 			_VirtualDom_passiveSupported
-			&& { passive: elm$virtual_dom$VirtualDom$toHandlerInt(newHandler) < 2 }
+			&& { passive: $elm$virtual_dom$VirtualDom$toHandlerInt(newHandler) < 2 }
 		);
 		allCallbacks[key] = oldCallback;
 	}
@@ -2961,12 +2961,12 @@ function _VirtualDom_makeCallback(eventNode, initialHandler)
 		var handler = callback.q;
 		var result = _Json_runHelp(handler.a, event);
 
-		if (!elm$core$Result$isOk(result))
+		if (!$elm$core$Result$isOk(result))
 		{
 			return;
 		}
 
-		var tag = elm$virtual_dom$VirtualDom$toHandlerInt(handler);
+		var tag = $elm$virtual_dom$VirtualDom$toHandlerInt(handler);
 
 		// 0 = Normal
 		// 1 = MayStopPropagation
@@ -3917,89 +3917,6 @@ function _VirtualDom_dekey(keyedNode)
 
 
 
-var _Bitwise_and = F2(function(a, b)
-{
-	return a & b;
-});
-
-var _Bitwise_or = F2(function(a, b)
-{
-	return a | b;
-});
-
-var _Bitwise_xor = F2(function(a, b)
-{
-	return a ^ b;
-});
-
-function _Bitwise_complement(a)
-{
-	return ~a;
-};
-
-var _Bitwise_shiftLeftBy = F2(function(offset, a)
-{
-	return a << offset;
-});
-
-var _Bitwise_shiftRightBy = F2(function(offset, a)
-{
-	return a >> offset;
-});
-
-var _Bitwise_shiftRightZfBy = F2(function(offset, a)
-{
-	return a >>> offset;
-});
-
-
-
-function _Time_now(millisToPosix)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		callback(_Scheduler_succeed(millisToPosix(Date.now())));
-	});
-}
-
-var _Time_setInterval = F2(function(interval, task)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		var id = setInterval(function() { _Scheduler_rawSpawn(task); }, interval);
-		return function() { clearInterval(id); };
-	});
-});
-
-function _Time_here()
-{
-	return _Scheduler_binding(function(callback)
-	{
-		callback(_Scheduler_succeed(
-			A2(elm$time$Time$customZone, -(new Date().getTimezoneOffset()), _List_Nil)
-		));
-	});
-}
-
-
-function _Time_getZoneName()
-{
-	return _Scheduler_binding(function(callback)
-	{
-		try
-		{
-			var name = elm$time$Time$Name(Intl.DateTimeFormat().resolvedOptions().timeZone);
-		}
-		catch (e)
-		{
-			var name = elm$time$Time$Offset(new Date().getTimezoneOffset());
-		}
-		callback(_Scheduler_succeed(name));
-	});
-}
-
-
-
 
 // ELEMENT
 
@@ -4139,15 +4056,15 @@ function _Browser_application(impl)
 					event.preventDefault();
 					var href = domNode.href;
 					var curr = _Browser_getUrl();
-					var next = elm$url$Url$fromString(href).a;
+					var next = $elm$url$Url$fromString(href).a;
 					sendToApp(onUrlRequest(
 						(next
 							&& curr.protocol === next.protocol
 							&& curr.host === next.host
 							&& curr.port_.a === next.port_.a
 						)
-							? elm$browser$Browser$Internal(next)
-							: elm$browser$Browser$External(href)
+							? $elm$browser$Browser$Internal(next)
+							: $elm$browser$Browser$External(href)
 					));
 				}
 			});
@@ -4164,12 +4081,12 @@ function _Browser_application(impl)
 
 function _Browser_getUrl()
 {
-	return elm$url$Url$fromString(_VirtualDom_doc.location.href).a || _Debug_crash(1);
+	return $elm$url$Url$fromString(_VirtualDom_doc.location.href).a || _Debug_crash(1);
 }
 
 var _Browser_go = F2(function(key, n)
 {
-	return A2(elm$core$Task$perform, elm$core$Basics$never, _Scheduler_binding(function() {
+	return A2($elm$core$Task$perform, $elm$core$Basics$never, _Scheduler_binding(function() {
 		n && history.go(n);
 		key();
 	}));
@@ -4177,7 +4094,7 @@ var _Browser_go = F2(function(key, n)
 
 var _Browser_pushUrl = F2(function(key, url)
 {
-	return A2(elm$core$Task$perform, elm$core$Basics$never, _Scheduler_binding(function() {
+	return A2($elm$core$Task$perform, $elm$core$Basics$never, _Scheduler_binding(function() {
 		history.pushState({}, '', url);
 		key();
 	}));
@@ -4185,7 +4102,7 @@ var _Browser_pushUrl = F2(function(key, url)
 
 var _Browser_replaceUrl = F2(function(key, url)
 {
-	return A2(elm$core$Task$perform, elm$core$Basics$never, _Scheduler_binding(function() {
+	return A2($elm$core$Task$perform, $elm$core$Basics$never, _Scheduler_binding(function() {
 		history.replaceState({}, '', url);
 		key();
 	}));
@@ -4213,7 +4130,7 @@ var _Browser_on = F3(function(node, eventName, sendToSelf)
 var _Browser_decodeEvent = F2(function(decoder, event)
 {
 	var result = _Json_runHelp(decoder, event);
-	return elm$core$Result$isOk(result) ? elm$core$Maybe$Just(result.a) : elm$core$Maybe$Nothing;
+	return $elm$core$Result$isOk(result) ? $elm$core$Maybe$Just(result.a) : $elm$core$Maybe$Nothing;
 });
 
 
@@ -4278,7 +4195,7 @@ function _Browser_withNode(id, doStuff)
 			var node = document.getElementById(id);
 			callback(node
 				? _Scheduler_succeed(doStuff(node))
-				: _Scheduler_fail(elm$browser$Browser$Dom$NotFound(id))
+				: _Scheduler_fail($elm$browser$Browser$Dom$NotFound(id))
 			);
 		});
 	});
@@ -4416,7 +4333,7 @@ function _Browser_getElement(id)
 
 function _Browser_reload(skipCache)
 {
-	return A2(elm$core$Task$perform, elm$core$Basics$never, _Scheduler_binding(function(callback)
+	return A2($elm$core$Task$perform, $elm$core$Basics$never, _Scheduler_binding(function(callback)
 	{
 		_VirtualDom_doc.location.reload(skipCache);
 	}));
@@ -4424,7 +4341,7 @@ function _Browser_reload(skipCache)
 
 function _Browser_load(url)
 {
-	return A2(elm$core$Task$perform, elm$core$Basics$never, _Scheduler_binding(function(callback)
+	return A2($elm$core$Task$perform, $elm$core$Basics$never, _Scheduler_binding(function(callback)
 	{
 		try
 		{
@@ -4438,37 +4355,94 @@ function _Browser_load(url)
 		}
 	}));
 }
-var author$project$Editor$ModelList = function (a) {
-	return {$: 'ModelList', a: a};
+
+
+
+var _Bitwise_and = F2(function(a, b)
+{
+	return a & b;
+});
+
+var _Bitwise_or = F2(function(a, b)
+{
+	return a | b;
+});
+
+var _Bitwise_xor = F2(function(a, b)
+{
+	return a ^ b;
+});
+
+function _Bitwise_complement(a)
+{
+	return ~a;
 };
-var author$project$Editor$SetChord = {$: 'SetChord'};
-var author$project$Generator$C = {$: 'C'};
-var author$project$Generator$Dom7 = {$: 'Dom7'};
-var author$project$Generator$Natural = {$: 'Natural'};
-var author$project$Generator$Chord = F2(
-	function (note, type_) {
-		return {note: note, type_: type_};
+
+var _Bitwise_shiftLeftBy = F2(function(offset, a)
+{
+	return a << offset;
+});
+
+var _Bitwise_shiftRightBy = F2(function(offset, a)
+{
+	return a >> offset;
+});
+
+var _Bitwise_shiftRightZfBy = F2(function(offset, a)
+{
+	return a >>> offset;
+});
+
+
+
+function _Time_now(millisToPosix)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(millisToPosix(Date.now())));
 	});
-var author$project$Generator$Note = F2(
-	function (name, alt) {
-		return {alt: alt, name: name};
+}
+
+var _Time_setInterval = F2(function(interval, task)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var id = setInterval(function() { _Scheduler_rawSpawn(task); }, interval);
+		return function() { clearInterval(id); };
 	});
-var author$project$Generator$chord = F3(
-	function (n, a, t) {
-		return A2(
-			author$project$Generator$Chord,
-			A2(author$project$Generator$Note, n, a),
-			t);
+});
+
+function _Time_here()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(
+			A2($elm$time$Time$customZone, -(new Date().getTimezoneOffset()), _List_Nil)
+		));
 	});
-var elm$core$Array$Array_elm_builtin = F4(
-	function (a, b, c, d) {
-		return {$: 'Array_elm_builtin', a: a, b: b, c: c, d: d};
+}
+
+
+function _Time_getZoneName()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		try
+		{
+			var name = $elm$time$Time$Name(Intl.DateTimeFormat().resolvedOptions().timeZone);
+		}
+		catch (e)
+		{
+			var name = $elm$time$Time$Offset(new Date().getTimezoneOffset());
+		}
+		callback(_Scheduler_succeed(name));
 	});
-var elm$core$Array$branchFactor = 32;
-var elm$core$Basics$EQ = {$: 'EQ'};
-var elm$core$Basics$GT = {$: 'GT'};
-var elm$core$Basics$LT = {$: 'LT'};
-var elm$core$Dict$foldr = F3(
+}
+var $elm$core$Basics$EQ = {$: 'EQ'};
+var $elm$core$Basics$GT = {$: 'GT'};
+var $elm$core$Basics$LT = {$: 'LT'};
+var $elm$core$List$cons = _List_cons;
+var $elm$core$Dict$foldr = F3(
 	function (func, acc, t) {
 		foldr:
 		while (true) {
@@ -4484,7 +4458,7 @@ var elm$core$Dict$foldr = F3(
 					func,
 					key,
 					value,
-					A3(elm$core$Dict$foldr, func, acc, right)),
+					A3($elm$core$Dict$foldr, func, acc, right)),
 					$temp$t = left;
 				func = $temp$func;
 				acc = $temp$acc;
@@ -4493,77 +4467,108 @@ var elm$core$Dict$foldr = F3(
 			}
 		}
 	});
-var elm$core$List$cons = _List_cons;
-var elm$core$Dict$toList = function (dict) {
+var $elm$core$Dict$toList = function (dict) {
 	return A3(
-		elm$core$Dict$foldr,
+		$elm$core$Dict$foldr,
 		F3(
 			function (key, value, list) {
 				return A2(
-					elm$core$List$cons,
+					$elm$core$List$cons,
 					_Utils_Tuple2(key, value),
 					list);
 			}),
 		_List_Nil,
 		dict);
 };
-var elm$core$Dict$keys = function (dict) {
+var $elm$core$Dict$keys = function (dict) {
 	return A3(
-		elm$core$Dict$foldr,
+		$elm$core$Dict$foldr,
 		F3(
 			function (key, value, keyList) {
-				return A2(elm$core$List$cons, key, keyList);
+				return A2($elm$core$List$cons, key, keyList);
 			}),
 		_List_Nil,
 		dict);
 };
-var elm$core$Set$toList = function (_n0) {
-	var dict = _n0.a;
-	return elm$core$Dict$keys(dict);
+var $elm$core$Set$toList = function (_v0) {
+	var dict = _v0.a;
+	return $elm$core$Dict$keys(dict);
 };
-var elm$core$Elm$JsArray$foldr = _JsArray_foldr;
-var elm$core$Array$foldr = F3(
-	function (func, baseCase, _n0) {
-		var tree = _n0.c;
-		var tail = _n0.d;
+var $elm$core$Elm$JsArray$foldr = _JsArray_foldr;
+var $elm$core$Array$foldr = F3(
+	function (func, baseCase, _v0) {
+		var tree = _v0.c;
+		var tail = _v0.d;
 		var helper = F2(
 			function (node, acc) {
 				if (node.$ === 'SubTree') {
 					var subTree = node.a;
-					return A3(elm$core$Elm$JsArray$foldr, helper, acc, subTree);
+					return A3($elm$core$Elm$JsArray$foldr, helper, acc, subTree);
 				} else {
 					var values = node.a;
-					return A3(elm$core$Elm$JsArray$foldr, func, acc, values);
+					return A3($elm$core$Elm$JsArray$foldr, func, acc, values);
 				}
 			});
 		return A3(
-			elm$core$Elm$JsArray$foldr,
+			$elm$core$Elm$JsArray$foldr,
 			helper,
-			A3(elm$core$Elm$JsArray$foldr, func, baseCase, tail),
+			A3($elm$core$Elm$JsArray$foldr, func, baseCase, tail),
 			tree);
 	});
-var elm$core$Array$toList = function (array) {
-	return A3(elm$core$Array$foldr, elm$core$List$cons, _List_Nil, array);
+var $elm$core$Array$toList = function (array) {
+	return A3($elm$core$Array$foldr, $elm$core$List$cons, _List_Nil, array);
 };
-var elm$core$Basics$ceiling = _Basics_ceiling;
-var elm$core$Basics$fdiv = _Basics_fdiv;
-var elm$core$Basics$logBase = F2(
-	function (base, number) {
-		return _Basics_log(number) / _Basics_log(base);
+var $elm$core$Result$Err = function (a) {
+	return {$: 'Err', a: a};
+};
+var $elm$json$Json$Decode$Failure = F2(
+	function (a, b) {
+		return {$: 'Failure', a: a, b: b};
 	});
-var elm$core$Basics$toFloat = _Basics_toFloat;
-var elm$core$Array$shiftStep = elm$core$Basics$ceiling(
-	A2(elm$core$Basics$logBase, 2, elm$core$Array$branchFactor));
-var elm$core$Elm$JsArray$empty = _JsArray_empty;
-var elm$core$Array$empty = A4(elm$core$Array$Array_elm_builtin, 0, elm$core$Array$shiftStep, elm$core$Elm$JsArray$empty, elm$core$Elm$JsArray$empty);
-var elm$core$Array$Leaf = function (a) {
-	return {$: 'Leaf', a: a};
+var $elm$json$Json$Decode$Field = F2(
+	function (a, b) {
+		return {$: 'Field', a: a, b: b};
+	});
+var $elm$json$Json$Decode$Index = F2(
+	function (a, b) {
+		return {$: 'Index', a: a, b: b};
+	});
+var $elm$core$Result$Ok = function (a) {
+	return {$: 'Ok', a: a};
 };
-var elm$core$Array$SubTree = function (a) {
-	return {$: 'SubTree', a: a};
+var $elm$json$Json$Decode$OneOf = function (a) {
+	return {$: 'OneOf', a: a};
 };
-var elm$core$Elm$JsArray$initializeFromList = _JsArray_initializeFromList;
-var elm$core$List$foldl = F3(
+var $elm$core$Basics$False = {$: 'False'};
+var $elm$core$Basics$add = _Basics_add;
+var $elm$core$Maybe$Just = function (a) {
+	return {$: 'Just', a: a};
+};
+var $elm$core$Maybe$Nothing = {$: 'Nothing'};
+var $elm$core$String$all = _String_all;
+var $elm$core$Basics$and = _Basics_and;
+var $elm$core$Basics$append = _Utils_append;
+var $elm$json$Json$Encode$encode = _Json_encode;
+var $elm$core$String$fromInt = _String_fromNumber;
+var $elm$core$String$join = F2(
+	function (sep, chunks) {
+		return A2(
+			_String_join,
+			sep,
+			_List_toArray(chunks));
+	});
+var $elm$core$String$split = F2(
+	function (sep, string) {
+		return _List_fromArray(
+			A2(_String_split, sep, string));
+	});
+var $elm$json$Json$Decode$indent = function (str) {
+	return A2(
+		$elm$core$String$join,
+		'\n    ',
+		A2($elm$core$String$split, '\n', str));
+};
+var $elm$core$List$foldl = F3(
 	function (func, acc, list) {
 		foldl:
 		while (true) {
@@ -4582,482 +4587,27 @@ var elm$core$List$foldl = F3(
 			}
 		}
 	});
-var elm$core$List$reverse = function (list) {
-	return A3(elm$core$List$foldl, elm$core$List$cons, _List_Nil, list);
-};
-var elm$core$Array$compressNodes = F2(
-	function (nodes, acc) {
-		compressNodes:
-		while (true) {
-			var _n0 = A2(elm$core$Elm$JsArray$initializeFromList, elm$core$Array$branchFactor, nodes);
-			var node = _n0.a;
-			var remainingNodes = _n0.b;
-			var newAcc = A2(
-				elm$core$List$cons,
-				elm$core$Array$SubTree(node),
-				acc);
-			if (!remainingNodes.b) {
-				return elm$core$List$reverse(newAcc);
-			} else {
-				var $temp$nodes = remainingNodes,
-					$temp$acc = newAcc;
-				nodes = $temp$nodes;
-				acc = $temp$acc;
-				continue compressNodes;
-			}
-		}
-	});
-var elm$core$Basics$apR = F2(
-	function (x, f) {
-		return f(x);
-	});
-var elm$core$Basics$eq = _Utils_equal;
-var elm$core$Tuple$first = function (_n0) {
-	var x = _n0.a;
-	return x;
-};
-var elm$core$Array$treeFromBuilder = F2(
-	function (nodeList, nodeListSize) {
-		treeFromBuilder:
-		while (true) {
-			var newNodeSize = elm$core$Basics$ceiling(nodeListSize / elm$core$Array$branchFactor);
-			if (newNodeSize === 1) {
-				return A2(elm$core$Elm$JsArray$initializeFromList, elm$core$Array$branchFactor, nodeList).a;
-			} else {
-				var $temp$nodeList = A2(elm$core$Array$compressNodes, nodeList, _List_Nil),
-					$temp$nodeListSize = newNodeSize;
-				nodeList = $temp$nodeList;
-				nodeListSize = $temp$nodeListSize;
-				continue treeFromBuilder;
-			}
-		}
-	});
-var elm$core$Basics$add = _Basics_add;
-var elm$core$Basics$apL = F2(
-	function (f, x) {
-		return f(x);
-	});
-var elm$core$Basics$floor = _Basics_floor;
-var elm$core$Basics$gt = _Utils_gt;
-var elm$core$Basics$max = F2(
-	function (x, y) {
-		return (_Utils_cmp(x, y) > 0) ? x : y;
-	});
-var elm$core$Basics$mul = _Basics_mul;
-var elm$core$Basics$sub = _Basics_sub;
-var elm$core$Elm$JsArray$length = _JsArray_length;
-var elm$core$Array$builderToArray = F2(
-	function (reverseNodeList, builder) {
-		if (!builder.nodeListSize) {
-			return A4(
-				elm$core$Array$Array_elm_builtin,
-				elm$core$Elm$JsArray$length(builder.tail),
-				elm$core$Array$shiftStep,
-				elm$core$Elm$JsArray$empty,
-				builder.tail);
-		} else {
-			var treeLen = builder.nodeListSize * elm$core$Array$branchFactor;
-			var depth = elm$core$Basics$floor(
-				A2(elm$core$Basics$logBase, elm$core$Array$branchFactor, treeLen - 1));
-			var correctNodeList = reverseNodeList ? elm$core$List$reverse(builder.nodeList) : builder.nodeList;
-			var tree = A2(elm$core$Array$treeFromBuilder, correctNodeList, builder.nodeListSize);
-			return A4(
-				elm$core$Array$Array_elm_builtin,
-				elm$core$Elm$JsArray$length(builder.tail) + treeLen,
-				A2(elm$core$Basics$max, 5, depth * elm$core$Array$shiftStep),
-				tree,
-				builder.tail);
-		}
-	});
-var elm$core$Basics$True = {$: 'True'};
-var elm$core$Basics$lt = _Utils_lt;
-var elm$core$Array$fromListHelp = F3(
-	function (list, nodeList, nodeListSize) {
-		fromListHelp:
-		while (true) {
-			var _n0 = A2(elm$core$Elm$JsArray$initializeFromList, elm$core$Array$branchFactor, list);
-			var jsArray = _n0.a;
-			var remainingItems = _n0.b;
-			if (_Utils_cmp(
-				elm$core$Elm$JsArray$length(jsArray),
-				elm$core$Array$branchFactor) < 0) {
-				return A2(
-					elm$core$Array$builderToArray,
-					true,
-					{nodeList: nodeList, nodeListSize: nodeListSize, tail: jsArray});
-			} else {
-				var $temp$list = remainingItems,
-					$temp$nodeList = A2(
-					elm$core$List$cons,
-					elm$core$Array$Leaf(jsArray),
-					nodeList),
-					$temp$nodeListSize = nodeListSize + 1;
-				list = $temp$list;
-				nodeList = $temp$nodeList;
-				nodeListSize = $temp$nodeListSize;
-				continue fromListHelp;
-			}
-		}
-	});
-var elm$core$Array$fromList = function (list) {
-	if (!list.b) {
-		return elm$core$Array$empty;
-	} else {
-		return A3(elm$core$Array$fromListHelp, list, _List_Nil, 0);
-	}
-};
-var elm$core$Basics$identity = function (x) {
-	return x;
-};
-var elm$core$Maybe$Nothing = {$: 'Nothing'};
-var author$project$Editor$init = {
-	composer: 'Unknown',
-	curChord: A3(author$project$Generator$chord, author$project$Generator$C, author$project$Generator$Natural, author$project$Generator$Dom7),
-	defTempo: 160,
-	grid: elm$core$Array$fromList(
-		_List_fromArray(
-			[
-				{chord: elm$core$Maybe$Nothing, len: 4},
-				{chord: elm$core$Maybe$Nothing, len: 4},
-				{chord: elm$core$Maybe$Nothing, len: 4},
-				{chord: elm$core$Maybe$Nothing, len: 4}
-			])),
-	redoList: author$project$Editor$ModelList(_List_Nil),
-	title: 'New song',
-	tool: author$project$Editor$SetChord,
-	undoList: author$project$Editor$ModelList(_List_Nil)
-};
-var author$project$Generator$A = {$: 'A'};
-var author$project$Generator$Alt7 = {$: 'Alt7'};
-var author$project$Generator$ChordProg = F2(
-	function (chords, end) {
-		return {chords: chords, end: end};
-	});
-var author$project$Generator$D = {$: 'D'};
-var author$project$Generator$E = {$: 'E'};
-var author$project$Generator$F = {$: 'F'};
-var author$project$Generator$Flat = {$: 'Flat'};
-var author$project$Generator$G = {$: 'G'};
-var author$project$Generator$Maj7 = {$: 'Maj7'};
-var author$project$Generator$Min7 = {$: 'Min7'};
-var author$project$Generator$Min7b5 = {$: 'Min7b5'};
-var author$project$Generator$blueBossa = A2(
-	author$project$Generator$ChordProg,
-	_List_fromArray(
-		[
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$C, author$project$Generator$Natural, author$project$Generator$Min7),
-			time: 0
-		},
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$F, author$project$Generator$Natural, author$project$Generator$Min7),
-			time: 8
-		},
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$D, author$project$Generator$Natural, author$project$Generator$Min7b5),
-			time: 16
-		},
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$G, author$project$Generator$Natural, author$project$Generator$Alt7),
-			time: 20
-		},
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$C, author$project$Generator$Natural, author$project$Generator$Min7),
-			time: 24
-		},
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$E, author$project$Generator$Flat, author$project$Generator$Min7),
-			time: 32
-		},
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$A, author$project$Generator$Flat, author$project$Generator$Dom7),
-			time: 36
-		},
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$D, author$project$Generator$Flat, author$project$Generator$Maj7),
-			time: 40
-		},
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$D, author$project$Generator$Natural, author$project$Generator$Min7b5),
-			time: 48
-		},
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$G, author$project$Generator$Natural, author$project$Generator$Alt7),
-			time: 52
-		},
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$C, author$project$Generator$Natural, author$project$Generator$Min7),
-			time: 56
-		},
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$D, author$project$Generator$Natural, author$project$Generator$Min7b5),
-			time: 60
-		},
-			{
-			chord: A3(author$project$Generator$chord, author$project$Generator$G, author$project$Generator$Natural, author$project$Generator$Alt7),
-			time: 62
-		}
-		]),
-	64);
-var author$project$PlayerPage$Song = F4(
-	function (chordProg, title, composer, beatsPerBar) {
-		return {beatsPerBar: beatsPerBar, chordProg: chordProg, composer: composer, title: title};
-	});
-var elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
-var elm$core$Dict$empty = elm$core$Dict$RBEmpty_elm_builtin;
-var elm$core$Dict$Black = {$: 'Black'};
-var elm$core$Dict$RBNode_elm_builtin = F5(
-	function (a, b, c, d, e) {
-		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
-	});
-var elm$core$Basics$compare = _Utils_compare;
-var elm$core$Dict$Red = {$: 'Red'};
-var elm$core$Dict$balance = F5(
-	function (color, key, value, left, right) {
-		if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Red')) {
-			var _n1 = right.a;
-			var rK = right.b;
-			var rV = right.c;
-			var rLeft = right.d;
-			var rRight = right.e;
-			if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
-				var _n3 = left.a;
-				var lK = left.b;
-				var lV = left.c;
-				var lLeft = left.d;
-				var lRight = left.e;
-				return A5(
-					elm$core$Dict$RBNode_elm_builtin,
-					elm$core$Dict$Red,
-					key,
-					value,
-					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, lK, lV, lLeft, lRight),
-					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, rK, rV, rLeft, rRight));
-			} else {
-				return A5(
-					elm$core$Dict$RBNode_elm_builtin,
-					color,
-					rK,
-					rV,
-					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, key, value, left, rLeft),
-					rRight);
-			}
-		} else {
-			if ((((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) && (left.d.$ === 'RBNode_elm_builtin')) && (left.d.a.$ === 'Red')) {
-				var _n5 = left.a;
-				var lK = left.b;
-				var lV = left.c;
-				var _n6 = left.d;
-				var _n7 = _n6.a;
-				var llK = _n6.b;
-				var llV = _n6.c;
-				var llLeft = _n6.d;
-				var llRight = _n6.e;
-				var lRight = left.e;
-				return A5(
-					elm$core$Dict$RBNode_elm_builtin,
-					elm$core$Dict$Red,
-					lK,
-					lV,
-					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, llK, llV, llLeft, llRight),
-					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, key, value, lRight, right));
-			} else {
-				return A5(elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
-			}
-		}
-	});
-var elm$core$Dict$insertHelp = F3(
-	function (key, value, dict) {
-		if (dict.$ === 'RBEmpty_elm_builtin') {
-			return A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, key, value, elm$core$Dict$RBEmpty_elm_builtin, elm$core$Dict$RBEmpty_elm_builtin);
-		} else {
-			var nColor = dict.a;
-			var nKey = dict.b;
-			var nValue = dict.c;
-			var nLeft = dict.d;
-			var nRight = dict.e;
-			var _n1 = A2(elm$core$Basics$compare, key, nKey);
-			switch (_n1.$) {
-				case 'LT':
-					return A5(
-						elm$core$Dict$balance,
-						nColor,
-						nKey,
-						nValue,
-						A3(elm$core$Dict$insertHelp, key, value, nLeft),
-						nRight);
-				case 'EQ':
-					return A5(elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
-				default:
-					return A5(
-						elm$core$Dict$balance,
-						nColor,
-						nKey,
-						nValue,
-						nLeft,
-						A3(elm$core$Dict$insertHelp, key, value, nRight));
-			}
-		}
-	});
-var elm$core$Dict$insert = F3(
-	function (key, value, dict) {
-		var _n0 = A3(elm$core$Dict$insertHelp, key, value, dict);
-		if ((_n0.$ === 'RBNode_elm_builtin') && (_n0.a.$ === 'Red')) {
-			var _n1 = _n0.a;
-			var k = _n0.b;
-			var v = _n0.c;
-			var l = _n0.d;
-			var r = _n0.e;
-			return A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, k, v, l, r);
-		} else {
-			var x = _n0;
-			return x;
-		}
-	});
-var elm$core$Dict$fromList = function (assocs) {
+var $elm$core$List$length = function (xs) {
 	return A3(
-		elm$core$List$foldl,
+		$elm$core$List$foldl,
 		F2(
-			function (_n0, dict) {
-				var key = _n0.a;
-				var value = _n0.b;
-				return A3(elm$core$Dict$insert, key, value, dict);
-			}),
-		elm$core$Dict$empty,
-		assocs);
-};
-var author$project$Library$init = elm$core$Dict$fromList(
-	_List_fromArray(
-		[
-			_Utils_Tuple2(
-			'Blue Bossa--Dexter Gordon',
-			A4(author$project$PlayerPage$Song, author$project$Generator$blueBossa, 'Blue Bossa', 'Dexter Gordon', 4))
-		]));
-var author$project$Main$Library = {$: 'Library'};
-var author$project$Main$PpEvent = function (a) {
-	return {$: 'PpEvent', a: a};
-};
-var elm$core$Basics$False = {$: 'False'};
-var author$project$PlayerPage$init = {
-	barsPerLine: 4,
-	bpm: 120,
-	cursor: 0,
-	playing: false,
-	song: A4(author$project$PlayerPage$Song, author$project$Generator$blueBossa, 'Blue Bossa', 'Dexter Gordon', 4)
-};
-var elm$core$Result$isOk = function (result) {
-	if (result.$ === 'Ok') {
-		return true;
-	} else {
-		return false;
-	}
-};
-var elm$core$Basics$idiv = _Basics_idiv;
-var elm$core$Elm$JsArray$initialize = _JsArray_initialize;
-var elm$core$Array$initializeHelp = F5(
-	function (fn, fromIndex, len, nodeList, tail) {
-		initializeHelp:
-		while (true) {
-			if (fromIndex < 0) {
-				return A2(
-					elm$core$Array$builderToArray,
-					false,
-					{nodeList: nodeList, nodeListSize: (len / elm$core$Array$branchFactor) | 0, tail: tail});
-			} else {
-				var leaf = elm$core$Array$Leaf(
-					A3(elm$core$Elm$JsArray$initialize, elm$core$Array$branchFactor, fromIndex, fn));
-				var $temp$fn = fn,
-					$temp$fromIndex = fromIndex - elm$core$Array$branchFactor,
-					$temp$len = len,
-					$temp$nodeList = A2(elm$core$List$cons, leaf, nodeList),
-					$temp$tail = tail;
-				fn = $temp$fn;
-				fromIndex = $temp$fromIndex;
-				len = $temp$len;
-				nodeList = $temp$nodeList;
-				tail = $temp$tail;
-				continue initializeHelp;
-			}
-		}
-	});
-var elm$core$Basics$le = _Utils_le;
-var elm$core$Basics$remainderBy = _Basics_remainderBy;
-var elm$core$Array$initialize = F2(
-	function (len, fn) {
-		if (len <= 0) {
-			return elm$core$Array$empty;
-		} else {
-			var tailLen = len % elm$core$Array$branchFactor;
-			var tail = A3(elm$core$Elm$JsArray$initialize, tailLen, len - tailLen, fn);
-			var initialFromIndex = (len - tailLen) - elm$core$Array$branchFactor;
-			return A5(elm$core$Array$initializeHelp, fn, initialFromIndex, len, _List_Nil, tail);
-		}
-	});
-var elm$core$Maybe$Just = function (a) {
-	return {$: 'Just', a: a};
-};
-var elm$core$Result$Err = function (a) {
-	return {$: 'Err', a: a};
-};
-var elm$core$Result$Ok = function (a) {
-	return {$: 'Ok', a: a};
-};
-var elm$json$Json$Decode$Failure = F2(
-	function (a, b) {
-		return {$: 'Failure', a: a, b: b};
-	});
-var elm$json$Json$Decode$Field = F2(
-	function (a, b) {
-		return {$: 'Field', a: a, b: b};
-	});
-var elm$json$Json$Decode$Index = F2(
-	function (a, b) {
-		return {$: 'Index', a: a, b: b};
-	});
-var elm$json$Json$Decode$OneOf = function (a) {
-	return {$: 'OneOf', a: a};
-};
-var elm$core$Basics$and = _Basics_and;
-var elm$core$Basics$append = _Utils_append;
-var elm$core$Basics$or = _Basics_or;
-var elm$core$Char$toCode = _Char_toCode;
-var elm$core$Char$isLower = function (_char) {
-	var code = elm$core$Char$toCode(_char);
-	return (97 <= code) && (code <= 122);
-};
-var elm$core$Char$isUpper = function (_char) {
-	var code = elm$core$Char$toCode(_char);
-	return (code <= 90) && (65 <= code);
-};
-var elm$core$Char$isAlpha = function (_char) {
-	return elm$core$Char$isLower(_char) || elm$core$Char$isUpper(_char);
-};
-var elm$core$Char$isDigit = function (_char) {
-	var code = elm$core$Char$toCode(_char);
-	return (code <= 57) && (48 <= code);
-};
-var elm$core$Char$isAlphaNum = function (_char) {
-	return elm$core$Char$isLower(_char) || (elm$core$Char$isUpper(_char) || elm$core$Char$isDigit(_char));
-};
-var elm$core$List$length = function (xs) {
-	return A3(
-		elm$core$List$foldl,
-		F2(
-			function (_n0, i) {
+			function (_v0, i) {
 				return i + 1;
 			}),
 		0,
 		xs);
 };
-var elm$core$List$map2 = _List_map2;
-var elm$core$List$rangeHelp = F3(
+var $elm$core$List$map2 = _List_map2;
+var $elm$core$Basics$le = _Utils_le;
+var $elm$core$Basics$sub = _Basics_sub;
+var $elm$core$List$rangeHelp = F3(
 	function (lo, hi, list) {
 		rangeHelp:
 		while (true) {
 			if (_Utils_cmp(lo, hi) < 1) {
 				var $temp$lo = lo,
 					$temp$hi = hi - 1,
-					$temp$list = A2(elm$core$List$cons, hi, list);
+					$temp$list = A2($elm$core$List$cons, hi, list);
 				lo = $temp$lo;
 				hi = $temp$hi;
 				list = $temp$list;
@@ -5067,52 +4617,54 @@ var elm$core$List$rangeHelp = F3(
 			}
 		}
 	});
-var elm$core$List$range = F2(
+var $elm$core$List$range = F2(
 	function (lo, hi) {
-		return A3(elm$core$List$rangeHelp, lo, hi, _List_Nil);
+		return A3($elm$core$List$rangeHelp, lo, hi, _List_Nil);
 	});
-var elm$core$List$indexedMap = F2(
+var $elm$core$List$indexedMap = F2(
 	function (f, xs) {
 		return A3(
-			elm$core$List$map2,
+			$elm$core$List$map2,
 			f,
 			A2(
-				elm$core$List$range,
+				$elm$core$List$range,
 				0,
-				elm$core$List$length(xs) - 1),
+				$elm$core$List$length(xs) - 1),
 			xs);
 	});
-var elm$core$String$all = _String_all;
-var elm$core$String$fromInt = _String_fromNumber;
-var elm$core$String$join = F2(
-	function (sep, chunks) {
-		return A2(
-			_String_join,
-			sep,
-			_List_toArray(chunks));
-	});
-var elm$core$String$uncons = _String_uncons;
-var elm$core$String$split = F2(
-	function (sep, string) {
-		return _List_fromArray(
-			A2(_String_split, sep, string));
-	});
-var elm$json$Json$Decode$indent = function (str) {
-	return A2(
-		elm$core$String$join,
-		'\n    ',
-		A2(elm$core$String$split, '\n', str));
+var $elm$core$Char$toCode = _Char_toCode;
+var $elm$core$Char$isLower = function (_char) {
+	var code = $elm$core$Char$toCode(_char);
+	return (97 <= code) && (code <= 122);
 };
-var elm$json$Json$Encode$encode = _Json_encode;
-var elm$json$Json$Decode$errorOneOf = F2(
+var $elm$core$Char$isUpper = function (_char) {
+	var code = $elm$core$Char$toCode(_char);
+	return (code <= 90) && (65 <= code);
+};
+var $elm$core$Basics$or = _Basics_or;
+var $elm$core$Char$isAlpha = function (_char) {
+	return $elm$core$Char$isLower(_char) || $elm$core$Char$isUpper(_char);
+};
+var $elm$core$Char$isDigit = function (_char) {
+	var code = $elm$core$Char$toCode(_char);
+	return (code <= 57) && (48 <= code);
+};
+var $elm$core$Char$isAlphaNum = function (_char) {
+	return $elm$core$Char$isLower(_char) || ($elm$core$Char$isUpper(_char) || $elm$core$Char$isDigit(_char));
+};
+var $elm$core$List$reverse = function (list) {
+	return A3($elm$core$List$foldl, $elm$core$List$cons, _List_Nil, list);
+};
+var $elm$core$String$uncons = _String_uncons;
+var $elm$json$Json$Decode$errorOneOf = F2(
 	function (i, error) {
-		return '\n\n(' + (elm$core$String$fromInt(i + 1) + (') ' + elm$json$Json$Decode$indent(
-			elm$json$Json$Decode$errorToString(error))));
+		return '\n\n(' + ($elm$core$String$fromInt(i + 1) + (') ' + $elm$json$Json$Decode$indent(
+			$elm$json$Json$Decode$errorToString(error))));
 	});
-var elm$json$Json$Decode$errorToString = function (error) {
-	return A2(elm$json$Json$Decode$errorToStringHelp, error, _List_Nil);
+var $elm$json$Json$Decode$errorToString = function (error) {
+	return A2($elm$json$Json$Decode$errorToStringHelp, error, _List_Nil);
 };
-var elm$json$Json$Decode$errorToStringHelp = F2(
+var $elm$json$Json$Decode$errorToStringHelp = F2(
 	function (error, context) {
 		errorToStringHelp:
 		while (true) {
@@ -5121,28 +4673,28 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 					var f = error.a;
 					var err = error.b;
 					var isSimple = function () {
-						var _n1 = elm$core$String$uncons(f);
-						if (_n1.$ === 'Nothing') {
+						var _v1 = $elm$core$String$uncons(f);
+						if (_v1.$ === 'Nothing') {
 							return false;
 						} else {
-							var _n2 = _n1.a;
-							var _char = _n2.a;
-							var rest = _n2.b;
-							return elm$core$Char$isAlpha(_char) && A2(elm$core$String$all, elm$core$Char$isAlphaNum, rest);
+							var _v2 = _v1.a;
+							var _char = _v2.a;
+							var rest = _v2.b;
+							return $elm$core$Char$isAlpha(_char) && A2($elm$core$String$all, $elm$core$Char$isAlphaNum, rest);
 						}
 					}();
 					var fieldName = isSimple ? ('.' + f) : ('[\'' + (f + '\']'));
 					var $temp$error = err,
-						$temp$context = A2(elm$core$List$cons, fieldName, context);
+						$temp$context = A2($elm$core$List$cons, fieldName, context);
 					error = $temp$error;
 					context = $temp$context;
 					continue errorToStringHelp;
 				case 'Index':
 					var i = error.a;
 					var err = error.b;
-					var indexName = '[' + (elm$core$String$fromInt(i) + ']');
+					var indexName = '[' + ($elm$core$String$fromInt(i) + ']');
 					var $temp$error = err,
-						$temp$context = A2(elm$core$List$cons, indexName, context);
+						$temp$context = A2($elm$core$List$cons, indexName, context);
 					error = $temp$error;
 					context = $temp$context;
 					continue errorToStringHelp;
@@ -5154,9 +4706,9 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 								return '!';
 							} else {
 								return ' at json' + A2(
-									elm$core$String$join,
+									$elm$core$String$join,
 									'',
-									elm$core$List$reverse(context));
+									$elm$core$List$reverse(context));
 							}
 						}();
 					} else {
@@ -5173,20 +4725,20 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 									return 'Json.Decode.oneOf';
 								} else {
 									return 'The Json.Decode.oneOf at json' + A2(
-										elm$core$String$join,
+										$elm$core$String$join,
 										'',
-										elm$core$List$reverse(context));
+										$elm$core$List$reverse(context));
 								}
 							}();
-							var introduction = starter + (' failed in the following ' + (elm$core$String$fromInt(
-								elm$core$List$length(errors)) + ' ways:'));
+							var introduction = starter + (' failed in the following ' + ($elm$core$String$fromInt(
+								$elm$core$List$length(errors)) + ' ways:'));
 							return A2(
-								elm$core$String$join,
+								$elm$core$String$join,
 								'\n\n',
 								A2(
-									elm$core$List$cons,
+									$elm$core$List$cons,
 									introduction,
-									A2(elm$core$List$indexedMap, elm$json$Json$Decode$errorOneOf, errors)));
+									A2($elm$core$List$indexedMap, $elm$json$Json$Decode$errorOneOf, errors)));
 						}
 					}
 				default:
@@ -5197,63 +4749,174 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 							return 'Problem with the given value:\n\n';
 						} else {
 							return 'Problem with the value at json' + (A2(
-								elm$core$String$join,
+								$elm$core$String$join,
 								'',
-								elm$core$List$reverse(context)) + ':\n\n    ');
+								$elm$core$List$reverse(context)) + ':\n\n    ');
 						}
 					}();
-					return introduction + (elm$json$Json$Decode$indent(
-						A2(elm$json$Json$Encode$encode, 4, json)) + ('\n\n' + msg));
+					return introduction + ($elm$json$Json$Decode$indent(
+						A2($elm$json$Json$Encode$encode, 4, json)) + ('\n\n' + msg));
 			}
 		}
 	});
-var elm$core$Platform$Cmd$batch = _Platform_batch;
-var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
-var author$project$PlayerPage$initCmd = elm$core$Platform$Cmd$none;
-var elm$core$Platform$Cmd$map = _Platform_map;
-var author$project$Main$init = function (_n0) {
-	return _Utils_Tuple2(
-		{curPage: author$project$Main$Library, dialogBox: elm$core$Maybe$Nothing, editorModel: author$project$Editor$init, libraryModel: author$project$Library$init, playerModel: author$project$PlayerPage$init},
-		A2(
-			elm$core$Platform$Cmd$map,
-			function (sm) {
-				return author$project$Main$PpEvent(sm);
-			},
-			author$project$PlayerPage$initCmd));
-};
-var author$project$Main$SetCursor = function (a) {
-	return {$: 'SetCursor', a: a};
-};
-var author$project$PlayerPage$SeqFinished = {$: 'SeqFinished'};
-var elm$json$Json$Decode$float = _Json_decodeFloat;
-var author$project$Tune$cursorChanged = _Platform_incomingPort('cursorChanged', elm$json$Json$Decode$float);
-var elm$json$Json$Decode$null = _Json_decodeNull;
-var author$project$Tune$sequenceFinished = _Platform_incomingPort(
-	'sequenceFinished',
-	elm$json$Json$Decode$null(_Utils_Tuple0));
-var elm$core$Basics$always = F2(
-	function (a, _n0) {
-		return a;
+var $elm$core$Array$branchFactor = 32;
+var $elm$core$Array$Array_elm_builtin = F4(
+	function (a, b, c, d) {
+		return {$: 'Array_elm_builtin', a: a, b: b, c: c, d: d};
 	});
-var elm$core$Platform$Sub$batch = _Platform_batch;
-var author$project$Main$subscriptions = function (model) {
-	return elm$core$Platform$Sub$batch(
-		_List_fromArray(
-			[
-				author$project$Tune$cursorChanged(author$project$Main$SetCursor),
-				author$project$Tune$sequenceFinished(
-				elm$core$Basics$always(
-					author$project$Main$PpEvent(author$project$PlayerPage$SeqFinished)))
-			]));
-};
-var author$project$DialogBox$DialogBox = F3(
-	function (title, body, actions) {
-		return {actions: actions, body: body, title: title};
+var $elm$core$Elm$JsArray$empty = _JsArray_empty;
+var $elm$core$Basics$ceiling = _Basics_ceiling;
+var $elm$core$Basics$fdiv = _Basics_fdiv;
+var $elm$core$Basics$logBase = F2(
+	function (base, number) {
+		return _Basics_log(number) / _Basics_log(base);
 	});
-var elm$json$Json$Decode$map = _Json_map1;
-var elm$json$Json$Decode$map2 = _Json_map2;
-var elm$json$Json$Decode$succeed = _Json_succeed;
-var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
+var $elm$core$Basics$toFloat = _Basics_toFloat;
+var $elm$core$Array$shiftStep = $elm$core$Basics$ceiling(
+	A2($elm$core$Basics$logBase, 2, $elm$core$Array$branchFactor));
+var $elm$core$Array$empty = A4($elm$core$Array$Array_elm_builtin, 0, $elm$core$Array$shiftStep, $elm$core$Elm$JsArray$empty, $elm$core$Elm$JsArray$empty);
+var $elm$core$Elm$JsArray$initialize = _JsArray_initialize;
+var $elm$core$Array$Leaf = function (a) {
+	return {$: 'Leaf', a: a};
+};
+var $elm$core$Basics$apL = F2(
+	function (f, x) {
+		return f(x);
+	});
+var $elm$core$Basics$apR = F2(
+	function (x, f) {
+		return f(x);
+	});
+var $elm$core$Basics$eq = _Utils_equal;
+var $elm$core$Basics$floor = _Basics_floor;
+var $elm$core$Elm$JsArray$length = _JsArray_length;
+var $elm$core$Basics$gt = _Utils_gt;
+var $elm$core$Basics$max = F2(
+	function (x, y) {
+		return (_Utils_cmp(x, y) > 0) ? x : y;
+	});
+var $elm$core$Basics$mul = _Basics_mul;
+var $elm$core$Array$SubTree = function (a) {
+	return {$: 'SubTree', a: a};
+};
+var $elm$core$Elm$JsArray$initializeFromList = _JsArray_initializeFromList;
+var $elm$core$Array$compressNodes = F2(
+	function (nodes, acc) {
+		compressNodes:
+		while (true) {
+			var _v0 = A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, nodes);
+			var node = _v0.a;
+			var remainingNodes = _v0.b;
+			var newAcc = A2(
+				$elm$core$List$cons,
+				$elm$core$Array$SubTree(node),
+				acc);
+			if (!remainingNodes.b) {
+				return $elm$core$List$reverse(newAcc);
+			} else {
+				var $temp$nodes = remainingNodes,
+					$temp$acc = newAcc;
+				nodes = $temp$nodes;
+				acc = $temp$acc;
+				continue compressNodes;
+			}
+		}
+	});
+var $elm$core$Tuple$first = function (_v0) {
+	var x = _v0.a;
+	return x;
+};
+var $elm$core$Array$treeFromBuilder = F2(
+	function (nodeList, nodeListSize) {
+		treeFromBuilder:
+		while (true) {
+			var newNodeSize = $elm$core$Basics$ceiling(nodeListSize / $elm$core$Array$branchFactor);
+			if (newNodeSize === 1) {
+				return A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, nodeList).a;
+			} else {
+				var $temp$nodeList = A2($elm$core$Array$compressNodes, nodeList, _List_Nil),
+					$temp$nodeListSize = newNodeSize;
+				nodeList = $temp$nodeList;
+				nodeListSize = $temp$nodeListSize;
+				continue treeFromBuilder;
+			}
+		}
+	});
+var $elm$core$Array$builderToArray = F2(
+	function (reverseNodeList, builder) {
+		if (!builder.nodeListSize) {
+			return A4(
+				$elm$core$Array$Array_elm_builtin,
+				$elm$core$Elm$JsArray$length(builder.tail),
+				$elm$core$Array$shiftStep,
+				$elm$core$Elm$JsArray$empty,
+				builder.tail);
+		} else {
+			var treeLen = builder.nodeListSize * $elm$core$Array$branchFactor;
+			var depth = $elm$core$Basics$floor(
+				A2($elm$core$Basics$logBase, $elm$core$Array$branchFactor, treeLen - 1));
+			var correctNodeList = reverseNodeList ? $elm$core$List$reverse(builder.nodeList) : builder.nodeList;
+			var tree = A2($elm$core$Array$treeFromBuilder, correctNodeList, builder.nodeListSize);
+			return A4(
+				$elm$core$Array$Array_elm_builtin,
+				$elm$core$Elm$JsArray$length(builder.tail) + treeLen,
+				A2($elm$core$Basics$max, 5, depth * $elm$core$Array$shiftStep),
+				tree,
+				builder.tail);
+		}
+	});
+var $elm$core$Basics$idiv = _Basics_idiv;
+var $elm$core$Basics$lt = _Utils_lt;
+var $elm$core$Array$initializeHelp = F5(
+	function (fn, fromIndex, len, nodeList, tail) {
+		initializeHelp:
+		while (true) {
+			if (fromIndex < 0) {
+				return A2(
+					$elm$core$Array$builderToArray,
+					false,
+					{nodeList: nodeList, nodeListSize: (len / $elm$core$Array$branchFactor) | 0, tail: tail});
+			} else {
+				var leaf = $elm$core$Array$Leaf(
+					A3($elm$core$Elm$JsArray$initialize, $elm$core$Array$branchFactor, fromIndex, fn));
+				var $temp$fn = fn,
+					$temp$fromIndex = fromIndex - $elm$core$Array$branchFactor,
+					$temp$len = len,
+					$temp$nodeList = A2($elm$core$List$cons, leaf, nodeList),
+					$temp$tail = tail;
+				fn = $temp$fn;
+				fromIndex = $temp$fromIndex;
+				len = $temp$len;
+				nodeList = $temp$nodeList;
+				tail = $temp$tail;
+				continue initializeHelp;
+			}
+		}
+	});
+var $elm$core$Basics$remainderBy = _Basics_remainderBy;
+var $elm$core$Array$initialize = F2(
+	function (len, fn) {
+		if (len <= 0) {
+			return $elm$core$Array$empty;
+		} else {
+			var tailLen = len % $elm$core$Array$branchFactor;
+			var tail = A3($elm$core$Elm$JsArray$initialize, tailLen, len - tailLen, fn);
+			var initialFromIndex = (len - tailLen) - $elm$core$Array$branchFactor;
+			return A5($elm$core$Array$initializeHelp, fn, initialFromIndex, len, _List_Nil, tail);
+		}
+	});
+var $elm$core$Basics$True = {$: 'True'};
+var $elm$core$Result$isOk = function (result) {
+	if (result.$ === 'Ok') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $elm$json$Json$Decode$map = _Json_map1;
+var $elm$json$Json$Decode$map2 = _Json_map2;
+var $elm$json$Json$Decode$succeed = _Json_succeed;
+var $elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 	switch (handler.$) {
 		case 'Normal':
 			return 0;
@@ -5265,43 +4928,162 @@ var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 			return 3;
 	}
 };
-var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
-var author$project$DialogBox$yesNoDialog = F4(
-	function (title, subtext, yescmd, nocmd) {
-		return A3(
-			author$project$DialogBox$DialogBox,
-			title,
-			elm$html$Html$text(subtext),
-			_List_fromArray(
-				[
-					{cmd: yescmd, text: 'Yes'},
-					{cmd: nocmd, text: 'No'}
-				]));
+var $elm$browser$Browser$External = function (a) {
+	return {$: 'External', a: a};
+};
+var $elm$browser$Browser$Internal = function (a) {
+	return {$: 'Internal', a: a};
+};
+var $elm$core$Basics$identity = function (x) {
+	return x;
+};
+var $elm$browser$Browser$Dom$NotFound = function (a) {
+	return {$: 'NotFound', a: a};
+};
+var $elm$url$Url$Http = {$: 'Http'};
+var $elm$url$Url$Https = {$: 'Https'};
+var $elm$url$Url$Url = F6(
+	function (protocol, host, port_, path, query, fragment) {
+		return {fragment: fragment, host: host, path: path, port_: port_, protocol: protocol, query: query};
 	});
-var author$project$Editor$ConfirmQuit = {$: 'ConfirmQuit'};
-var author$project$PlayerPage$substract2to2 = function (l) {
-	if (!l.b) {
-		return _List_Nil;
-	} else {
-		if (!l.b.b) {
-			var h = l.a;
-			return _List_Nil;
+var $elm$core$String$contains = _String_contains;
+var $elm$core$String$length = _String_length;
+var $elm$core$String$slice = _String_slice;
+var $elm$core$String$dropLeft = F2(
+	function (n, string) {
+		return (n < 1) ? string : A3(
+			$elm$core$String$slice,
+			n,
+			$elm$core$String$length(string),
+			string);
+	});
+var $elm$core$String$indexes = _String_indexes;
+var $elm$core$String$isEmpty = function (string) {
+	return string === '';
+};
+var $elm$core$String$left = F2(
+	function (n, string) {
+		return (n < 1) ? '' : A3($elm$core$String$slice, 0, n, string);
+	});
+var $elm$core$String$toInt = _String_toInt;
+var $elm$url$Url$chompBeforePath = F5(
+	function (protocol, path, params, frag, str) {
+		if ($elm$core$String$isEmpty(str) || A2($elm$core$String$contains, '@', str)) {
+			return $elm$core$Maybe$Nothing;
 		} else {
-			var a = l.a;
-			var _n1 = l.b;
-			var b = _n1.a;
-			var t = _n1.b;
-			return A2(
-				elm$core$List$cons,
-				b - a,
-				author$project$PlayerPage$substract2to2(
-					A2(elm$core$List$cons, b, t)));
+			var _v0 = A2($elm$core$String$indexes, ':', str);
+			if (!_v0.b) {
+				return $elm$core$Maybe$Just(
+					A6($elm$url$Url$Url, protocol, str, $elm$core$Maybe$Nothing, path, params, frag));
+			} else {
+				if (!_v0.b.b) {
+					var i = _v0.a;
+					var _v1 = $elm$core$String$toInt(
+						A2($elm$core$String$dropLeft, i + 1, str));
+					if (_v1.$ === 'Nothing') {
+						return $elm$core$Maybe$Nothing;
+					} else {
+						var port_ = _v1;
+						return $elm$core$Maybe$Just(
+							A6(
+								$elm$url$Url$Url,
+								protocol,
+								A2($elm$core$String$left, i, str),
+								port_,
+								path,
+								params,
+								frag));
+					}
+				} else {
+					return $elm$core$Maybe$Nothing;
+				}
+			}
 		}
+	});
+var $elm$url$Url$chompBeforeQuery = F4(
+	function (protocol, params, frag, str) {
+		if ($elm$core$String$isEmpty(str)) {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var _v0 = A2($elm$core$String$indexes, '/', str);
+			if (!_v0.b) {
+				return A5($elm$url$Url$chompBeforePath, protocol, '/', params, frag, str);
+			} else {
+				var i = _v0.a;
+				return A5(
+					$elm$url$Url$chompBeforePath,
+					protocol,
+					A2($elm$core$String$dropLeft, i, str),
+					params,
+					frag,
+					A2($elm$core$String$left, i, str));
+			}
+		}
+	});
+var $elm$url$Url$chompBeforeFragment = F3(
+	function (protocol, frag, str) {
+		if ($elm$core$String$isEmpty(str)) {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var _v0 = A2($elm$core$String$indexes, '?', str);
+			if (!_v0.b) {
+				return A4($elm$url$Url$chompBeforeQuery, protocol, $elm$core$Maybe$Nothing, frag, str);
+			} else {
+				var i = _v0.a;
+				return A4(
+					$elm$url$Url$chompBeforeQuery,
+					protocol,
+					$elm$core$Maybe$Just(
+						A2($elm$core$String$dropLeft, i + 1, str)),
+					frag,
+					A2($elm$core$String$left, i, str));
+			}
+		}
+	});
+var $elm$url$Url$chompAfterProtocol = F2(
+	function (protocol, str) {
+		if ($elm$core$String$isEmpty(str)) {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var _v0 = A2($elm$core$String$indexes, '#', str);
+			if (!_v0.b) {
+				return A3($elm$url$Url$chompBeforeFragment, protocol, $elm$core$Maybe$Nothing, str);
+			} else {
+				var i = _v0.a;
+				return A3(
+					$elm$url$Url$chompBeforeFragment,
+					protocol,
+					$elm$core$Maybe$Just(
+						A2($elm$core$String$dropLeft, i + 1, str)),
+					A2($elm$core$String$left, i, str));
+			}
+		}
+	});
+var $elm$core$String$startsWith = _String_startsWith;
+var $elm$url$Url$fromString = function (str) {
+	return A2($elm$core$String$startsWith, 'http://', str) ? A2(
+		$elm$url$Url$chompAfterProtocol,
+		$elm$url$Url$Http,
+		A2($elm$core$String$dropLeft, 7, str)) : (A2($elm$core$String$startsWith, 'https://', str) ? A2(
+		$elm$url$Url$chompAfterProtocol,
+		$elm$url$Url$Https,
+		A2($elm$core$String$dropLeft, 8, str)) : $elm$core$Maybe$Nothing);
+};
+var $elm$core$Basics$never = function (_v0) {
+	never:
+	while (true) {
+		var nvr = _v0.a;
+		var $temp$_v0 = nvr;
+		_v0 = $temp$_v0;
+		continue never;
 	}
 };
-var elm$core$Basics$ge = _Utils_ge;
-var elm$core$List$foldrHelper = F4(
+var $elm$core$Task$Perform = function (a) {
+	return {$: 'Perform', a: a};
+};
+var $elm$core$Task$succeed = _Scheduler_succeed;
+var $elm$core$Task$init = $elm$core$Task$succeed(_Utils_Tuple0);
+var $elm$core$List$foldrHelper = F4(
 	function (fn, acc, ctr, ls) {
 		if (!ls.b) {
 			return acc;
@@ -5333,10 +5115,10 @@ var elm$core$List$foldrHelper = F4(
 						var d = r3.a;
 						var r4 = r3.b;
 						var res = (ctr > 500) ? A3(
-							elm$core$List$foldl,
+							$elm$core$List$foldl,
 							fn,
 							acc,
-							elm$core$List$reverse(r4)) : A4(elm$core$List$foldrHelper, fn, acc, ctr + 1, r4);
+							$elm$core$List$reverse(r4)) : A4($elm$core$List$foldrHelper, fn, acc, ctr + 1, r4);
 						return A2(
 							fn,
 							a,
@@ -5352,78 +5134,556 @@ var elm$core$List$foldrHelper = F4(
 			}
 		}
 	});
-var elm$core$List$foldr = F3(
+var $elm$core$List$foldr = F3(
 	function (fn, acc, ls) {
-		return A4(elm$core$List$foldrHelper, fn, acc, 0, ls);
+		return A4($elm$core$List$foldrHelper, fn, acc, 0, ls);
 	});
-var elm$core$List$append = F2(
-	function (xs, ys) {
-		if (!ys.b) {
-			return xs;
-		} else {
-			return A3(elm$core$List$foldr, elm$core$List$cons, ys, xs);
-		}
-	});
-var elm$core$List$concat = function (lists) {
-	return A3(elm$core$List$foldr, elm$core$List$append, _List_Nil, lists);
-};
-var elm$core$List$map = F2(
+var $elm$core$List$map = F2(
 	function (f, xs) {
 		return A3(
-			elm$core$List$foldr,
+			$elm$core$List$foldr,
 			F2(
 				function (x, acc) {
 					return A2(
-						elm$core$List$cons,
+						$elm$core$List$cons,
 						f(x),
 						acc);
 				}),
 			_List_Nil,
 			xs);
 	});
-var elm$core$List$concatMap = F2(
-	function (f, list) {
-		return elm$core$List$concat(
-			A2(elm$core$List$map, f, list));
+var $elm$core$Task$andThen = _Scheduler_andThen;
+var $elm$core$Task$map = F2(
+	function (func, taskA) {
+		return A2(
+			$elm$core$Task$andThen,
+			function (a) {
+				return $elm$core$Task$succeed(
+					func(a));
+			},
+			taskA);
 	});
-var elm$core$List$filter = F2(
+var $elm$core$Task$map2 = F3(
+	function (func, taskA, taskB) {
+		return A2(
+			$elm$core$Task$andThen,
+			function (a) {
+				return A2(
+					$elm$core$Task$andThen,
+					function (b) {
+						return $elm$core$Task$succeed(
+							A2(func, a, b));
+					},
+					taskB);
+			},
+			taskA);
+	});
+var $elm$core$Task$sequence = function (tasks) {
+	return A3(
+		$elm$core$List$foldr,
+		$elm$core$Task$map2($elm$core$List$cons),
+		$elm$core$Task$succeed(_List_Nil),
+		tasks);
+};
+var $elm$core$Platform$sendToApp = _Platform_sendToApp;
+var $elm$core$Task$spawnCmd = F2(
+	function (router, _v0) {
+		var task = _v0.a;
+		return _Scheduler_spawn(
+			A2(
+				$elm$core$Task$andThen,
+				$elm$core$Platform$sendToApp(router),
+				task));
+	});
+var $elm$core$Task$onEffects = F3(
+	function (router, commands, state) {
+		return A2(
+			$elm$core$Task$map,
+			function (_v0) {
+				return _Utils_Tuple0;
+			},
+			$elm$core$Task$sequence(
+				A2(
+					$elm$core$List$map,
+					$elm$core$Task$spawnCmd(router),
+					commands)));
+	});
+var $elm$core$Task$onSelfMsg = F3(
+	function (_v0, _v1, _v2) {
+		return $elm$core$Task$succeed(_Utils_Tuple0);
+	});
+var $elm$core$Task$cmdMap = F2(
+	function (tagger, _v0) {
+		var task = _v0.a;
+		return $elm$core$Task$Perform(
+			A2($elm$core$Task$map, tagger, task));
+	});
+_Platform_effectManagers['Task'] = _Platform_createManager($elm$core$Task$init, $elm$core$Task$onEffects, $elm$core$Task$onSelfMsg, $elm$core$Task$cmdMap);
+var $elm$core$Task$command = _Platform_leaf('Task');
+var $elm$core$Task$perform = F2(
+	function (toMessage, task) {
+		return $elm$core$Task$command(
+			$elm$core$Task$Perform(
+				A2($elm$core$Task$map, toMessage, task)));
+	});
+var $elm$browser$Browser$element = _Browser_element;
+var $author$project$Main$Library = {$: 'Library'};
+var $author$project$Main$PpEvent = function (a) {
+	return {$: 'PpEvent', a: a};
+};
+var $author$project$Generator$C = {$: 'C'};
+var $author$project$Generator$Dom7 = {$: 'Dom7'};
+var $author$project$Editor$ModelList = function (a) {
+	return {$: 'ModelList', a: a};
+};
+var $author$project$Generator$Natural = {$: 'Natural'};
+var $author$project$Editor$SetChord = {$: 'SetChord'};
+var $author$project$Generator$Chord = F2(
+	function (note, type_) {
+		return {note: note, type_: type_};
+	});
+var $author$project$Generator$Note = F2(
+	function (name, alt) {
+		return {alt: alt, name: name};
+	});
+var $author$project$Generator$chord = F3(
+	function (n, a, t) {
+		return A2(
+			$author$project$Generator$Chord,
+			A2($author$project$Generator$Note, n, a),
+			t);
+	});
+var $elm$core$Array$fromListHelp = F3(
+	function (list, nodeList, nodeListSize) {
+		fromListHelp:
+		while (true) {
+			var _v0 = A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, list);
+			var jsArray = _v0.a;
+			var remainingItems = _v0.b;
+			if (_Utils_cmp(
+				$elm$core$Elm$JsArray$length(jsArray),
+				$elm$core$Array$branchFactor) < 0) {
+				return A2(
+					$elm$core$Array$builderToArray,
+					true,
+					{nodeList: nodeList, nodeListSize: nodeListSize, tail: jsArray});
+			} else {
+				var $temp$list = remainingItems,
+					$temp$nodeList = A2(
+					$elm$core$List$cons,
+					$elm$core$Array$Leaf(jsArray),
+					nodeList),
+					$temp$nodeListSize = nodeListSize + 1;
+				list = $temp$list;
+				nodeList = $temp$nodeList;
+				nodeListSize = $temp$nodeListSize;
+				continue fromListHelp;
+			}
+		}
+	});
+var $elm$core$Array$fromList = function (list) {
+	if (!list.b) {
+		return $elm$core$Array$empty;
+	} else {
+		return A3($elm$core$Array$fromListHelp, list, _List_Nil, 0);
+	}
+};
+var $author$project$Editor$init = {
+	composer: 'Unknown',
+	curChord: A3($author$project$Generator$chord, $author$project$Generator$C, $author$project$Generator$Natural, $author$project$Generator$Dom7),
+	defTempo: 160,
+	grid: $elm$core$Array$fromList(
+		_List_fromArray(
+			[
+				{chord: $elm$core$Maybe$Nothing, len: 4},
+				{chord: $elm$core$Maybe$Nothing, len: 4},
+				{chord: $elm$core$Maybe$Nothing, len: 4},
+				{chord: $elm$core$Maybe$Nothing, len: 4}
+			])),
+	redoList: $author$project$Editor$ModelList(_List_Nil),
+	title: 'New song',
+	tool: $author$project$Editor$SetChord,
+	undoList: $author$project$Editor$ModelList(_List_Nil)
+};
+var $author$project$PlayerPage$Song = F4(
+	function (chordProg, title, composer, beatsPerBar) {
+		return {beatsPerBar: beatsPerBar, chordProg: chordProg, composer: composer, title: title};
+	});
+var $author$project$Generator$A = {$: 'A'};
+var $author$project$Generator$Alt7 = {$: 'Alt7'};
+var $author$project$Generator$ChordProg = F2(
+	function (chords, end) {
+		return {chords: chords, end: end};
+	});
+var $author$project$Generator$D = {$: 'D'};
+var $author$project$Generator$E = {$: 'E'};
+var $author$project$Generator$F = {$: 'F'};
+var $author$project$Generator$Flat = {$: 'Flat'};
+var $author$project$Generator$G = {$: 'G'};
+var $author$project$Generator$Maj7 = {$: 'Maj7'};
+var $author$project$Generator$Min7 = {$: 'Min7'};
+var $author$project$Generator$Min7b5 = {$: 'Min7b5'};
+var $author$project$Generator$blueBossa = A2(
+	$author$project$Generator$ChordProg,
+	_List_fromArray(
+		[
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$C, $author$project$Generator$Natural, $author$project$Generator$Min7),
+			time: 0
+		},
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$F, $author$project$Generator$Natural, $author$project$Generator$Min7),
+			time: 8
+		},
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$D, $author$project$Generator$Natural, $author$project$Generator$Min7b5),
+			time: 16
+		},
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$G, $author$project$Generator$Natural, $author$project$Generator$Alt7),
+			time: 20
+		},
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$C, $author$project$Generator$Natural, $author$project$Generator$Min7),
+			time: 24
+		},
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$E, $author$project$Generator$Flat, $author$project$Generator$Min7),
+			time: 32
+		},
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$A, $author$project$Generator$Flat, $author$project$Generator$Dom7),
+			time: 36
+		},
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$D, $author$project$Generator$Flat, $author$project$Generator$Maj7),
+			time: 40
+		},
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$D, $author$project$Generator$Natural, $author$project$Generator$Min7b5),
+			time: 48
+		},
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$G, $author$project$Generator$Natural, $author$project$Generator$Alt7),
+			time: 52
+		},
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$C, $author$project$Generator$Natural, $author$project$Generator$Min7),
+			time: 56
+		},
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$D, $author$project$Generator$Natural, $author$project$Generator$Min7b5),
+			time: 60
+		},
+			{
+			chord: A3($author$project$Generator$chord, $author$project$Generator$G, $author$project$Generator$Natural, $author$project$Generator$Alt7),
+			time: 62
+		}
+		]),
+	64);
+var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
+var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
+var $elm$core$Dict$Black = {$: 'Black'};
+var $elm$core$Dict$RBNode_elm_builtin = F5(
+	function (a, b, c, d, e) {
+		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
+	});
+var $elm$core$Dict$Red = {$: 'Red'};
+var $elm$core$Dict$balance = F5(
+	function (color, key, value, left, right) {
+		if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Red')) {
+			var _v1 = right.a;
+			var rK = right.b;
+			var rV = right.c;
+			var rLeft = right.d;
+			var rRight = right.e;
+			if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
+				var _v3 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var lLeft = left.d;
+				var lRight = left.e;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Red,
+					key,
+					value,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, lK, lV, lLeft, lRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, rK, rV, rLeft, rRight));
+			} else {
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					color,
+					rK,
+					rV,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, left, rLeft),
+					rRight);
+			}
+		} else {
+			if ((((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) && (left.d.$ === 'RBNode_elm_builtin')) && (left.d.a.$ === 'Red')) {
+				var _v5 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var _v6 = left.d;
+				var _v7 = _v6.a;
+				var llK = _v6.b;
+				var llV = _v6.c;
+				var llLeft = _v6.d;
+				var llRight = _v6.e;
+				var lRight = left.e;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Red,
+					lK,
+					lV,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, llK, llV, llLeft, llRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, key, value, lRight, right));
+			} else {
+				return A5($elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
+			}
+		}
+	});
+var $elm$core$Basics$compare = _Utils_compare;
+var $elm$core$Dict$insertHelp = F3(
+	function (key, value, dict) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, $elm$core$Dict$RBEmpty_elm_builtin, $elm$core$Dict$RBEmpty_elm_builtin);
+		} else {
+			var nColor = dict.a;
+			var nKey = dict.b;
+			var nValue = dict.c;
+			var nLeft = dict.d;
+			var nRight = dict.e;
+			var _v1 = A2($elm$core$Basics$compare, key, nKey);
+			switch (_v1.$) {
+				case 'LT':
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						A3($elm$core$Dict$insertHelp, key, value, nLeft),
+						nRight);
+				case 'EQ':
+					return A5($elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
+				default:
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						nLeft,
+						A3($elm$core$Dict$insertHelp, key, value, nRight));
+			}
+		}
+	});
+var $elm$core$Dict$insert = F3(
+	function (key, value, dict) {
+		var _v0 = A3($elm$core$Dict$insertHelp, key, value, dict);
+		if ((_v0.$ === 'RBNode_elm_builtin') && (_v0.a.$ === 'Red')) {
+			var _v1 = _v0.a;
+			var k = _v0.b;
+			var v = _v0.c;
+			var l = _v0.d;
+			var r = _v0.e;
+			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, k, v, l, r);
+		} else {
+			var x = _v0;
+			return x;
+		}
+	});
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
+};
+var $author$project$Library$init = $elm$core$Dict$fromList(
+	_List_fromArray(
+		[
+			_Utils_Tuple2(
+			'Blue Bossa--Dexter Gordon',
+			A4($author$project$PlayerPage$Song, $author$project$Generator$blueBossa, 'Blue Bossa', 'Dexter Gordon', 4))
+		]));
+var $author$project$PlayerPage$init = {
+	barsPerLine: 4,
+	bpm: 120,
+	cursor: 0,
+	playing: false,
+	song: A4($author$project$PlayerPage$Song, $author$project$Generator$blueBossa, 'Blue Bossa', 'Dexter Gordon', 4)
+};
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$PlayerPage$initCmd = $elm$core$Platform$Cmd$none;
+var $elm$core$Platform$Cmd$map = _Platform_map;
+var $author$project$Main$init = function (_v0) {
+	return _Utils_Tuple2(
+		{curPage: $author$project$Main$Library, dialogBox: $elm$core$Maybe$Nothing, editorModel: $author$project$Editor$init, libraryModel: $author$project$Library$init, playerModel: $author$project$PlayerPage$init},
+		A2(
+			$elm$core$Platform$Cmd$map,
+			function (sm) {
+				return $author$project$Main$PpEvent(sm);
+			},
+			$author$project$PlayerPage$initCmd));
+};
+var $author$project$PlayerPage$SeqFinished = {$: 'SeqFinished'};
+var $author$project$Main$SetCursor = function (a) {
+	return {$: 'SetCursor', a: a};
+};
+var $elm$core$Basics$always = F2(
+	function (a, _v0) {
+		return a;
+	});
+var $elm$core$Platform$Sub$batch = _Platform_batch;
+var $elm$json$Json$Decode$float = _Json_decodeFloat;
+var $author$project$Tune$cursorChanged = _Platform_incomingPort('cursorChanged', $elm$json$Json$Decode$float);
+var $elm$json$Json$Decode$null = _Json_decodeNull;
+var $author$project$Tune$sequenceFinished = _Platform_incomingPort(
+	'sequenceFinished',
+	$elm$json$Json$Decode$null(_Utils_Tuple0));
+var $author$project$Main$subscriptions = function (model) {
+	return $elm$core$Platform$Sub$batch(
+		_List_fromArray(
+			[
+				$author$project$Tune$cursorChanged($author$project$Main$SetCursor),
+				$author$project$Tune$sequenceFinished(
+				$elm$core$Basics$always(
+					$author$project$Main$PpEvent($author$project$PlayerPage$SeqFinished)))
+			]));
+};
+var $author$project$Editor$ConfirmQuit = {$: 'ConfirmQuit'};
+var $author$project$Main$Editor = {$: 'Editor'};
+var $author$project$Main$EditorEvent = function (a) {
+	return {$: 'EditorEvent', a: a};
+};
+var $author$project$Main$Player = {$: 'Player'};
+var $author$project$Main$ResetDialog = {$: 'ResetDialog'};
+var $elm$core$String$cons = _String_cons;
+var $elm$core$String$foldr = _String_foldr;
+var $author$project$Library$escape = function (s) {
+	return A3(
+		$elm$core$String$foldr,
+		F2(
+			function (c, t) {
+				return _Utils_eq(
+					c,
+					_Utils_chr('-')) ? ('\\-' + t) : A2($elm$core$String$cons, c, t);
+			}),
+		'',
+		s);
+};
+var $author$project$Library$addSong = F2(
+	function (m, s) {
+		var key = $author$project$Library$escape(s.title) + ('--' + $author$project$Library$escape(s.composer));
+		return A3($elm$core$Dict$insert, key, s, m);
+	});
+var $author$project$PlayerPage$asChordProgIn = F2(
+	function (s, cp) {
+		return _Utils_update(
+			s,
+			{chordProg: cp});
+	});
+var $author$project$Main$asDialogBoxIn = F2(
+	function (m, d) {
+		return _Utils_update(
+			m,
+			{
+				dialogBox: $elm$core$Maybe$Just(d)
+			});
+	});
+var $author$project$Main$asPlayerModIn = F2(
+	function (mod, ppmod) {
+		return _Utils_update(
+			mod,
+			{playerModel: ppmod});
+	});
+var $author$project$PlayerPage$asSongIn = F2(
+	function (sm, s) {
+		return _Utils_update(
+			sm,
+			{song: s});
+	});
+var $elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
+		}
+	});
+var $elm$core$List$concat = function (lists) {
+	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
+};
+var $elm$core$List$concatMap = F2(
+	function (f, list) {
+		return $elm$core$List$concat(
+			A2($elm$core$List$map, f, list));
+	});
+var $elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
-			elm$core$List$foldr,
+			$elm$core$List$foldr,
 			F2(
 				function (x, xs) {
-					return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
 				}),
 			_List_Nil,
 			list);
 	});
-var elm$core$List$sortBy = _List_sortBy;
-var elm$core$Tuple$second = function (_n0) {
-	var y = _n0.b;
+var $elm$core$Basics$ge = _Utils_ge;
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
 	return y;
 };
-var author$project$PlayerPage$chordprog2grid = function (model) {
+var $elm$core$List$sortBy = _List_sortBy;
+var $author$project$PlayerPage$substract2to2 = function (l) {
+	if (!l.b) {
+		return _List_Nil;
+	} else {
+		if (!l.b.b) {
+			var h = l.a;
+			return _List_Nil;
+		} else {
+			var a = l.a;
+			var _v1 = l.b;
+			var b = _v1.a;
+			var t = _v1.b;
+			return A2(
+				$elm$core$List$cons,
+				b - a,
+				$author$project$PlayerPage$substract2to2(
+					A2($elm$core$List$cons, b, t)));
+		}
+	}
+};
+var $author$project$PlayerPage$chordprog2grid = function (model) {
 	var cp = model.song.chordProg;
 	return A2(
-		elm$core$List$concatMap,
+		$elm$core$List$concatMap,
 		function (i) {
 			var zip = F2(
 				function (l1, l2) {
-					var _n0 = _Utils_Tuple2(l1, l2);
-					if (!_n0.a.b) {
+					var _v0 = _Utils_Tuple2(l1, l2);
+					if (!_v0.a.b) {
 						return _List_Nil;
 					} else {
-						if (!_n0.b.b) {
+						if (!_v0.b.b) {
 							return _List_Nil;
 						} else {
-							var _n1 = _n0.a;
-							var h1 = _n1.a;
-							var t1 = _n1.b;
-							var _n2 = _n0.b;
-							var h2 = _n2.a;
-							var t2 = _n2.b;
+							var _v1 = _v0.a;
+							var h1 = _v1.a;
+							var t1 = _v1.b;
+							var _v2 = _v0.b;
+							var h2 = _v2.a;
+							var t2 = _v2.b;
 							return A2(
-								elm$core$List$cons,
+								$elm$core$List$cons,
 								{chord: h2, len: h1},
 								A2(zip, t1, t2));
 						}
@@ -5432,25 +5692,25 @@ var author$project$PlayerPage$chordprog2grid = function (model) {
 			var lastbeat = model.song.beatsPerBar * (i + 1);
 			var firstbeat = model.song.beatsPerBar * i;
 			var chordsInBar = A2(
-				elm$core$List$sortBy,
+				$elm$core$List$sortBy,
 				function ($) {
 					return $.time;
 				},
 				A2(
-					elm$core$List$filter,
+					$elm$core$List$filter,
 					function (c) {
 						return (_Utils_cmp(
-							elm$core$Basics$floor(c.time),
+							$elm$core$Basics$floor(c.time),
 							firstbeat) > -1) && (_Utils_cmp(
-							elm$core$Basics$floor(c.time),
+							$elm$core$Basics$floor(c.time),
 							lastbeat) < 0);
 					},
 					cp.chords));
 			var maybeChords = A2(
-				elm$core$List$map,
+				$elm$core$List$map,
 				function (evt) {
 					return _Utils_Tuple2(
-						elm$core$Maybe$Just(evt.chord),
+						$elm$core$Maybe$Just(evt.chord),
 						evt.time);
 				},
 				chordsInBar);
@@ -5458,919 +5718,182 @@ var author$project$PlayerPage$chordprog2grid = function (model) {
 				if (!maybeChords.b) {
 					return _List_fromArray(
 						[
-							_Utils_Tuple2(elm$core$Maybe$Nothing, firstbeat)
+							_Utils_Tuple2($elm$core$Maybe$Nothing, firstbeat)
 						]);
 				} else {
 					var h = maybeChords.a;
 					var t = maybeChords.b;
 					return (_Utils_cmp(h.b, firstbeat) < 1) ? maybeChords : A2(
-						elm$core$List$cons,
-						_Utils_Tuple2(elm$core$Maybe$Nothing, firstbeat),
+						$elm$core$List$cons,
+						_Utils_Tuple2($elm$core$Maybe$Nothing, firstbeat),
 						maybeChords);
 				}
 			}();
-			var times = A2(elm$core$List$map, elm$core$Tuple$second, addNothing);
+			var times = A2($elm$core$List$map, $elm$core$Tuple$second, addNothing);
 			var rolled = A2(
-				elm$core$List$append,
+				$elm$core$List$append,
 				times,
 				_List_fromArray(
 					[lastbeat]));
-			var chordsLen = author$project$PlayerPage$substract2to2(rolled);
+			var chordsLen = $author$project$PlayerPage$substract2to2(rolled);
 			return A2(zip, chordsLen, addNothing);
 		},
 		A2(
-			elm$core$List$range,
+			$elm$core$List$range,
 			0,
-			((elm$core$Basics$floor(cp.end) / model.song.beatsPerBar) | 0) - 1));
+			(($elm$core$Basics$floor(cp.end) / model.song.beatsPerBar) | 0) - 1));
 };
-var author$project$Editor$chordprog2grid = function (model) {
-	return elm$core$Array$fromList(
+var $author$project$Editor$chordprog2grid = function (model) {
+	return $elm$core$Array$fromList(
 		A2(
-			elm$core$List$map,
+			$elm$core$List$map,
 			function (x) {
 				return {chord: x.chord.a, len: x.len};
 			},
-			author$project$PlayerPage$chordprog2grid(model)));
+			$author$project$PlayerPage$chordprog2grid(model)));
 };
-var author$project$Editor$grid2chordprog = function (g) {
-	var glist = elm$core$Array$toList(g);
-	var foldrec = F2(
-		function (l, time) {
-			if (!l.b) {
-				return _List_Nil;
-			} else {
-				var h = l.a;
-				var t = l.b;
-				var following = A2(foldrec, t, time + h.len);
-				var _n1 = h.chord;
-				if (_n1.$ === 'Nothing') {
-					return following;
-				} else {
-					var c = _n1.a;
-					return A2(
-						elm$core$List$cons,
-						{chord: c, time: time},
-						following);
-				}
-			}
-		});
-	var end = A3(
-		elm$core$List$foldl,
-		F2(
-			function (c, f) {
-				return f + c.len;
-			}),
-		0,
-		glist);
-	var chords = A2(foldrec, glist, 0);
-	return {chords: chords, end: end};
+var $author$project$PlayerPage$SequenceGenerated = function (a) {
+	return {$: 'SequenceGenerated', a: a};
 };
-var elm$core$Elm$JsArray$appendN = _JsArray_appendN;
-var elm$core$Elm$JsArray$slice = _JsArray_slice;
-var elm$core$Array$appendHelpBuilder = F2(
-	function (tail, builder) {
-		var tailLen = elm$core$Elm$JsArray$length(tail);
-		var notAppended = (elm$core$Array$branchFactor - elm$core$Elm$JsArray$length(builder.tail)) - tailLen;
-		var appended = A3(elm$core$Elm$JsArray$appendN, elm$core$Array$branchFactor, builder.tail, tail);
-		return (notAppended < 0) ? {
-			nodeList: A2(
-				elm$core$List$cons,
-				elm$core$Array$Leaf(appended),
-				builder.nodeList),
-			nodeListSize: builder.nodeListSize + 1,
-			tail: A3(elm$core$Elm$JsArray$slice, notAppended, tailLen, tail)
-		} : ((!notAppended) ? {
-			nodeList: A2(
-				elm$core$List$cons,
-				elm$core$Array$Leaf(appended),
-				builder.nodeList),
-			nodeListSize: builder.nodeListSize + 1,
-			tail: elm$core$Elm$JsArray$empty
-		} : {nodeList: builder.nodeList, nodeListSize: builder.nodeListSize, tail: appended});
-	});
-var elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
-var elm$core$Array$bitMask = 4294967295 >>> (32 - elm$core$Array$shiftStep);
-var elm$core$Bitwise$and = _Bitwise_and;
-var elm$core$Elm$JsArray$push = _JsArray_push;
-var elm$core$Elm$JsArray$singleton = _JsArray_singleton;
-var elm$core$Elm$JsArray$unsafeGet = _JsArray_unsafeGet;
-var elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
-var elm$core$Array$insertTailInTree = F4(
-	function (shift, index, tail, tree) {
-		var pos = elm$core$Array$bitMask & (index >>> shift);
-		if (_Utils_cmp(
-			pos,
-			elm$core$Elm$JsArray$length(tree)) > -1) {
-			if (shift === 5) {
-				return A2(
-					elm$core$Elm$JsArray$push,
-					elm$core$Array$Leaf(tail),
-					tree);
-			} else {
-				var newSub = elm$core$Array$SubTree(
-					A4(elm$core$Array$insertTailInTree, shift - elm$core$Array$shiftStep, index, tail, elm$core$Elm$JsArray$empty));
-				return A2(elm$core$Elm$JsArray$push, newSub, tree);
-			}
-		} else {
-			var value = A2(elm$core$Elm$JsArray$unsafeGet, pos, tree);
-			if (value.$ === 'SubTree') {
-				var subTree = value.a;
-				var newSub = elm$core$Array$SubTree(
-					A4(elm$core$Array$insertTailInTree, shift - elm$core$Array$shiftStep, index, tail, subTree));
-				return A3(elm$core$Elm$JsArray$unsafeSet, pos, newSub, tree);
-			} else {
-				var newSub = elm$core$Array$SubTree(
-					A4(
-						elm$core$Array$insertTailInTree,
-						shift - elm$core$Array$shiftStep,
-						index,
-						tail,
-						elm$core$Elm$JsArray$singleton(value)));
-				return A3(elm$core$Elm$JsArray$unsafeSet, pos, newSub, tree);
-			}
-		}
-	});
-var elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
-var elm$core$Array$unsafeReplaceTail = F2(
-	function (newTail, _n0) {
-		var len = _n0.a;
-		var startShift = _n0.b;
-		var tree = _n0.c;
-		var tail = _n0.d;
-		var originalTailLen = elm$core$Elm$JsArray$length(tail);
-		var newTailLen = elm$core$Elm$JsArray$length(newTail);
-		var newArrayLen = len + (newTailLen - originalTailLen);
-		if (_Utils_eq(newTailLen, elm$core$Array$branchFactor)) {
-			var overflow = _Utils_cmp(newArrayLen >>> elm$core$Array$shiftStep, 1 << startShift) > 0;
-			if (overflow) {
-				var newShift = startShift + elm$core$Array$shiftStep;
-				var newTree = A4(
-					elm$core$Array$insertTailInTree,
-					newShift,
-					len,
-					newTail,
-					elm$core$Elm$JsArray$singleton(
-						elm$core$Array$SubTree(tree)));
-				return A4(elm$core$Array$Array_elm_builtin, newArrayLen, newShift, newTree, elm$core$Elm$JsArray$empty);
-			} else {
-				return A4(
-					elm$core$Array$Array_elm_builtin,
-					newArrayLen,
-					startShift,
-					A4(elm$core$Array$insertTailInTree, startShift, len, newTail, tree),
-					elm$core$Elm$JsArray$empty);
-			}
-		} else {
-			return A4(elm$core$Array$Array_elm_builtin, newArrayLen, startShift, tree, newTail);
-		}
-	});
-var elm$core$Array$appendHelpTree = F2(
-	function (toAppend, array) {
-		var len = array.a;
-		var tree = array.c;
-		var tail = array.d;
-		var itemsToAppend = elm$core$Elm$JsArray$length(toAppend);
-		var notAppended = (elm$core$Array$branchFactor - elm$core$Elm$JsArray$length(tail)) - itemsToAppend;
-		var appended = A3(elm$core$Elm$JsArray$appendN, elm$core$Array$branchFactor, tail, toAppend);
-		var newArray = A2(elm$core$Array$unsafeReplaceTail, appended, array);
-		if (notAppended < 0) {
-			var nextTail = A3(elm$core$Elm$JsArray$slice, notAppended, itemsToAppend, toAppend);
-			return A2(elm$core$Array$unsafeReplaceTail, nextTail, newArray);
-		} else {
-			return newArray;
-		}
-	});
-var elm$core$Elm$JsArray$foldl = _JsArray_foldl;
-var elm$core$Array$builderFromArray = function (_n0) {
-	var len = _n0.a;
-	var tree = _n0.c;
-	var tail = _n0.d;
-	var helper = F2(
-		function (node, acc) {
-			if (node.$ === 'SubTree') {
-				var subTree = node.a;
-				return A3(elm$core$Elm$JsArray$foldl, helper, acc, subTree);
-			} else {
-				return A2(elm$core$List$cons, node, acc);
-			}
-		});
-	return {
-		nodeList: A3(elm$core$Elm$JsArray$foldl, helper, _List_Nil, tree),
-		nodeListSize: (len / elm$core$Array$branchFactor) | 0,
-		tail: tail
-	};
+var $elm$random$Random$Generate = function (a) {
+	return {$: 'Generate', a: a};
 };
-var elm$core$Array$append = F2(
-	function (a, _n0) {
-		var aTail = a.d;
-		var bLen = _n0.a;
-		var bTree = _n0.c;
-		var bTail = _n0.d;
-		if (_Utils_cmp(bLen, elm$core$Array$branchFactor * 4) < 1) {
-			var foldHelper = F2(
-				function (node, array) {
-					if (node.$ === 'SubTree') {
-						var tree = node.a;
-						return A3(elm$core$Elm$JsArray$foldl, foldHelper, array, tree);
-					} else {
-						var leaf = node.a;
-						return A2(elm$core$Array$appendHelpTree, leaf, array);
-					}
-				});
+var $elm$random$Random$Seed = F2(
+	function (a, b) {
+		return {$: 'Seed', a: a, b: b};
+	});
+var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
+var $elm$random$Random$next = function (_v0) {
+	var state0 = _v0.a;
+	var incr = _v0.b;
+	return A2($elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
+};
+var $elm$random$Random$initialSeed = function (x) {
+	var _v0 = $elm$random$Random$next(
+		A2($elm$random$Random$Seed, 0, 1013904223));
+	var state1 = _v0.a;
+	var incr = _v0.b;
+	var state2 = (state1 + x) >>> 0;
+	return $elm$random$Random$next(
+		A2($elm$random$Random$Seed, state2, incr));
+};
+var $elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var $elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$customZone = $elm$time$Time$Zone;
+var $elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$random$Random$init = A2(
+	$elm$core$Task$andThen,
+	function (time) {
+		return $elm$core$Task$succeed(
+			$elm$random$Random$initialSeed(
+				$elm$time$Time$posixToMillis(time)));
+	},
+	$elm$time$Time$now);
+var $elm$random$Random$step = F2(
+	function (_v0, seed) {
+		var generator = _v0.a;
+		return generator(seed);
+	});
+var $elm$random$Random$onEffects = F3(
+	function (router, commands, seed) {
+		if (!commands.b) {
+			return $elm$core$Task$succeed(seed);
+		} else {
+			var generator = commands.a.a;
+			var rest = commands.b;
+			var _v1 = A2($elm$random$Random$step, generator, seed);
+			var value = _v1.a;
+			var newSeed = _v1.b;
 			return A2(
-				elm$core$Array$appendHelpTree,
-				bTail,
-				A3(elm$core$Elm$JsArray$foldl, foldHelper, a, bTree));
-		} else {
-			var foldHelper = F2(
-				function (node, builder) {
-					if (node.$ === 'SubTree') {
-						var tree = node.a;
-						return A3(elm$core$Elm$JsArray$foldl, foldHelper, builder, tree);
-					} else {
-						var leaf = node.a;
-						return A2(elm$core$Array$appendHelpBuilder, leaf, builder);
-					}
-				});
-			return A2(
-				elm$core$Array$builderToArray,
-				true,
-				A2(
-					elm$core$Array$appendHelpBuilder,
-					bTail,
-					A3(
-						elm$core$Elm$JsArray$foldl,
-						foldHelper,
-						elm$core$Array$builderFromArray(a),
-						bTree)));
-		}
-	});
-var elm$core$Array$length = function (_n0) {
-	var len = _n0.a;
-	return len;
-};
-var elm$core$Array$push = F2(
-	function (a, array) {
-		var tail = array.d;
-		return A2(
-			elm$core$Array$unsafeReplaceTail,
-			A2(elm$core$Elm$JsArray$push, a, tail),
-			array);
-	});
-var elm$core$Array$tailIndex = function (len) {
-	return (len >>> 5) << 5;
-};
-var elm$core$List$drop = F2(
-	function (n, list) {
-		drop:
-		while (true) {
-			if (n <= 0) {
-				return list;
-			} else {
-				if (!list.b) {
-					return list;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs;
-					n = $temp$n;
-					list = $temp$list;
-					continue drop;
-				}
-			}
-		}
-	});
-var elm$core$Array$sliceLeft = F2(
-	function (from, array) {
-		var len = array.a;
-		var tree = array.c;
-		var tail = array.d;
-		if (!from) {
-			return array;
-		} else {
-			if (_Utils_cmp(
-				from,
-				elm$core$Array$tailIndex(len)) > -1) {
-				return A4(
-					elm$core$Array$Array_elm_builtin,
-					len - from,
-					elm$core$Array$shiftStep,
-					elm$core$Elm$JsArray$empty,
-					A3(
-						elm$core$Elm$JsArray$slice,
-						from - elm$core$Array$tailIndex(len),
-						elm$core$Elm$JsArray$length(tail),
-						tail));
-			} else {
-				var skipNodes = (from / elm$core$Array$branchFactor) | 0;
-				var helper = F2(
-					function (node, acc) {
-						if (node.$ === 'SubTree') {
-							var subTree = node.a;
-							return A3(elm$core$Elm$JsArray$foldr, helper, acc, subTree);
-						} else {
-							var leaf = node.a;
-							return A2(elm$core$List$cons, leaf, acc);
-						}
-					});
-				var leafNodes = A3(
-					elm$core$Elm$JsArray$foldr,
-					helper,
-					_List_fromArray(
-						[tail]),
-					tree);
-				var nodesToInsert = A2(elm$core$List$drop, skipNodes, leafNodes);
-				if (!nodesToInsert.b) {
-					return elm$core$Array$empty;
-				} else {
-					var head = nodesToInsert.a;
-					var rest = nodesToInsert.b;
-					var firstSlice = from - (skipNodes * elm$core$Array$branchFactor);
-					var initialBuilder = {
-						nodeList: _List_Nil,
-						nodeListSize: 0,
-						tail: A3(
-							elm$core$Elm$JsArray$slice,
-							firstSlice,
-							elm$core$Elm$JsArray$length(head),
-							head)
-					};
-					return A2(
-						elm$core$Array$builderToArray,
-						true,
-						A3(elm$core$List$foldl, elm$core$Array$appendHelpBuilder, initialBuilder, rest));
-				}
-			}
-		}
-	});
-var elm$core$Array$fetchNewTail = F4(
-	function (shift, end, treeEnd, tree) {
-		fetchNewTail:
-		while (true) {
-			var pos = elm$core$Array$bitMask & (treeEnd >>> shift);
-			var _n0 = A2(elm$core$Elm$JsArray$unsafeGet, pos, tree);
-			if (_n0.$ === 'SubTree') {
-				var sub = _n0.a;
-				var $temp$shift = shift - elm$core$Array$shiftStep,
-					$temp$end = end,
-					$temp$treeEnd = treeEnd,
-					$temp$tree = sub;
-				shift = $temp$shift;
-				end = $temp$end;
-				treeEnd = $temp$treeEnd;
-				tree = $temp$tree;
-				continue fetchNewTail;
-			} else {
-				var values = _n0.a;
-				return A3(elm$core$Elm$JsArray$slice, 0, elm$core$Array$bitMask & end, values);
-			}
-		}
-	});
-var elm$core$Array$hoistTree = F3(
-	function (oldShift, newShift, tree) {
-		hoistTree:
-		while (true) {
-			if ((_Utils_cmp(oldShift, newShift) < 1) || (!elm$core$Elm$JsArray$length(tree))) {
-				return tree;
-			} else {
-				var _n0 = A2(elm$core$Elm$JsArray$unsafeGet, 0, tree);
-				if (_n0.$ === 'SubTree') {
-					var sub = _n0.a;
-					var $temp$oldShift = oldShift - elm$core$Array$shiftStep,
-						$temp$newShift = newShift,
-						$temp$tree = sub;
-					oldShift = $temp$oldShift;
-					newShift = $temp$newShift;
-					tree = $temp$tree;
-					continue hoistTree;
-				} else {
-					return tree;
-				}
-			}
-		}
-	});
-var elm$core$Array$sliceTree = F3(
-	function (shift, endIdx, tree) {
-		var lastPos = elm$core$Array$bitMask & (endIdx >>> shift);
-		var _n0 = A2(elm$core$Elm$JsArray$unsafeGet, lastPos, tree);
-		if (_n0.$ === 'SubTree') {
-			var sub = _n0.a;
-			var newSub = A3(elm$core$Array$sliceTree, shift - elm$core$Array$shiftStep, endIdx, sub);
-			return (!elm$core$Elm$JsArray$length(newSub)) ? A3(elm$core$Elm$JsArray$slice, 0, lastPos, tree) : A3(
-				elm$core$Elm$JsArray$unsafeSet,
-				lastPos,
-				elm$core$Array$SubTree(newSub),
-				A3(elm$core$Elm$JsArray$slice, 0, lastPos + 1, tree));
-		} else {
-			return A3(elm$core$Elm$JsArray$slice, 0, lastPos, tree);
-		}
-	});
-var elm$core$Array$sliceRight = F2(
-	function (end, array) {
-		var len = array.a;
-		var startShift = array.b;
-		var tree = array.c;
-		var tail = array.d;
-		if (_Utils_eq(end, len)) {
-			return array;
-		} else {
-			if (_Utils_cmp(
-				end,
-				elm$core$Array$tailIndex(len)) > -1) {
-				return A4(
-					elm$core$Array$Array_elm_builtin,
-					end,
-					startShift,
-					tree,
-					A3(elm$core$Elm$JsArray$slice, 0, elm$core$Array$bitMask & end, tail));
-			} else {
-				var endIdx = elm$core$Array$tailIndex(end);
-				var depth = elm$core$Basics$floor(
-					A2(
-						elm$core$Basics$logBase,
-						elm$core$Array$branchFactor,
-						A2(elm$core$Basics$max, 1, endIdx - 1)));
-				var newShift = A2(elm$core$Basics$max, 5, depth * elm$core$Array$shiftStep);
-				return A4(
-					elm$core$Array$Array_elm_builtin,
-					end,
-					newShift,
-					A3(
-						elm$core$Array$hoistTree,
-						startShift,
-						newShift,
-						A3(elm$core$Array$sliceTree, startShift, endIdx, tree)),
-					A4(elm$core$Array$fetchNewTail, startShift, end, endIdx, tree));
-			}
-		}
-	});
-var elm$core$Array$translateIndex = F2(
-	function (index, _n0) {
-		var len = _n0.a;
-		var posIndex = (index < 0) ? (len + index) : index;
-		return (posIndex < 0) ? 0 : ((_Utils_cmp(posIndex, len) > 0) ? len : posIndex);
-	});
-var elm$core$Array$slice = F3(
-	function (from, to, array) {
-		var correctTo = A2(elm$core$Array$translateIndex, to, array);
-		var correctFrom = A2(elm$core$Array$translateIndex, from, array);
-		return (_Utils_cmp(correctFrom, correctTo) > 0) ? elm$core$Array$empty : A2(
-			elm$core$Array$sliceLeft,
-			correctFrom,
-			A2(elm$core$Array$sliceRight, correctTo, array));
-	});
-var author$project$Editor$insert = F3(
-	function (i, v, a) {
-		var before = A3(elm$core$Array$slice, 0, i + 1, a);
-		var after = A3(
-			elm$core$Array$slice,
-			i + 1,
-			elm$core$Array$length(a),
-			a);
-		return A2(
-			elm$core$Array$append,
-			A2(elm$core$Array$push, v, before),
-			after);
-	});
-var author$project$Editor$remove = F2(
-	function (i, a) {
-		var before = A3(elm$core$Array$slice, 0, i, a);
-		var after = A3(
-			elm$core$Array$slice,
-			i + 1,
-			elm$core$Array$length(a),
-			a);
-		return A2(elm$core$Array$append, before, after);
-	});
-var elm$core$Array$getHelp = F3(
-	function (shift, index, tree) {
-		getHelp:
-		while (true) {
-			var pos = elm$core$Array$bitMask & (index >>> shift);
-			var _n0 = A2(elm$core$Elm$JsArray$unsafeGet, pos, tree);
-			if (_n0.$ === 'SubTree') {
-				var subTree = _n0.a;
-				var $temp$shift = shift - elm$core$Array$shiftStep,
-					$temp$index = index,
-					$temp$tree = subTree;
-				shift = $temp$shift;
-				index = $temp$index;
-				tree = $temp$tree;
-				continue getHelp;
-			} else {
-				var values = _n0.a;
-				return A2(elm$core$Elm$JsArray$unsafeGet, elm$core$Array$bitMask & index, values);
-			}
-		}
-	});
-var elm$core$Array$get = F2(
-	function (index, _n0) {
-		var len = _n0.a;
-		var startShift = _n0.b;
-		var tree = _n0.c;
-		var tail = _n0.d;
-		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? elm$core$Maybe$Nothing : ((_Utils_cmp(
-			index,
-			elm$core$Array$tailIndex(len)) > -1) ? elm$core$Maybe$Just(
-			A2(elm$core$Elm$JsArray$unsafeGet, elm$core$Array$bitMask & index, tail)) : elm$core$Maybe$Just(
-			A3(elm$core$Array$getHelp, startShift, index, tree)));
-	});
-var elm$core$Array$setHelp = F4(
-	function (shift, index, value, tree) {
-		var pos = elm$core$Array$bitMask & (index >>> shift);
-		var _n0 = A2(elm$core$Elm$JsArray$unsafeGet, pos, tree);
-		if (_n0.$ === 'SubTree') {
-			var subTree = _n0.a;
-			var newSub = A4(elm$core$Array$setHelp, shift - elm$core$Array$shiftStep, index, value, subTree);
-			return A3(
-				elm$core$Elm$JsArray$unsafeSet,
-				pos,
-				elm$core$Array$SubTree(newSub),
-				tree);
-		} else {
-			var values = _n0.a;
-			var newLeaf = A3(elm$core$Elm$JsArray$unsafeSet, elm$core$Array$bitMask & index, value, values);
-			return A3(
-				elm$core$Elm$JsArray$unsafeSet,
-				pos,
-				elm$core$Array$Leaf(newLeaf),
-				tree);
-		}
-	});
-var elm$core$Array$set = F3(
-	function (index, value, array) {
-		var len = array.a;
-		var startShift = array.b;
-		var tree = array.c;
-		var tail = array.d;
-		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? array : ((_Utils_cmp(
-			index,
-			elm$core$Array$tailIndex(len)) > -1) ? A4(
-			elm$core$Array$Array_elm_builtin,
-			len,
-			startShift,
-			tree,
-			A3(elm$core$Elm$JsArray$unsafeSet, elm$core$Array$bitMask & index, value, tail)) : A4(
-			elm$core$Array$Array_elm_builtin,
-			len,
-			startShift,
-			A4(elm$core$Array$setHelp, startShift, index, value, tree),
-			tail));
-	});
-var author$project$Editor$mergeCell = F2(
-	function (i, g) {
-		var _n0 = A2(elm$core$Array$get, i, g);
-		if (_n0.$ === 'Nothing') {
-			return g;
-		} else {
-			var cellI = _n0.a;
-			var _n1 = A2(elm$core$Array$get, i - 1, g);
-			if (_n1.$ === 'Nothing') {
-				return g;
-			} else {
-				var cellIm1 = _n1.a;
-				return A3(
-					elm$core$Array$set,
-					i - 1,
-					_Utils_update(
-						cellIm1,
-						{len: cellIm1.len + cellI.len}),
-					A2(author$project$Editor$remove, i, g));
-			}
-		}
-	});
-var author$project$Editor$unwrap = function (ml) {
-	return function (_n0) {
-		var l = _n0.a;
-		return l;
-	}(ml);
-};
-var author$project$Editor$popRedo = function (newmod) {
-	var _n0 = author$project$Editor$unwrap(newmod.redoList);
-	if (!_n0.b) {
-		return newmod;
-	} else {
-		var h = _n0.a;
-		var t = _n0.b;
-		return h;
-	}
-};
-var author$project$Editor$popUndo = function (newmod) {
-	var _n0 = author$project$Editor$unwrap(newmod.undoList);
-	if (!_n0.b) {
-		return newmod;
-	} else {
-		var h = _n0.a;
-		var t = _n0.b;
-		return h;
-	}
-};
-var author$project$Editor$pushRedo = F2(
-	function (oldmod, newmod) {
-		return _Utils_update(
-			newmod,
-			{
-				redoList: author$project$Editor$ModelList(
-					A2(
-						elm$core$List$cons,
-						oldmod,
-						author$project$Editor$unwrap(newmod.redoList)))
-			});
-	});
-var author$project$Editor$pushUndo = F2(
-	function (oldmod, newmod) {
-		return _Utils_update(
-			newmod,
-			{
-				undoList: author$project$Editor$ModelList(
-					A2(
-						elm$core$List$cons,
-						oldmod,
-						author$project$Editor$unwrap(newmod.undoList)))
-			});
-	});
-var author$project$Editor$setChord = F3(
-	function (g, i, c) {
-		var _n0 = A2(elm$core$Array$get, i, g);
-		if (_n0.$ === 'Nothing') {
-			return g;
-		} else {
-			var cell = _n0.a;
-			return A3(
-				elm$core$Array$set,
-				i,
-				_Utils_update(
-					cell,
-					{chord: c}),
-				g);
-		}
-	});
-var author$project$Editor$splitCell = F2(
-	function (i, g) {
-		var mprevcell = A2(elm$core$Array$get, i, g);
-		if (mprevcell.$ === 'Nothing') {
-			return g;
-		} else {
-			var prevcell = mprevcell.a;
-			var prevlen = prevcell.len;
-			var half = prevlen / 2;
-			var newg = A3(
-				elm$core$Array$set,
-				i,
-				_Utils_update(
-					prevcell,
-					{
-						len: elm$core$Basics$ceiling(half)
-					}),
-				g);
-			return A3(
-				author$project$Editor$insert,
-				i,
-				{
-					chord: elm$core$Maybe$Nothing,
-					len: elm$core$Basics$floor(half)
+				$elm$core$Task$andThen,
+				function (_v2) {
+					return A3($elm$random$Random$onEffects, router, rest, newSeed);
 				},
-				newg);
+				A2($elm$core$Platform$sendToApp, router, value));
 		}
 	});
-var author$project$Editor$update = F2(
-	function (msg, model) {
-		switch (msg.$) {
-			case 'CaseClicked':
-				var i = msg.a;
-				var newmod = function () {
-					var _n1 = model.tool;
-					switch (_n1.$) {
-						case 'SetChord':
-							return _Utils_update(
-								model,
-								{
-									grid: A3(
-										author$project$Editor$setChord,
-										model.grid,
-										i,
-										elm$core$Maybe$Just(model.curChord))
-								});
-						case 'SplitCase':
-							return _Utils_update(
-								model,
-								{
-									grid: A2(author$project$Editor$splitCell, i, model.grid)
-								});
-						case 'MergeWithBefore':
-							return _Utils_update(
-								model,
-								{
-									grid: A2(author$project$Editor$mergeCell, i, model.grid)
-								});
-						case 'RemoveBar':
-							return _Utils_update(
-								model,
-								{
-									grid: A2(author$project$Editor$remove, i, model.grid)
-								});
-						case 'SetToNothing':
-							return _Utils_update(
-								model,
-								{
-									grid: A3(author$project$Editor$setChord, model.grid, i, elm$core$Maybe$Nothing)
-								});
-						default:
-							return _Utils_update(
-								model,
-								{
-									grid: A3(
-										author$project$Editor$insert,
-										i - 1,
-										{chord: elm$core$Maybe$Nothing, len: 4},
-										model.grid)
-								});
-					}
-				}();
-				return _Utils_Tuple2(
-					A2(author$project$Editor$pushUndo, model, newmod),
-					elm$core$Platform$Cmd$none);
-			case 'AppendBar':
-				return _Utils_Tuple2(
-					function () {
-						var newmod = _Utils_update(
-							model,
-							{
-								grid: A2(
-									elm$core$Array$push,
-									{chord: elm$core$Maybe$Nothing, len: 4},
-									model.grid)
-							});
-						return A2(author$project$Editor$pushUndo, model, newmod);
-					}(),
-					elm$core$Platform$Cmd$none);
-			case 'SetTool':
-				var t = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{tool: t}),
-					elm$core$Platform$Cmd$none);
-			case 'SetBase':
-				var n = msg.a;
-				var prevchord = model.curChord;
-				var prevnote = prevchord.note;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							curChord: _Utils_update(
-								prevchord,
-								{
-									note: _Utils_update(
-										prevnote,
-										{name: n})
-								})
-						}),
-					elm$core$Platform$Cmd$none);
-			case 'SetAlteration':
-				var n = msg.a;
-				var prevchord = model.curChord;
-				var prevnote = prevchord.note;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							curChord: _Utils_update(
-								prevchord,
-								{
-									note: _Utils_update(
-										prevnote,
-										{alt: n})
-								})
-						}),
-					elm$core$Platform$Cmd$none);
-			case 'SetChordType':
-				var t = msg.a;
-				var prevchord = model.curChord;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							curChord: _Utils_update(
-								prevchord,
-								{type_: t})
-						}),
-					elm$core$Platform$Cmd$none);
-			case 'Undo':
-				return _Utils_Tuple2(
-					A2(
-						author$project$Editor$pushRedo,
-						model,
-						author$project$Editor$popUndo(model)),
-					elm$core$Platform$Cmd$none);
-			case 'Redo':
-				return _Utils_Tuple2(
-					A2(
-						author$project$Editor$pushUndo,
-						model,
-						author$project$Editor$popRedo(model)),
-					elm$core$Platform$Cmd$none);
-			case 'TitleChanged':
-				var t = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{title: t}),
-					elm$core$Platform$Cmd$none);
-			case 'ComposerChanged':
-				var c = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{composer: c}),
-					elm$core$Platform$Cmd$none);
-			case 'TempoChanged':
-				var f = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{defTempo: f}),
-					elm$core$Platform$Cmd$none);
-			default:
-				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
-		}
+var $elm$random$Random$onSelfMsg = F3(
+	function (_v0, _v1, seed) {
+		return $elm$core$Task$succeed(seed);
 	});
-var elm$core$String$cons = _String_cons;
-var elm$core$String$foldr = _String_foldr;
-var author$project$Library$escape = function (s) {
-	return A3(
-		elm$core$String$foldr,
-		F2(
-			function (c, t) {
-				return _Utils_eq(
-					c,
-					_Utils_chr('-')) ? ('\\-' + t) : A2(elm$core$String$cons, c, t);
-			}),
-		'',
-		s);
-};
-var author$project$Library$addSong = F2(
-	function (m, s) {
-		var key = author$project$Library$escape(s.title) + ('--' + author$project$Library$escape(s.composer));
-		return A3(elm$core$Dict$insert, key, s, m);
-	});
-var author$project$Main$Editor = {$: 'Editor'};
-var author$project$Main$EditorEvent = function (a) {
-	return {$: 'EditorEvent', a: a};
-};
-var author$project$Main$Player = {$: 'Player'};
-var author$project$Main$ResetDialog = {$: 'ResetDialog'};
-var author$project$Main$asDialogBoxIn = F2(
-	function (m, d) {
-		return _Utils_update(
-			m,
-			{
-				dialogBox: elm$core$Maybe$Just(d)
-			});
-	});
-var author$project$Main$asPlayerModIn = F2(
-	function (mod, ppmod) {
-		return _Utils_update(
-			mod,
-			{playerModel: ppmod});
-	});
-var elm$random$Random$Generator = function (a) {
+var $elm$random$Random$Generator = function (a) {
 	return {$: 'Generator', a: a};
 };
-var elm$random$Random$constant = function (value) {
-	return elm$random$Random$Generator(
+var $elm$random$Random$map = F2(
+	function (func, _v0) {
+		var genA = _v0.a;
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v1 = genA(seed0);
+				var a = _v1.a;
+				var seed1 = _v1.b;
+				return _Utils_Tuple2(
+					func(a),
+					seed1);
+			});
+	});
+var $elm$random$Random$cmdMap = F2(
+	function (func, _v0) {
+		var generator = _v0.a;
+		return $elm$random$Random$Generate(
+			A2($elm$random$Random$map, func, generator));
+	});
+_Platform_effectManagers['Random'] = _Platform_createManager($elm$random$Random$init, $elm$random$Random$onEffects, $elm$random$Random$onSelfMsg, $elm$random$Random$cmdMap);
+var $elm$random$Random$command = _Platform_leaf('Random');
+var $elm$random$Random$generate = F2(
+	function (tagger, generator) {
+		return $elm$random$Random$command(
+			$elm$random$Random$Generate(
+				A2($elm$random$Random$map, tagger, generator)));
+	});
+var $elm$random$Random$constant = function (value) {
+	return $elm$random$Random$Generator(
 		function (seed) {
 			return _Utils_Tuple2(value, seed);
 		});
 };
-var elm$random$Random$map2 = F3(
-	function (func, _n0, _n1) {
-		var genA = _n0.a;
-		var genB = _n1.a;
-		return elm$random$Random$Generator(
+var $elm$random$Random$map2 = F3(
+	function (func, _v0, _v1) {
+		var genA = _v0.a;
+		var genB = _v1.a;
+		return $elm$random$Random$Generator(
 			function (seed0) {
-				var _n2 = genA(seed0);
-				var a = _n2.a;
-				var seed1 = _n2.b;
-				var _n3 = genB(seed1);
-				var b = _n3.a;
-				var seed2 = _n3.b;
+				var _v2 = genA(seed0);
+				var a = _v2.a;
+				var seed1 = _v2.b;
+				var _v3 = genB(seed1);
+				var b = _v3.a;
+				var seed2 = _v3.b;
 				return _Utils_Tuple2(
 					A2(func, a, b),
 					seed2);
 			});
 	});
-var author$project$Generator$mergeSeqGenerators = F3(
+var $author$project$Generator$mergeSeqGenerators = F3(
 	function (l, cp, signature) {
 		return A3(
-			elm$core$List$foldl,
+			$elm$core$List$foldl,
 			F2(
 				function (f, gen) {
 					var curgen = A2(f, cp, signature);
 					return A3(
-						elm$random$Random$map2,
+						$elm$random$Random$map2,
 						F2(
 							function (seq1, seq2) {
 								return _Utils_ap(seq1, seq2);
@@ -6378,61 +5901,69 @@ var author$project$Generator$mergeSeqGenerators = F3(
 						curgen,
 						gen);
 				}),
-			elm$random$Random$constant(_List_Nil),
+			$elm$random$Random$constant(_List_Nil),
 			l);
 	});
-var elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _n1 = A2(elm$core$Basics$compare, targetKey, key);
-				switch (_n1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
+var $elm$random$Random$andThen = F2(
+	function (callback, _v0) {
+		var genA = _v0.a;
+		return $elm$random$Random$Generator(
+			function (seed) {
+				var _v1 = genA(seed);
+				var result = _v1.a;
+				var newSeed = _v1.b;
+				var _v2 = callback(result);
+				var genB = _v2.a;
+				return genB(newSeed);
+			});
 	});
-var elm$core$Dict$member = F2(
-	function (key, dict) {
-		var _n0 = A2(elm$core$Dict$get, key, dict);
-		if (_n0.$ === 'Just') {
-			return true;
-		} else {
-			return false;
-		}
-	});
-var author$project$Generator$insertNoReplace = F3(
-	function (k, v, d) {
-		return A2(elm$core$Dict$member, k, d) ? d : A3(elm$core$Dict$insert, k, v, d);
-	});
-var elm$core$Basics$negate = function (n) {
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Basics$negate = function (n) {
 	return -n;
 };
-var author$project$Generator$note2pitch = F2(
+var $elm$core$Bitwise$xor = _Bitwise_xor;
+var $elm$random$Random$peel = function (_v0) {
+	var state = _v0.a;
+	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
+	return ((word >>> 22) ^ word) >>> 0;
+};
+var $elm$random$Random$int = F2(
+	function (a, b) {
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v0 = (_Utils_cmp(a, b) < 0) ? _Utils_Tuple2(a, b) : _Utils_Tuple2(b, a);
+				var lo = _v0.a;
+				var hi = _v0.b;
+				var range = (hi - lo) + 1;
+				if (!((range - 1) & range)) {
+					return _Utils_Tuple2(
+						(((range - 1) & $elm$random$Random$peel(seed0)) >>> 0) + lo,
+						$elm$random$Random$next(seed0));
+				} else {
+					var threshhold = (((-range) >>> 0) % range) >>> 0;
+					var accountForBias = function (seed) {
+						accountForBias:
+						while (true) {
+							var x = $elm$random$Random$peel(seed);
+							var seedN = $elm$random$Random$next(seed);
+							if (_Utils_cmp(x, threshhold) < 0) {
+								var $temp$seed = seedN;
+								seed = $temp$seed;
+								continue accountForBias;
+							} else {
+								return _Utils_Tuple2((x % range) + lo, seedN);
+							}
+						}
+					};
+					return accountForBias(seed0);
+				}
+			});
+	});
+var $author$project$Generator$note2pitch = F2(
 	function (oct, n) {
 		var base = function () {
-			var _n1 = n.name;
-			switch (_n1.$) {
+			var _v1 = n.name;
+			switch (_v1.$) {
 				case 'C':
 					return 0;
 				case 'D':
@@ -6450,8 +5981,8 @@ var author$project$Generator$note2pitch = F2(
 			}
 		}();
 		var alt = function () {
-			var _n0 = n.alt;
-			switch (_n0.$) {
+			var _v0 = n.alt;
+			switch (_v0.$) {
 				case 'Natural':
 					return 0;
 				case 'Flat':
@@ -6462,111 +5993,51 @@ var author$project$Generator$note2pitch = F2(
 		}();
 		return ((12 * (oct + 1)) + base) + alt;
 	});
-var author$project$Generator$B = {$: 'B'};
-var author$project$Generator$Sharp = {$: 'Sharp'};
-var elm$core$Basics$modBy = _Basics_modBy;
-var author$project$Generator$pitch2note = function (n) {
-	var _n0 = A2(elm$core$Basics$modBy, 12, n);
-	switch (_n0) {
+var $author$project$Generator$B = {$: 'B'};
+var $author$project$Generator$Sharp = {$: 'Sharp'};
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $author$project$Generator$pitch2note = function (n) {
+	var _v0 = A2($elm$core$Basics$modBy, 12, n);
+	switch (_v0) {
 		case 0:
-			return A2(author$project$Generator$Note, author$project$Generator$C, author$project$Generator$Natural);
+			return A2($author$project$Generator$Note, $author$project$Generator$C, $author$project$Generator$Natural);
 		case 1:
-			return A2(author$project$Generator$Note, author$project$Generator$D, author$project$Generator$Flat);
+			return A2($author$project$Generator$Note, $author$project$Generator$D, $author$project$Generator$Flat);
 		case 2:
-			return A2(author$project$Generator$Note, author$project$Generator$D, author$project$Generator$Natural);
+			return A2($author$project$Generator$Note, $author$project$Generator$D, $author$project$Generator$Natural);
 		case 3:
-			return A2(author$project$Generator$Note, author$project$Generator$E, author$project$Generator$Flat);
+			return A2($author$project$Generator$Note, $author$project$Generator$E, $author$project$Generator$Flat);
 		case 4:
-			return A2(author$project$Generator$Note, author$project$Generator$E, author$project$Generator$Natural);
+			return A2($author$project$Generator$Note, $author$project$Generator$E, $author$project$Generator$Natural);
 		case 5:
-			return A2(author$project$Generator$Note, author$project$Generator$F, author$project$Generator$Natural);
+			return A2($author$project$Generator$Note, $author$project$Generator$F, $author$project$Generator$Natural);
 		case 6:
-			return A2(author$project$Generator$Note, author$project$Generator$F, author$project$Generator$Sharp);
+			return A2($author$project$Generator$Note, $author$project$Generator$F, $author$project$Generator$Sharp);
 		case 7:
-			return A2(author$project$Generator$Note, author$project$Generator$G, author$project$Generator$Natural);
+			return A2($author$project$Generator$Note, $author$project$Generator$G, $author$project$Generator$Natural);
 		case 8:
-			return A2(author$project$Generator$Note, author$project$Generator$A, author$project$Generator$Flat);
+			return A2($author$project$Generator$Note, $author$project$Generator$A, $author$project$Generator$Flat);
 		case 9:
-			return A2(author$project$Generator$Note, author$project$Generator$A, author$project$Generator$Natural);
+			return A2($author$project$Generator$Note, $author$project$Generator$A, $author$project$Generator$Natural);
 		case 10:
-			return A2(author$project$Generator$Note, author$project$Generator$B, author$project$Generator$Flat);
+			return A2($author$project$Generator$Note, $author$project$Generator$B, $author$project$Generator$Flat);
 		default:
-			return A2(author$project$Generator$Note, author$project$Generator$B, author$project$Generator$Natural);
+			return A2($author$project$Generator$Note, $author$project$Generator$B, $author$project$Generator$Natural);
 	}
 };
-var elm$random$Random$Seed = F2(
-	function (a, b) {
-		return {$: 'Seed', a: a, b: b};
-	});
-var elm$random$Random$next = function (_n0) {
-	var state0 = _n0.a;
-	var incr = _n0.b;
-	return A2(elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
-};
-var elm$core$Bitwise$xor = _Bitwise_xor;
-var elm$random$Random$peel = function (_n0) {
-	var state = _n0.a;
-	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
-	return ((word >>> 22) ^ word) >>> 0;
-};
-var elm$random$Random$int = F2(
-	function (a, b) {
-		return elm$random$Random$Generator(
-			function (seed0) {
-				var _n0 = (_Utils_cmp(a, b) < 0) ? _Utils_Tuple2(a, b) : _Utils_Tuple2(b, a);
-				var lo = _n0.a;
-				var hi = _n0.b;
-				var range = (hi - lo) + 1;
-				if (!((range - 1) & range)) {
-					return _Utils_Tuple2(
-						(((range - 1) & elm$random$Random$peel(seed0)) >>> 0) + lo,
-						elm$random$Random$next(seed0));
-				} else {
-					var threshhold = (((-range) >>> 0) % range) >>> 0;
-					var accountForBias = function (seed) {
-						accountForBias:
-						while (true) {
-							var x = elm$random$Random$peel(seed);
-							var seedN = elm$random$Random$next(seed);
-							if (_Utils_cmp(x, threshhold) < 0) {
-								var $temp$seed = seedN;
-								seed = $temp$seed;
-								continue accountForBias;
-							} else {
-								return _Utils_Tuple2((x % range) + lo, seedN);
-							}
-						}
-					};
-					return accountForBias(seed0);
-				}
-			});
-	});
-var elm$random$Random$map = F2(
-	function (func, _n0) {
-		var genA = _n0.a;
-		return elm$random$Random$Generator(
-			function (seed0) {
-				var _n1 = genA(seed0);
-				var a = _n1.a;
-				var seed1 = _n1.b;
-				return _Utils_Tuple2(
-					func(a),
-					seed1);
-			});
-	});
-var author$project$JazzBass$chromatism = function (n) {
-	var below = author$project$Generator$pitch2note(
-		A2(author$project$Generator$note2pitch, 0, n) - 1);
-	var above = author$project$Generator$pitch2note(
-		A2(author$project$Generator$note2pitch, 0, n) + 1);
+var $author$project$JazzBass$chromatism = function (n) {
+	var below = $author$project$Generator$pitch2note(
+		A2($author$project$Generator$note2pitch, 0, n) - 1);
+	var above = $author$project$Generator$pitch2note(
+		A2($author$project$Generator$note2pitch, 0, n) + 1);
 	return A2(
-		elm$random$Random$map,
+		$elm$random$Random$map,
 		function (flip) {
 			return (!flip) ? above : below;
 		},
-		A2(elm$random$Random$int, 0, 1));
+		A2($elm$random$Random$int, 0, 1));
 };
-var elm$core$Dict$foldl = F3(
+var $elm$core$Dict$foldl = F3(
 	function (func, acc, dict) {
 		foldl:
 		while (true) {
@@ -6582,7 +6053,7 @@ var elm$core$Dict$foldl = F3(
 					func,
 					key,
 					value,
-					A3(elm$core$Dict$foldl, func, acc, left)),
+					A3($elm$core$Dict$foldl, func, acc, left)),
 					$temp$dict = right;
 				func = $temp$func;
 				acc = $temp$acc;
@@ -6591,69 +6062,92 @@ var elm$core$Dict$foldl = F3(
 			}
 		}
 	});
-var elm$random$Random$andThen = F2(
-	function (callback, _n0) {
-		var genA = _n0.a;
-		return elm$random$Random$Generator(
-			function (seed) {
-				var _n1 = genA(seed);
-				var result = _n1.a;
-				var newSeed = _n1.b;
-				var _n2 = callback(result);
-				var genB = _n2.a;
-				return genB(newSeed);
-			});
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
+		}
 	});
-var author$project$JazzBass$addApproach = F2(
+var $elm$core$Dict$member = F2(
+	function (key, dict) {
+		var _v0 = A2($elm$core$Dict$get, key, dict);
+		if (_v0.$ === 'Just') {
+			return true;
+		} else {
+			return false;
+		}
+	});
+var $author$project$Generator$insertNoReplace = F3(
+	function (k, v, d) {
+		return A2($elm$core$Dict$member, k, d) ? d : A3($elm$core$Dict$insert, k, v, d);
+	});
+var $author$project$JazzBass$addApproach = F2(
 	function (bl, cplen) {
 		var addbefore = F3(
 			function (k, v, newdic) {
 				return A3(
-					author$project$Generator$insertNoReplace,
-					A2(elm$core$Basics$modBy, cplen, k - 1),
+					$author$project$Generator$insertNoReplace,
+					A2($elm$core$Basics$modBy, cplen, k - 1),
 					A2(
-						elm$random$Random$andThen,
+						$elm$random$Random$andThen,
 						function (n) {
-							return author$project$JazzBass$chromatism(n);
+							return $author$project$JazzBass$chromatism(n);
 						},
 						v),
 					newdic);
 			});
-		return A3(elm$core$Dict$foldl, addbefore, bl, bl);
+		return A3($elm$core$Dict$foldl, addbefore, bl, bl);
 	});
-var TSFoster$elm_tuple_extra$Tuple3$first = function (_n0) {
-	var a = _n0.a;
+var $TSFoster$elm_tuple_extra$Tuple3$first = function (_v0) {
+	var a = _v0.a;
 	return a;
 };
-var TSFoster$elm_tuple_extra$Tuple3$second = function (_n0) {
-	var b = _n0.b;
-	return b;
-};
-var TSFoster$elm_tuple_extra$Tuple3$third = function (_n0) {
-	var c = _n0.c;
-	return c;
-};
-var author$project$JazzBass$listGen2GenList = function (l) {
+var $author$project$JazzBass$listGen2GenList = function (l) {
 	return A3(
-		elm$core$List$foldl,
+		$elm$core$List$foldl,
 		F2(
 			function (gen, list) {
 				return A3(
-					elm$random$Random$map2,
+					$elm$random$Random$map2,
 					F2(
 						function (g, l_) {
-							return A2(elm$core$List$cons, g, l_);
+							return A2($elm$core$List$cons, g, l_);
 						}),
 					gen,
 					list);
 			}),
-		elm$random$Random$constant(_List_Nil),
+		$elm$random$Random$constant(_List_Nil),
 		l);
 };
-var elm$random$Random$pair = F2(
+var $elm$random$Random$pair = F2(
 	function (genA, genB) {
 		return A3(
-			elm$random$Random$map2,
+			$elm$random$Random$map2,
 			F2(
 				function (a, b) {
 					return _Utils_Tuple2(a, b);
@@ -6661,37 +6155,45 @@ var elm$random$Random$pair = F2(
 			genA,
 			genB);
 	});
-var author$project$JazzBass$addFill = F2(
+var $TSFoster$elm_tuple_extra$Tuple3$second = function (_v0) {
+	var b = _v0.b;
+	return b;
+};
+var $TSFoster$elm_tuple_extra$Tuple3$third = function (_v0) {
+	var c = _v0.c;
+	return c;
+};
+var $author$project$JazzBass$addFill = F2(
 	function (bl, listgen) {
 		var l = A2(
-			elm$core$List$map,
-			function (_n0) {
-				var k = _n0.a;
-				var v = _n0.b;
+			$elm$core$List$map,
+			function (_v0) {
+				var k = _v0.a;
+				var v = _v0.b;
 				return A2(
-					elm$random$Random$pair,
-					elm$random$Random$constant(k),
+					$elm$random$Random$pair,
+					$elm$random$Random$constant(k),
 					v);
 			},
-			elm$core$Dict$toList(bl));
-		var f1 = author$project$JazzBass$listGen2GenList(l);
+			$elm$core$Dict$toList(bl));
+		var f1 = $author$project$JazzBass$listGen2GenList(l);
 		var f2 = A3(
-			elm$core$List$foldl,
+			$elm$core$List$foldl,
 			F2(
 				function (gen, list) {
 					return A3(
-						elm$random$Random$map2,
+						$elm$random$Random$map2,
 						F2(
 							function (g3, l_) {
 								return A2(
-									elm$core$List$cons,
-									TSFoster$elm_tuple_extra$Tuple3$first(g3),
+									$elm$core$List$cons,
+									$TSFoster$elm_tuple_extra$Tuple3$first(g3),
 									A2(
-										elm$core$List$cons,
-										TSFoster$elm_tuple_extra$Tuple3$second(g3),
+										$elm$core$List$cons,
+										$TSFoster$elm_tuple_extra$Tuple3$second(g3),
 										A2(
-											elm$core$List$cons,
-											TSFoster$elm_tuple_extra$Tuple3$third(g3),
+											$elm$core$List$cons,
+											$TSFoster$elm_tuple_extra$Tuple3$third(g3),
 											l_)));
 							}),
 						gen,
@@ -6699,13 +6201,13 @@ var author$project$JazzBass$addFill = F2(
 				}),
 			f1,
 			listgen);
-		return A2(elm$random$Random$map, elm$core$Dict$fromList, f2);
+		return A2($elm$random$Random$map, $elm$core$Dict$fromList, f2);
 	});
-var author$project$Generator$NA = {$: 'NA'};
-var author$project$Generator$getChordAt = F2(
+var $author$project$Generator$NA = {$: 'NA'};
+var $author$project$Generator$getChordAt = F2(
 	function (cp, time) {
 		var sortedChords = A2(
-			elm$core$List$sortBy,
+			$elm$core$List$sortBy,
 			function ($) {
 				return $.time;
 			},
@@ -6732,50 +6234,50 @@ var author$project$Generator$getChordAt = F2(
 				}
 			});
 		if (!sortedChords.b) {
-			return A3(author$project$Generator$chord, author$project$Generator$C, author$project$Generator$Natural, author$project$Generator$NA);
+			return A3($author$project$Generator$chord, $author$project$Generator$C, $author$project$Generator$Natural, $author$project$Generator$NA);
 		} else {
 			var h = sortedChords.a;
 			var t = sortedChords.b;
 			return A2(chInSorted, t, h.chord);
 		}
 	});
-var author$project$Generator$getSemitonesOf = F2(
+var $author$project$Generator$getSemitonesOf = F2(
 	function (s, c) {
-		return author$project$Generator$pitch2note(
-			A2(author$project$Generator$note2pitch, 0, c.note) + s);
+		return $author$project$Generator$pitch2note(
+			A2($author$project$Generator$note2pitch, 0, c.note) + s);
 	});
-var author$project$Generator$getFifthOf = function (c) {
-	var _n0 = c.type_;
-	switch (_n0.$) {
+var $author$project$Generator$getFifthOf = function (c) {
+	var _v0 = c.type_;
+	switch (_v0.$) {
 		case 'Min7b5':
-			return A2(author$project$Generator$getSemitonesOf, 6, c);
+			return A2($author$project$Generator$getSemitonesOf, 6, c);
 		case 'Dim':
-			return A2(author$project$Generator$getSemitonesOf, 6, c);
+			return A2($author$project$Generator$getSemitonesOf, 6, c);
 		case 'Maj7s5':
-			return A2(author$project$Generator$getSemitonesOf, 8, c);
+			return A2($author$project$Generator$getSemitonesOf, 8, c);
 		case 'Dom7s5':
-			return A2(author$project$Generator$getSemitonesOf, 8, c);
+			return A2($author$project$Generator$getSemitonesOf, 8, c);
 		case 'Alt7':
-			return A2(author$project$Generator$getSemitonesOf, 8, c);
+			return A2($author$project$Generator$getSemitonesOf, 8, c);
 		default:
-			return A2(author$project$Generator$getSemitonesOf, 7, c);
+			return A2($author$project$Generator$getSemitonesOf, 7, c);
 	}
 };
-var author$project$JazzBass$addPump = F3(
+var $author$project$JazzBass$addPump = F3(
 	function (bl, cp, signature) {
 		var do2bars = F2(
 			function (bl_, from) {
 				return A3(
-					author$project$Generator$insertNoReplace,
+					$author$project$Generator$insertNoReplace,
 					from,
-					elm$random$Random$constant(
-						A2(author$project$Generator$getChordAt, cp, from).note),
+					$elm$random$Random$constant(
+						A2($author$project$Generator$getChordAt, cp, from).note),
 					A3(
-						author$project$Generator$insertNoReplace,
+						$author$project$Generator$insertNoReplace,
 						from + signature,
-						elm$random$Random$constant(
-							author$project$Generator$getFifthOf(
-								A2(author$project$Generator$getChordAt, cp, from + signature))),
+						$elm$random$Random$constant(
+							$author$project$Generator$getFifthOf(
+								A2($author$project$Generator$getChordAt, cp, from + signature))),
 						bl_));
 			});
 		var doRec = F2(
@@ -6795,82 +6297,82 @@ var author$project$JazzBass$addPump = F3(
 			});
 		return A2(doRec, bl, 0);
 	});
-var author$project$Generator$getNinethOf = function (c) {
-	var _n0 = c.type_;
-	switch (_n0.$) {
+var $author$project$Generator$getNinethOf = function (c) {
+	var _v0 = c.type_;
+	switch (_v0.$) {
 		case 'Alt7':
-			return A2(author$project$Generator$getSemitonesOf, 3, c);
+			return A2($author$project$Generator$getSemitonesOf, 3, c);
 		case 'Dom7b9':
-			return A2(author$project$Generator$getSemitonesOf, 3, c);
+			return A2($author$project$Generator$getSemitonesOf, 3, c);
 		default:
-			return A2(author$project$Generator$getSemitonesOf, 2, c);
+			return A2($author$project$Generator$getSemitonesOf, 2, c);
 	}
 };
-var author$project$Generator$getSeventhOf = function (c) {
-	var _n0 = c.type_;
-	switch (_n0.$) {
+var $author$project$Generator$getSeventhOf = function (c) {
+	var _v0 = c.type_;
+	switch (_v0.$) {
 		case 'Maj7':
-			return A2(author$project$Generator$getSemitonesOf, 11, c);
+			return A2($author$project$Generator$getSemitonesOf, 11, c);
 		case 'Dim':
-			return A2(author$project$Generator$getSemitonesOf, 11, c);
+			return A2($author$project$Generator$getSemitonesOf, 11, c);
 		case 'MinMaj':
-			return A2(author$project$Generator$getSemitonesOf, 11, c);
+			return A2($author$project$Generator$getSemitonesOf, 11, c);
 		case 'Maj7s5':
-			return A2(author$project$Generator$getSemitonesOf, 11, c);
+			return A2($author$project$Generator$getSemitonesOf, 11, c);
 		default:
-			return A2(author$project$Generator$getSemitonesOf, 10, c);
+			return A2($author$project$Generator$getSemitonesOf, 10, c);
 	}
 };
-var author$project$Generator$getThirdOf = function (c) {
-	var _n0 = c.type_;
-	switch (_n0.$) {
+var $author$project$Generator$getThirdOf = function (c) {
+	var _v0 = c.type_;
+	switch (_v0.$) {
 		case 'Min7':
-			return A2(author$project$Generator$getSemitonesOf, 3, c);
+			return A2($author$project$Generator$getSemitonesOf, 3, c);
 		case 'Min7b5':
-			return A2(author$project$Generator$getSemitonesOf, 3, c);
+			return A2($author$project$Generator$getSemitonesOf, 3, c);
 		case 'Dim':
-			return A2(author$project$Generator$getSemitonesOf, 3, c);
+			return A2($author$project$Generator$getSemitonesOf, 3, c);
 		case 'MinMaj':
-			return A2(author$project$Generator$getSemitonesOf, 3, c);
+			return A2($author$project$Generator$getSemitonesOf, 3, c);
 		default:
-			return A2(author$project$Generator$getSemitonesOf, 4, c);
+			return A2($author$project$Generator$getSemitonesOf, 4, c);
 	}
 };
-var author$project$JazzBass$barFillArray = function (n) {
+var $author$project$JazzBass$barFillArray = function (n) {
 	switch (n) {
 		case 0:
-			return {fourth: author$project$Generator$getNinethOf, second: author$project$Generator$getNinethOf, third: author$project$Generator$getThirdOf};
+			return {fourth: $author$project$Generator$getNinethOf, second: $author$project$Generator$getNinethOf, third: $author$project$Generator$getThirdOf};
 		case 1:
 			return {
-				fourth: author$project$Generator$getNinethOf,
-				second: author$project$Generator$getSeventhOf,
+				fourth: $author$project$Generator$getNinethOf,
+				second: $author$project$Generator$getSeventhOf,
 				third: function ($) {
 					return $.note;
 				}
 			};
 		case 2:
-			return {fourth: author$project$Generator$getSeventhOf, second: author$project$Generator$getThirdOf, third: author$project$Generator$getFifthOf};
+			return {fourth: $author$project$Generator$getSeventhOf, second: $author$project$Generator$getThirdOf, third: $author$project$Generator$getFifthOf};
 		case 3:
 			return {
-				fourth: author$project$Generator$getThirdOf,
-				second: author$project$Generator$getSemitonesOf(1),
-				third: author$project$Generator$getNinethOf
+				fourth: $author$project$Generator$getThirdOf,
+				second: $author$project$Generator$getSemitonesOf(1),
+				third: $author$project$Generator$getNinethOf
 			};
 		case 4:
-			return {fourth: author$project$Generator$getSeventhOf, second: author$project$Generator$getFifthOf, third: author$project$Generator$getThirdOf};
+			return {fourth: $author$project$Generator$getSeventhOf, second: $author$project$Generator$getFifthOf, third: $author$project$Generator$getThirdOf};
 		default:
-			return {fourth: author$project$Generator$getNinethOf, second: author$project$Generator$getSeventhOf, third: author$project$Generator$getFifthOf};
+			return {fourth: $author$project$Generator$getNinethOf, second: $author$project$Generator$getSeventhOf, third: $author$project$Generator$getFifthOf};
 	}
 };
-var author$project$JazzBass$fillBar = F2(
+var $author$project$JazzBass$fillBar = F2(
 	function (cp, from) {
 		var funcGen = A2(
-			elm$random$Random$map,
-			author$project$JazzBass$barFillArray,
-			A2(elm$random$Random$int, 0, 5));
-		var curChord = A2(author$project$Generator$getChordAt, cp, from);
+			$elm$random$Random$map,
+			$author$project$JazzBass$barFillArray,
+			A2($elm$random$Random$int, 0, 5));
+		var curChord = A2($author$project$Generator$getChordAt, cp, from);
 		return A2(
-			elm$random$Random$map,
+			$elm$random$Random$map,
 			function (funcs) {
 				return _Utils_Tuple3(
 					_Utils_Tuple2(
@@ -6885,7 +6387,7 @@ var author$project$JazzBass$fillBar = F2(
 			},
 			funcGen);
 	});
-var author$project$JazzBass$fillBarsRec = F2(
+var $author$project$JazzBass$fillBarsRec = F2(
 	function (cp, signature) {
 		var doRec = F2(
 			function (l, from) {
@@ -6895,8 +6397,8 @@ var author$project$JazzBass$fillBarsRec = F2(
 						return l;
 					} else {
 						var $temp$l = A2(
-							elm$core$List$cons,
-							A2(author$project$JazzBass$fillBar, cp, from),
+							$elm$core$List$cons,
+							A2($author$project$JazzBass$fillBar, cp, from),
 							l),
 							$temp$from = from + signature;
 						l = $temp$l;
@@ -6907,92 +6409,92 @@ var author$project$JazzBass$fillBarsRec = F2(
 			});
 		return A2(doRec, _List_Nil, 0);
 	});
-var author$project$JazzBass$fondaOnChange = function (cp) {
+var $author$project$JazzBass$fondaOnChange = function (cp) {
 	return A3(
-		elm$core$List$foldl,
+		$elm$core$List$foldl,
 		F2(
 			function (evt, bassline) {
 				return A3(
-					elm$core$Dict$insert,
-					elm$core$Basics$floor(evt.time),
-					elm$random$Random$constant(evt.chord.note),
+					$elm$core$Dict$insert,
+					$elm$core$Basics$floor(evt.time),
+					$elm$random$Random$constant(evt.chord.note),
 					bassline);
 			}),
-		elm$core$Dict$empty,
+		$elm$core$Dict$empty,
 		cp.chords);
 };
-var author$project$JazzBass$bassLineGenerator = F2(
+var $author$project$JazzBass$bassLineGenerator = F2(
 	function (cp, signature) {
 		var basslineNoFill = A2(
-			author$project$JazzBass$addApproach,
+			$author$project$JazzBass$addApproach,
 			A3(
-				author$project$JazzBass$addPump,
-				author$project$JazzBass$fondaOnChange(cp),
+				$author$project$JazzBass$addPump,
+				$author$project$JazzBass$fondaOnChange(cp),
 				cp,
 				signature),
-			elm$core$Basics$floor(cp.end));
+			$elm$core$Basics$floor(cp.end));
 		return A2(
-			author$project$JazzBass$addFill,
+			$author$project$JazzBass$addFill,
 			basslineNoFill,
-			A2(author$project$JazzBass$fillBarsRec, cp, signature));
+			A2($author$project$JazzBass$fillBarsRec, cp, signature));
 	});
-var author$project$Tune$Event = F5(
+var $author$project$Tune$Event = F5(
 	function (time, onset, pitch, instrument, gain) {
 		return {gain: gain, instrument: instrument, onset: onset, pitch: pitch, time: time};
 	});
-var elm$core$Basics$abs = function (n) {
+var $elm$core$Basics$abs = function (n) {
 	return (n < 0) ? (-n) : n;
 };
-var elm$core$Basics$min = F2(
+var $elm$core$Basics$min = F2(
 	function (x, y) {
 		return (_Utils_cmp(x, y) < 0) ? x : y;
 	});
-var author$project$JazzBass$bassline2seq = F3(
+var $author$project$JazzBass$bassline2seq = F3(
 	function (vmin, vmax, dic) {
 		var closest = F2(
 			function (pitch, note) {
 				var oct = ((pitch / 12) | 0) - 1;
-				var center = A2(author$project$Generator$note2pitch, oct, note);
-				var c_gap = elm$core$Basics$abs(center - pitch);
-				var below = A2(author$project$Generator$note2pitch, oct - 1, note);
-				var b_gap = elm$core$Basics$abs(below - pitch);
-				var above = A2(author$project$Generator$note2pitch, oct + 1, note);
-				var a_gap = elm$core$Basics$abs(above - pitch);
+				var center = A2($author$project$Generator$note2pitch, oct, note);
+				var c_gap = $elm$core$Basics$abs(center - pitch);
+				var below = A2($author$project$Generator$note2pitch, oct - 1, note);
+				var b_gap = $elm$core$Basics$abs(below - pitch);
+				var above = A2($author$project$Generator$note2pitch, oct + 1, note);
+				var a_gap = $elm$core$Basics$abs(above - pitch);
 				var min3 = A2(
-					elm$core$Basics$min,
+					$elm$core$Basics$min,
 					b_gap,
-					A2(elm$core$Basics$min, c_gap, a_gap));
+					A2($elm$core$Basics$min, c_gap, a_gap));
 				var closestnote = _Utils_eq(min3, b_gap) ? below : (_Utils_eq(min3, c_gap) ? center : above);
 				return (_Utils_cmp(closestnote, vmin) < 0) ? (closestnote + 12) : ((_Utils_cmp(closestnote, vmax) > 0) ? (closestnote - 12) : closestnote);
 			});
 		return A2(
-			elm$core$List$concatMap,
-			function (_n2) {
-				var k = _n2.a;
-				var p = _n2.b;
+			$elm$core$List$concatMap,
+			function (_v2) {
+				var k = _v2.a;
+				var p = _v2.b;
 				return _List_fromArray(
 					[
-						A5(author$project$Tune$Event, k, true, p, 'bass', 1),
-						A5(author$project$Tune$Event, k + 1, false, p, 'bass', 1)
+						A5($author$project$Tune$Event, k, true, p, 'bass', 1),
+						A5($author$project$Tune$Event, k + 1, false, p, 'bass', 1)
 					]);
 			},
 			A3(
-				elm$core$List$foldl,
+				$elm$core$List$foldl,
 				F2(
-					function (_n0, l) {
-						var k = _n0.a;
-						var v = _n0.b;
+					function (_v0, l) {
+						var k = _v0.a;
+						var v = _v0.b;
 						if (!l.b) {
 							return _List_fromArray(
 								[
 									_Utils_Tuple2(
 									k,
-									A2(author$project$Generator$note2pitch, 1, v))
+									A2($author$project$Generator$note2pitch, 1, v))
 								]);
 						} else {
 							var h = l.a;
 							return A2(
-								elm$core$List$cons,
+								$elm$core$List$cons,
 								_Utils_Tuple2(
 									k,
 									A2(closest, h.b, v)),
@@ -7001,97 +6503,97 @@ var author$project$JazzBass$bassline2seq = F3(
 					}),
 				_List_Nil,
 				A2(
-					elm$core$List$sortBy,
-					elm$core$Tuple$first,
-					elm$core$Dict$toList(dic))));
+					$elm$core$List$sortBy,
+					$elm$core$Tuple$first,
+					$elm$core$Dict$toList(dic))));
 	});
-var author$project$JazzBass$basslineToSequence = A2(author$project$JazzBass$bassline2seq, 16, 40);
-var author$project$JazzBass$sequenceGenerator = F2(
+var $author$project$JazzBass$basslineToSequence = A2($author$project$JazzBass$bassline2seq, 16, 40);
+var $author$project$JazzBass$sequenceGenerator = F2(
 	function (cp, signature) {
 		return A2(
-			elm$random$Random$map,
-			author$project$JazzBass$basslineToSequence,
-			A2(author$project$JazzBass$bassLineGenerator, cp, signature));
+			$elm$random$Random$map,
+			$author$project$JazzBass$basslineToSequence,
+			A2($author$project$JazzBass$bassLineGenerator, cp, signature));
 	});
-var author$project$JazzDrums$chabada = function (end) {
+var $author$project$JazzDrums$chabada = function (end) {
 	return A2(
-		elm$core$List$concatMap,
+		$elm$core$List$concatMap,
 		function (i) {
 			var fb = i;
 			return _List_fromArray(
 				[
-					A5(author$project$Tune$Event, fb, true, 2, 'drums', 0.5),
-					A5(author$project$Tune$Event, fb + 1, true, 2, 'drums', 0.5),
-					A5(author$project$Tune$Event, fb + 1, true, 3, 'drums', 1),
-					A5(author$project$Tune$Event, fb + 1.66, true, 2, 'drums', 0.7),
-					A5(author$project$Tune$Event, fb + 2, true, 2, 'drums', 0.5),
-					A5(author$project$Tune$Event, fb + 3, true, 2, 'drums', 0.5),
-					A5(author$project$Tune$Event, fb + 3, true, 3, 'drums', 1),
-					A5(author$project$Tune$Event, fb + 3.66, true, 2, 'drums', 0.7)
+					A5($author$project$Tune$Event, fb, true, 2, 'drums', 0.5),
+					A5($author$project$Tune$Event, fb + 1, true, 2, 'drums', 0.5),
+					A5($author$project$Tune$Event, fb + 1, true, 3, 'drums', 1),
+					A5($author$project$Tune$Event, fb + 1.66, true, 2, 'drums', 0.7),
+					A5($author$project$Tune$Event, fb + 2, true, 2, 'drums', 0.5),
+					A5($author$project$Tune$Event, fb + 3, true, 2, 'drums', 0.5),
+					A5($author$project$Tune$Event, fb + 3, true, 3, 'drums', 1),
+					A5($author$project$Tune$Event, fb + 3.66, true, 2, 'drums', 0.7)
 				]);
 		},
 		A2(
-			elm$core$List$map,
-			elm$core$Basics$mul(4),
+			$elm$core$List$map,
+			$elm$core$Basics$mul(4),
 			A2(
-				elm$core$List$range,
+				$elm$core$List$range,
 				0,
-				elm$core$Basics$floor((end - 1) / 4))));
+				$elm$core$Basics$floor((end - 1) / 4))));
 };
-var author$project$JazzDrums$chabadaCrash = function (end) {
+var $author$project$JazzDrums$chabadaCrash = function (end) {
 	return A2(
-		elm$core$List$cons,
-		A5(author$project$Tune$Event, 0, true, 5, 'drums', 1),
-		author$project$JazzDrums$chabada(end));
+		$elm$core$List$cons,
+		A5($author$project$Tune$Event, 0, true, 5, 'drums', 1),
+		$author$project$JazzDrums$chabada(end));
 };
-var elm$core$List$maybeCons = F3(
+var $elm$core$List$maybeCons = F3(
 	function (f, mx, xs) {
-		var _n0 = f(mx);
-		if (_n0.$ === 'Just') {
-			var x = _n0.a;
-			return A2(elm$core$List$cons, x, xs);
+		var _v0 = f(mx);
+		if (_v0.$ === 'Just') {
+			var x = _v0.a;
+			return A2($elm$core$List$cons, x, xs);
 		} else {
 			return xs;
 		}
 	});
-var elm$core$List$filterMap = F2(
+var $elm$core$List$filterMap = F2(
 	function (f, xs) {
 		return A3(
-			elm$core$List$foldr,
-			elm$core$List$maybeCons(f),
+			$elm$core$List$foldr,
+			$elm$core$List$maybeCons(f),
 			_List_Nil,
 			xs);
 	});
-var elm$core$Maybe$map = F2(
+var $elm$core$Maybe$map = F2(
 	function (f, maybe) {
 		if (maybe.$ === 'Just') {
 			var value = maybe.a;
-			return elm$core$Maybe$Just(
+			return $elm$core$Maybe$Just(
 				f(value));
 		} else {
-			return elm$core$Maybe$Nothing;
+			return $elm$core$Maybe$Nothing;
 		}
 	});
-var elm$core$Tuple$pair = F2(
+var $elm$core$Tuple$pair = F2(
 	function (a, b) {
 		return _Utils_Tuple2(a, b);
 	});
-var author$project$JazzDrums$listShots2seq = F2(
+var $author$project$JazzDrums$listShots2seq = F2(
 	function (l, pitch) {
 		var r1 = A2(
-			elm$core$List$map,
-			elm$core$Basics$toFloat,
+			$elm$core$List$map,
+			$elm$core$Basics$toFloat,
 			A2(
-				elm$core$List$range,
+				$elm$core$List$range,
 				0,
-				elm$core$List$length(l)));
+				$elm$core$List$length(l)));
 		var r2 = A2(
-			elm$core$List$map,
-			elm$core$Basics$add(0.66),
+			$elm$core$List$map,
+			$elm$core$Basics$add(0.66),
 			r1);
-		var onset = elm$core$List$concat(
+		var onset = $elm$core$List$concat(
 			A3(
-				elm$core$List$map2,
+				$elm$core$List$map2,
 				F2(
 					function (a, b) {
 						return _List_fromArray(
@@ -7099,49 +6601,70 @@ var author$project$JazzDrums$listShots2seq = F2(
 					}),
 				r1,
 				r2));
-		var zip = A3(elm$core$List$map2, elm$core$Tuple$pair, onset, l);
+		var zip = A3($elm$core$List$map2, $elm$core$Tuple$pair, onset, l);
 		return A2(
-			elm$core$List$filterMap,
-			function (_n0) {
-				var o = _n0.a;
-				var m = _n0.b;
+			$elm$core$List$filterMap,
+			function (_v0) {
+				var o = _v0.a;
+				var m = _v0.b;
 				return A2(
-					elm$core$Maybe$map,
+					$elm$core$Maybe$map,
 					function (g) {
-						return A5(author$project$Tune$Event, o, true, pitch, 'drums', g);
+						return A5($author$project$Tune$Event, o, true, pitch, 'drums', g);
 					},
 					m);
 			},
 			zip);
 	});
-var elm$random$Random$float = F2(
-	function (a, b) {
-		return elm$random$Random$Generator(
+var $elm$random$Random$map3 = F4(
+	function (func, _v0, _v1, _v2) {
+		var genA = _v0.a;
+		var genB = _v1.a;
+		var genC = _v2.a;
+		return $elm$random$Random$Generator(
 			function (seed0) {
-				var seed1 = elm$random$Random$next(seed0);
-				var range = elm$core$Basics$abs(b - a);
-				var n1 = elm$random$Random$peel(seed1);
-				var n0 = elm$random$Random$peel(seed0);
+				var _v3 = genA(seed0);
+				var a = _v3.a;
+				var seed1 = _v3.b;
+				var _v4 = genB(seed1);
+				var b = _v4.a;
+				var seed2 = _v4.b;
+				var _v5 = genC(seed2);
+				var c = _v5.a;
+				var seed3 = _v5.b;
+				return _Utils_Tuple2(
+					A3(func, a, b, c),
+					seed3);
+			});
+	});
+var $elm$random$Random$float = F2(
+	function (a, b) {
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var seed1 = $elm$random$Random$next(seed0);
+				var range = $elm$core$Basics$abs(b - a);
+				var n1 = $elm$random$Random$peel(seed1);
+				var n0 = $elm$random$Random$peel(seed0);
 				var lo = (134217727 & n1) * 1.0;
 				var hi = (67108863 & n0) * 1.0;
-				var val = ((hi * 1.34217728e8) + lo) / 9.007199254740992e15;
+				var val = ((hi * 134217728.0) + lo) / 9007199254740992.0;
 				var scaled = (val * range) + a;
 				return _Utils_Tuple2(
 					scaled,
-					elm$random$Random$next(seed1));
+					$elm$random$Random$next(seed1));
 			});
 	});
-var elm$random$Random$listHelp = F4(
+var $elm$random$Random$listHelp = F4(
 	function (revList, n, gen, seed) {
 		listHelp:
 		while (true) {
 			if (n < 1) {
 				return _Utils_Tuple2(revList, seed);
 			} else {
-				var _n0 = gen(seed);
-				var value = _n0.a;
-				var newSeed = _n0.b;
-				var $temp$revList = A2(elm$core$List$cons, value, revList),
+				var _v0 = gen(seed);
+				var value = _v0.a;
+				var newSeed = _v0.b;
+				var $temp$revList = A2($elm$core$List$cons, value, revList),
 					$temp$n = n - 1,
 					$temp$gen = gen,
 					$temp$seed = newSeed;
@@ -7153,70 +6676,49 @@ var elm$random$Random$listHelp = F4(
 			}
 		}
 	});
-var elm$random$Random$list = F2(
-	function (n, _n0) {
-		var gen = _n0.a;
-		return elm$random$Random$Generator(
+var $elm$random$Random$list = F2(
+	function (n, _v0) {
+		var gen = _v0.a;
+		return $elm$random$Random$Generator(
 			function (seed) {
-				return A4(elm$random$Random$listHelp, _List_Nil, n, gen, seed);
+				return A4($elm$random$Random$listHelp, _List_Nil, n, gen, seed);
 			});
 	});
-var author$project$JazzDrums$randomShots = F2(
+var $author$project$JazzDrums$randomShots = F2(
 	function (p, n) {
 		return A2(
-			elm$random$Random$list,
+			$elm$random$Random$list,
 			n,
 			A2(
-				elm$random$Random$andThen,
+				$elm$random$Random$andThen,
 				function (f) {
 					return (_Utils_cmp(f, p) < 0) ? A2(
-						elm$random$Random$map,
+						$elm$random$Random$map,
 						function (f2) {
-							return elm$core$Maybe$Just(f2);
+							return $elm$core$Maybe$Just(f2);
 						},
-						A2(elm$random$Random$float, 0.3, 1)) : elm$random$Random$constant(elm$core$Maybe$Nothing);
+						A2($elm$random$Random$float, 0.3, 1)) : $elm$random$Random$constant($elm$core$Maybe$Nothing);
 				},
-				A2(elm$random$Random$float, 0, 1)));
+				A2($elm$random$Random$float, 0, 1)));
 	});
-var elm$random$Random$map3 = F4(
-	function (func, _n0, _n1, _n2) {
-		var genA = _n0.a;
-		var genB = _n1.a;
-		var genC = _n2.a;
-		return elm$random$Random$Generator(
-			function (seed0) {
-				var _n3 = genA(seed0);
-				var a = _n3.a;
-				var seed1 = _n3.b;
-				var _n4 = genB(seed1);
-				var b = _n4.a;
-				var seed2 = _n4.b;
-				var _n5 = genC(seed2);
-				var c = _n5.a;
-				var seed3 = _n5.b;
-				return _Utils_Tuple2(
-					A3(func, a, b, c),
-					seed3);
-			});
-	});
-var author$project$JazzDrums$sequenceGenerator = F2(
-	function (cp, _n0) {
-		var n = elm$core$Basics$floor(cp.end);
-		var shotGen = A2(author$project$JazzDrums$randomShots, 0.2, 2 * n);
+var $author$project$JazzDrums$sequenceGenerator = F2(
+	function (cp, _v0) {
+		var n = $elm$core$Basics$floor(cp.end);
+		var shotGen = A2($author$project$JazzDrums$randomShots, 0.2, 2 * n);
 		var snare = A2(
-			elm$random$Random$map,
+			$elm$random$Random$map,
 			function (l) {
-				return A2(author$project$JazzDrums$listShots2seq, l, 1);
+				return A2($author$project$JazzDrums$listShots2seq, l, 1);
 			},
 			shotGen);
 		var kick = A2(
-			elm$random$Random$map,
+			$elm$random$Random$map,
 			function (l) {
-				return A2(author$project$JazzDrums$listShots2seq, l, 0);
+				return A2($author$project$JazzDrums$listShots2seq, l, 0);
 			},
 			shotGen);
 		return A4(
-			elm$random$Random$map3,
+			$elm$random$Random$map3,
 			F3(
 				function (s1, s2, s3) {
 					return _Utils_ap(
@@ -7225,268 +6727,990 @@ var author$project$JazzDrums$sequenceGenerator = F2(
 				}),
 			snare,
 			kick,
-			elm$random$Random$constant(
-				author$project$JazzDrums$chabadaCrash(cp.end)));
+			$elm$random$Random$constant(
+				$author$project$JazzDrums$chabadaCrash(cp.end)));
 	});
-var author$project$PlayerPage$SequenceGenerated = function (a) {
-	return {$: 'SequenceGenerated', a: a};
-};
-var elm$random$Random$Generate = function (a) {
-	return {$: 'Generate', a: a};
-};
-var elm$core$Task$andThen = _Scheduler_andThen;
-var elm$core$Task$succeed = _Scheduler_succeed;
-var elm$random$Random$initialSeed = function (x) {
-	var _n0 = elm$random$Random$next(
-		A2(elm$random$Random$Seed, 0, 1013904223));
-	var state1 = _n0.a;
-	var incr = _n0.b;
-	var state2 = (state1 + x) >>> 0;
-	return elm$random$Random$next(
-		A2(elm$random$Random$Seed, state2, incr));
-};
-var elm$time$Time$Name = function (a) {
-	return {$: 'Name', a: a};
-};
-var elm$time$Time$Offset = function (a) {
-	return {$: 'Offset', a: a};
-};
-var elm$time$Time$Zone = F2(
-	function (a, b) {
-		return {$: 'Zone', a: a, b: b};
-	});
-var elm$time$Time$customZone = elm$time$Time$Zone;
-var elm$time$Time$Posix = function (a) {
-	return {$: 'Posix', a: a};
-};
-var elm$time$Time$millisToPosix = elm$time$Time$Posix;
-var elm$time$Time$now = _Time_now(elm$time$Time$millisToPosix);
-var elm$time$Time$posixToMillis = function (_n0) {
-	var millis = _n0.a;
-	return millis;
-};
-var elm$random$Random$init = A2(
-	elm$core$Task$andThen,
-	function (time) {
-		return elm$core$Task$succeed(
-			elm$random$Random$initialSeed(
-				elm$time$Time$posixToMillis(time)));
-	},
-	elm$time$Time$now);
-var elm$core$Platform$sendToApp = _Platform_sendToApp;
-var elm$random$Random$step = F2(
-	function (_n0, seed) {
-		var generator = _n0.a;
-		return generator(seed);
-	});
-var elm$random$Random$onEffects = F3(
-	function (router, commands, seed) {
-		if (!commands.b) {
-			return elm$core$Task$succeed(seed);
-		} else {
-			var generator = commands.a.a;
-			var rest = commands.b;
-			var _n1 = A2(elm$random$Random$step, generator, seed);
-			var value = _n1.a;
-			var newSeed = _n1.b;
-			return A2(
-				elm$core$Task$andThen,
-				function (_n2) {
-					return A3(elm$random$Random$onEffects, router, rest, newSeed);
-				},
-				A2(elm$core$Platform$sendToApp, router, value));
-		}
-	});
-var elm$random$Random$onSelfMsg = F3(
-	function (_n0, _n1, seed) {
-		return elm$core$Task$succeed(seed);
-	});
-var elm$random$Random$cmdMap = F2(
-	function (func, _n0) {
-		var generator = _n0.a;
-		return elm$random$Random$Generate(
-			A2(elm$random$Random$map, func, generator));
-	});
-_Platform_effectManagers['Random'] = _Platform_createManager(elm$random$Random$init, elm$random$Random$onEffects, elm$random$Random$onSelfMsg, elm$random$Random$cmdMap);
-var elm$random$Random$command = _Platform_leaf('Random');
-var elm$random$Random$generate = F2(
-	function (tagger, generator) {
-		return elm$random$Random$command(
-			elm$random$Random$Generate(
-				A2(elm$random$Random$map, tagger, generator)));
-	});
-var author$project$PlayerPage$genSequence = function (m) {
+var $author$project$PlayerPage$genSequence = function (m) {
 	return A2(
-		elm$random$Random$generate,
-		author$project$PlayerPage$SequenceGenerated,
+		$elm$random$Random$generate,
+		$author$project$PlayerPage$SequenceGenerated,
 		A3(
-			author$project$Generator$mergeSeqGenerators,
+			$author$project$Generator$mergeSeqGenerators,
 			_List_fromArray(
-				[author$project$JazzBass$sequenceGenerator, author$project$JazzDrums$sequenceGenerator]),
+				[$author$project$JazzBass$sequenceGenerator, $author$project$JazzDrums$sequenceGenerator]),
 			m.song.chordProg,
 			m.song.beatsPerBar));
 };
-var author$project$Main$genSequence = function (m) {
+var $author$project$Main$genSequence = function (m) {
 	return A2(
-		elm$core$Platform$Cmd$map,
+		$elm$core$Platform$Cmd$map,
 		function (sm) {
-			return author$project$Main$PpEvent(sm);
+			return $author$project$Main$PpEvent(sm);
 		},
-		author$project$PlayerPage$genSequence(m.playerModel));
+		$author$project$PlayerPage$genSequence(m.playerModel));
 };
-var author$project$Main$resetDialog = function (m) {
+var $author$project$Editor$grid2chordprog = function (g) {
+	var glist = $elm$core$Array$toList(g);
+	var foldrec = F2(
+		function (l, time) {
+			if (!l.b) {
+				return _List_Nil;
+			} else {
+				var h = l.a;
+				var t = l.b;
+				var following = A2(foldrec, t, time + h.len);
+				var _v1 = h.chord;
+				if (_v1.$ === 'Nothing') {
+					return following;
+				} else {
+					var c = _v1.a;
+					return A2(
+						$elm$core$List$cons,
+						{chord: c, time: time},
+						following);
+				}
+			}
+		});
+	var end = A3(
+		$elm$core$List$foldl,
+		F2(
+			function (c, f) {
+				return f + c.len;
+			}),
+		0,
+		glist);
+	var chords = A2(foldrec, glist, 0);
+	return {chords: chords, end: end};
+};
+var $author$project$Main$resetDialog = function (m) {
 	return _Utils_update(
 		m,
-		{dialogBox: elm$core$Maybe$Nothing});
+		{dialogBox: $elm$core$Maybe$Nothing});
 };
-var author$project$Main$setLibrary = F2(
-	function (l, m) {
-		return _Utils_update(
-			m,
-			{libraryModel: l});
-	});
-var author$project$PlayerPage$asChordProgIn = F2(
-	function (s, cp) {
-		return _Utils_update(
-			s,
-			{chordProg: cp});
-	});
-var author$project$PlayerPage$asSongIn = F2(
-	function (sm, s) {
-		return _Utils_update(
-			sm,
-			{song: s});
-	});
-var author$project$PlayerPage$setComposer = F2(
+var $author$project$PlayerPage$setComposer = F2(
 	function (c, s) {
 		return _Utils_update(
 			s,
 			{composer: c});
 	});
-var author$project$PlayerPage$asTitleIn = F2(
+var $author$project$Main$setLibrary = F2(
+	function (l, m) {
+		return _Utils_update(
+			m,
+			{libraryModel: l});
+	});
+var $author$project$PlayerPage$asTitleIn = F2(
 	function (s, t) {
 		return _Utils_update(
 			s,
 			{title: t});
 	});
-var author$project$PlayerPage$setTitle = F2(
+var $author$project$PlayerPage$setTitle = F2(
 	function (t, s) {
-		return A2(author$project$PlayerPage$asTitleIn, s, t);
+		return A2($author$project$PlayerPage$asTitleIn, s, t);
 	});
-var elm$json$Json$Encode$null = _Json_encodeNull;
-var author$project$Tune$pause = _Platform_outgoingPort(
+var $elm$core$Elm$JsArray$appendN = _JsArray_appendN;
+var $elm$core$Elm$JsArray$slice = _JsArray_slice;
+var $elm$core$Array$appendHelpBuilder = F2(
+	function (tail, builder) {
+		var tailLen = $elm$core$Elm$JsArray$length(tail);
+		var notAppended = ($elm$core$Array$branchFactor - $elm$core$Elm$JsArray$length(builder.tail)) - tailLen;
+		var appended = A3($elm$core$Elm$JsArray$appendN, $elm$core$Array$branchFactor, builder.tail, tail);
+		return (notAppended < 0) ? {
+			nodeList: A2(
+				$elm$core$List$cons,
+				$elm$core$Array$Leaf(appended),
+				builder.nodeList),
+			nodeListSize: builder.nodeListSize + 1,
+			tail: A3($elm$core$Elm$JsArray$slice, notAppended, tailLen, tail)
+		} : ((!notAppended) ? {
+			nodeList: A2(
+				$elm$core$List$cons,
+				$elm$core$Array$Leaf(appended),
+				builder.nodeList),
+			nodeListSize: builder.nodeListSize + 1,
+			tail: $elm$core$Elm$JsArray$empty
+		} : {nodeList: builder.nodeList, nodeListSize: builder.nodeListSize, tail: appended});
+	});
+var $elm$core$Array$bitMask = 4294967295 >>> (32 - $elm$core$Array$shiftStep);
+var $elm$core$Elm$JsArray$push = _JsArray_push;
+var $elm$core$Elm$JsArray$singleton = _JsArray_singleton;
+var $elm$core$Elm$JsArray$unsafeGet = _JsArray_unsafeGet;
+var $elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
+var $elm$core$Array$insertTailInTree = F4(
+	function (shift, index, tail, tree) {
+		var pos = $elm$core$Array$bitMask & (index >>> shift);
+		if (_Utils_cmp(
+			pos,
+			$elm$core$Elm$JsArray$length(tree)) > -1) {
+			if (shift === 5) {
+				return A2(
+					$elm$core$Elm$JsArray$push,
+					$elm$core$Array$Leaf(tail),
+					tree);
+			} else {
+				var newSub = $elm$core$Array$SubTree(
+					A4($elm$core$Array$insertTailInTree, shift - $elm$core$Array$shiftStep, index, tail, $elm$core$Elm$JsArray$empty));
+				return A2($elm$core$Elm$JsArray$push, newSub, tree);
+			}
+		} else {
+			var value = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
+			if (value.$ === 'SubTree') {
+				var subTree = value.a;
+				var newSub = $elm$core$Array$SubTree(
+					A4($elm$core$Array$insertTailInTree, shift - $elm$core$Array$shiftStep, index, tail, subTree));
+				return A3($elm$core$Elm$JsArray$unsafeSet, pos, newSub, tree);
+			} else {
+				var newSub = $elm$core$Array$SubTree(
+					A4(
+						$elm$core$Array$insertTailInTree,
+						shift - $elm$core$Array$shiftStep,
+						index,
+						tail,
+						$elm$core$Elm$JsArray$singleton(value)));
+				return A3($elm$core$Elm$JsArray$unsafeSet, pos, newSub, tree);
+			}
+		}
+	});
+var $elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
+var $elm$core$Array$unsafeReplaceTail = F2(
+	function (newTail, _v0) {
+		var len = _v0.a;
+		var startShift = _v0.b;
+		var tree = _v0.c;
+		var tail = _v0.d;
+		var originalTailLen = $elm$core$Elm$JsArray$length(tail);
+		var newTailLen = $elm$core$Elm$JsArray$length(newTail);
+		var newArrayLen = len + (newTailLen - originalTailLen);
+		if (_Utils_eq(newTailLen, $elm$core$Array$branchFactor)) {
+			var overflow = _Utils_cmp(newArrayLen >>> $elm$core$Array$shiftStep, 1 << startShift) > 0;
+			if (overflow) {
+				var newShift = startShift + $elm$core$Array$shiftStep;
+				var newTree = A4(
+					$elm$core$Array$insertTailInTree,
+					newShift,
+					len,
+					newTail,
+					$elm$core$Elm$JsArray$singleton(
+						$elm$core$Array$SubTree(tree)));
+				return A4($elm$core$Array$Array_elm_builtin, newArrayLen, newShift, newTree, $elm$core$Elm$JsArray$empty);
+			} else {
+				return A4(
+					$elm$core$Array$Array_elm_builtin,
+					newArrayLen,
+					startShift,
+					A4($elm$core$Array$insertTailInTree, startShift, len, newTail, tree),
+					$elm$core$Elm$JsArray$empty);
+			}
+		} else {
+			return A4($elm$core$Array$Array_elm_builtin, newArrayLen, startShift, tree, newTail);
+		}
+	});
+var $elm$core$Array$appendHelpTree = F2(
+	function (toAppend, array) {
+		var len = array.a;
+		var tree = array.c;
+		var tail = array.d;
+		var itemsToAppend = $elm$core$Elm$JsArray$length(toAppend);
+		var notAppended = ($elm$core$Array$branchFactor - $elm$core$Elm$JsArray$length(tail)) - itemsToAppend;
+		var appended = A3($elm$core$Elm$JsArray$appendN, $elm$core$Array$branchFactor, tail, toAppend);
+		var newArray = A2($elm$core$Array$unsafeReplaceTail, appended, array);
+		if (notAppended < 0) {
+			var nextTail = A3($elm$core$Elm$JsArray$slice, notAppended, itemsToAppend, toAppend);
+			return A2($elm$core$Array$unsafeReplaceTail, nextTail, newArray);
+		} else {
+			return newArray;
+		}
+	});
+var $elm$core$Elm$JsArray$foldl = _JsArray_foldl;
+var $elm$core$Array$builderFromArray = function (_v0) {
+	var len = _v0.a;
+	var tree = _v0.c;
+	var tail = _v0.d;
+	var helper = F2(
+		function (node, acc) {
+			if (node.$ === 'SubTree') {
+				var subTree = node.a;
+				return A3($elm$core$Elm$JsArray$foldl, helper, acc, subTree);
+			} else {
+				return A2($elm$core$List$cons, node, acc);
+			}
+		});
+	return {
+		nodeList: A3($elm$core$Elm$JsArray$foldl, helper, _List_Nil, tree),
+		nodeListSize: (len / $elm$core$Array$branchFactor) | 0,
+		tail: tail
+	};
+};
+var $elm$core$Array$append = F2(
+	function (a, _v0) {
+		var aTail = a.d;
+		var bLen = _v0.a;
+		var bTree = _v0.c;
+		var bTail = _v0.d;
+		if (_Utils_cmp(bLen, $elm$core$Array$branchFactor * 4) < 1) {
+			var foldHelper = F2(
+				function (node, array) {
+					if (node.$ === 'SubTree') {
+						var tree = node.a;
+						return A3($elm$core$Elm$JsArray$foldl, foldHelper, array, tree);
+					} else {
+						var leaf = node.a;
+						return A2($elm$core$Array$appendHelpTree, leaf, array);
+					}
+				});
+			return A2(
+				$elm$core$Array$appendHelpTree,
+				bTail,
+				A3($elm$core$Elm$JsArray$foldl, foldHelper, a, bTree));
+		} else {
+			var foldHelper = F2(
+				function (node, builder) {
+					if (node.$ === 'SubTree') {
+						var tree = node.a;
+						return A3($elm$core$Elm$JsArray$foldl, foldHelper, builder, tree);
+					} else {
+						var leaf = node.a;
+						return A2($elm$core$Array$appendHelpBuilder, leaf, builder);
+					}
+				});
+			return A2(
+				$elm$core$Array$builderToArray,
+				true,
+				A2(
+					$elm$core$Array$appendHelpBuilder,
+					bTail,
+					A3(
+						$elm$core$Elm$JsArray$foldl,
+						foldHelper,
+						$elm$core$Array$builderFromArray(a),
+						bTree)));
+		}
+	});
+var $elm$core$Array$length = function (_v0) {
+	var len = _v0.a;
+	return len;
+};
+var $elm$core$Array$push = F2(
+	function (a, array) {
+		var tail = array.d;
+		return A2(
+			$elm$core$Array$unsafeReplaceTail,
+			A2($elm$core$Elm$JsArray$push, a, tail),
+			array);
+	});
+var $elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var $elm$core$Array$tailIndex = function (len) {
+	return (len >>> 5) << 5;
+};
+var $elm$core$Array$sliceLeft = F2(
+	function (from, array) {
+		var len = array.a;
+		var tree = array.c;
+		var tail = array.d;
+		if (!from) {
+			return array;
+		} else {
+			if (_Utils_cmp(
+				from,
+				$elm$core$Array$tailIndex(len)) > -1) {
+				return A4(
+					$elm$core$Array$Array_elm_builtin,
+					len - from,
+					$elm$core$Array$shiftStep,
+					$elm$core$Elm$JsArray$empty,
+					A3(
+						$elm$core$Elm$JsArray$slice,
+						from - $elm$core$Array$tailIndex(len),
+						$elm$core$Elm$JsArray$length(tail),
+						tail));
+			} else {
+				var skipNodes = (from / $elm$core$Array$branchFactor) | 0;
+				var helper = F2(
+					function (node, acc) {
+						if (node.$ === 'SubTree') {
+							var subTree = node.a;
+							return A3($elm$core$Elm$JsArray$foldr, helper, acc, subTree);
+						} else {
+							var leaf = node.a;
+							return A2($elm$core$List$cons, leaf, acc);
+						}
+					});
+				var leafNodes = A3(
+					$elm$core$Elm$JsArray$foldr,
+					helper,
+					_List_fromArray(
+						[tail]),
+					tree);
+				var nodesToInsert = A2($elm$core$List$drop, skipNodes, leafNodes);
+				if (!nodesToInsert.b) {
+					return $elm$core$Array$empty;
+				} else {
+					var head = nodesToInsert.a;
+					var rest = nodesToInsert.b;
+					var firstSlice = from - (skipNodes * $elm$core$Array$branchFactor);
+					var initialBuilder = {
+						nodeList: _List_Nil,
+						nodeListSize: 0,
+						tail: A3(
+							$elm$core$Elm$JsArray$slice,
+							firstSlice,
+							$elm$core$Elm$JsArray$length(head),
+							head)
+					};
+					return A2(
+						$elm$core$Array$builderToArray,
+						true,
+						A3($elm$core$List$foldl, $elm$core$Array$appendHelpBuilder, initialBuilder, rest));
+				}
+			}
+		}
+	});
+var $elm$core$Array$fetchNewTail = F4(
+	function (shift, end, treeEnd, tree) {
+		fetchNewTail:
+		while (true) {
+			var pos = $elm$core$Array$bitMask & (treeEnd >>> shift);
+			var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
+			if (_v0.$ === 'SubTree') {
+				var sub = _v0.a;
+				var $temp$shift = shift - $elm$core$Array$shiftStep,
+					$temp$end = end,
+					$temp$treeEnd = treeEnd,
+					$temp$tree = sub;
+				shift = $temp$shift;
+				end = $temp$end;
+				treeEnd = $temp$treeEnd;
+				tree = $temp$tree;
+				continue fetchNewTail;
+			} else {
+				var values = _v0.a;
+				return A3($elm$core$Elm$JsArray$slice, 0, $elm$core$Array$bitMask & end, values);
+			}
+		}
+	});
+var $elm$core$Array$hoistTree = F3(
+	function (oldShift, newShift, tree) {
+		hoistTree:
+		while (true) {
+			if ((_Utils_cmp(oldShift, newShift) < 1) || (!$elm$core$Elm$JsArray$length(tree))) {
+				return tree;
+			} else {
+				var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, 0, tree);
+				if (_v0.$ === 'SubTree') {
+					var sub = _v0.a;
+					var $temp$oldShift = oldShift - $elm$core$Array$shiftStep,
+						$temp$newShift = newShift,
+						$temp$tree = sub;
+					oldShift = $temp$oldShift;
+					newShift = $temp$newShift;
+					tree = $temp$tree;
+					continue hoistTree;
+				} else {
+					return tree;
+				}
+			}
+		}
+	});
+var $elm$core$Array$sliceTree = F3(
+	function (shift, endIdx, tree) {
+		var lastPos = $elm$core$Array$bitMask & (endIdx >>> shift);
+		var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, lastPos, tree);
+		if (_v0.$ === 'SubTree') {
+			var sub = _v0.a;
+			var newSub = A3($elm$core$Array$sliceTree, shift - $elm$core$Array$shiftStep, endIdx, sub);
+			return (!$elm$core$Elm$JsArray$length(newSub)) ? A3($elm$core$Elm$JsArray$slice, 0, lastPos, tree) : A3(
+				$elm$core$Elm$JsArray$unsafeSet,
+				lastPos,
+				$elm$core$Array$SubTree(newSub),
+				A3($elm$core$Elm$JsArray$slice, 0, lastPos + 1, tree));
+		} else {
+			return A3($elm$core$Elm$JsArray$slice, 0, lastPos, tree);
+		}
+	});
+var $elm$core$Array$sliceRight = F2(
+	function (end, array) {
+		var len = array.a;
+		var startShift = array.b;
+		var tree = array.c;
+		var tail = array.d;
+		if (_Utils_eq(end, len)) {
+			return array;
+		} else {
+			if (_Utils_cmp(
+				end,
+				$elm$core$Array$tailIndex(len)) > -1) {
+				return A4(
+					$elm$core$Array$Array_elm_builtin,
+					end,
+					startShift,
+					tree,
+					A3($elm$core$Elm$JsArray$slice, 0, $elm$core$Array$bitMask & end, tail));
+			} else {
+				var endIdx = $elm$core$Array$tailIndex(end);
+				var depth = $elm$core$Basics$floor(
+					A2(
+						$elm$core$Basics$logBase,
+						$elm$core$Array$branchFactor,
+						A2($elm$core$Basics$max, 1, endIdx - 1)));
+				var newShift = A2($elm$core$Basics$max, 5, depth * $elm$core$Array$shiftStep);
+				return A4(
+					$elm$core$Array$Array_elm_builtin,
+					end,
+					newShift,
+					A3(
+						$elm$core$Array$hoistTree,
+						startShift,
+						newShift,
+						A3($elm$core$Array$sliceTree, startShift, endIdx, tree)),
+					A4($elm$core$Array$fetchNewTail, startShift, end, endIdx, tree));
+			}
+		}
+	});
+var $elm$core$Array$translateIndex = F2(
+	function (index, _v0) {
+		var len = _v0.a;
+		var posIndex = (index < 0) ? (len + index) : index;
+		return (posIndex < 0) ? 0 : ((_Utils_cmp(posIndex, len) > 0) ? len : posIndex);
+	});
+var $elm$core$Array$slice = F3(
+	function (from, to, array) {
+		var correctTo = A2($elm$core$Array$translateIndex, to, array);
+		var correctFrom = A2($elm$core$Array$translateIndex, from, array);
+		return (_Utils_cmp(correctFrom, correctTo) > 0) ? $elm$core$Array$empty : A2(
+			$elm$core$Array$sliceLeft,
+			correctFrom,
+			A2($elm$core$Array$sliceRight, correctTo, array));
+	});
+var $author$project$Editor$insert = F3(
+	function (i, v, a) {
+		var before = A3($elm$core$Array$slice, 0, i + 1, a);
+		var after = A3(
+			$elm$core$Array$slice,
+			i + 1,
+			$elm$core$Array$length(a),
+			a);
+		return A2(
+			$elm$core$Array$append,
+			A2($elm$core$Array$push, v, before),
+			after);
+	});
+var $elm$core$Array$getHelp = F3(
+	function (shift, index, tree) {
+		getHelp:
+		while (true) {
+			var pos = $elm$core$Array$bitMask & (index >>> shift);
+			var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
+			if (_v0.$ === 'SubTree') {
+				var subTree = _v0.a;
+				var $temp$shift = shift - $elm$core$Array$shiftStep,
+					$temp$index = index,
+					$temp$tree = subTree;
+				shift = $temp$shift;
+				index = $temp$index;
+				tree = $temp$tree;
+				continue getHelp;
+			} else {
+				var values = _v0.a;
+				return A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, values);
+			}
+		}
+	});
+var $elm$core$Array$get = F2(
+	function (index, _v0) {
+		var len = _v0.a;
+		var startShift = _v0.b;
+		var tree = _v0.c;
+		var tail = _v0.d;
+		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? $elm$core$Maybe$Nothing : ((_Utils_cmp(
+			index,
+			$elm$core$Array$tailIndex(len)) > -1) ? $elm$core$Maybe$Just(
+			A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, tail)) : $elm$core$Maybe$Just(
+			A3($elm$core$Array$getHelp, startShift, index, tree)));
+	});
+var $author$project$Editor$remove = F2(
+	function (i, a) {
+		var before = A3($elm$core$Array$slice, 0, i, a);
+		var after = A3(
+			$elm$core$Array$slice,
+			i + 1,
+			$elm$core$Array$length(a),
+			a);
+		return A2($elm$core$Array$append, before, after);
+	});
+var $elm$core$Array$setHelp = F4(
+	function (shift, index, value, tree) {
+		var pos = $elm$core$Array$bitMask & (index >>> shift);
+		var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
+		if (_v0.$ === 'SubTree') {
+			var subTree = _v0.a;
+			var newSub = A4($elm$core$Array$setHelp, shift - $elm$core$Array$shiftStep, index, value, subTree);
+			return A3(
+				$elm$core$Elm$JsArray$unsafeSet,
+				pos,
+				$elm$core$Array$SubTree(newSub),
+				tree);
+		} else {
+			var values = _v0.a;
+			var newLeaf = A3($elm$core$Elm$JsArray$unsafeSet, $elm$core$Array$bitMask & index, value, values);
+			return A3(
+				$elm$core$Elm$JsArray$unsafeSet,
+				pos,
+				$elm$core$Array$Leaf(newLeaf),
+				tree);
+		}
+	});
+var $elm$core$Array$set = F3(
+	function (index, value, array) {
+		var len = array.a;
+		var startShift = array.b;
+		var tree = array.c;
+		var tail = array.d;
+		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? array : ((_Utils_cmp(
+			index,
+			$elm$core$Array$tailIndex(len)) > -1) ? A4(
+			$elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			tree,
+			A3($elm$core$Elm$JsArray$unsafeSet, $elm$core$Array$bitMask & index, value, tail)) : A4(
+			$elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			A4($elm$core$Array$setHelp, startShift, index, value, tree),
+			tail));
+	});
+var $author$project$Editor$mergeCell = F2(
+	function (i, g) {
+		var _v0 = A2($elm$core$Array$get, i, g);
+		if (_v0.$ === 'Nothing') {
+			return g;
+		} else {
+			var cellI = _v0.a;
+			var _v1 = A2($elm$core$Array$get, i - 1, g);
+			if (_v1.$ === 'Nothing') {
+				return g;
+			} else {
+				var cellIm1 = _v1.a;
+				return A3(
+					$elm$core$Array$set,
+					i - 1,
+					_Utils_update(
+						cellIm1,
+						{len: cellIm1.len + cellI.len}),
+					A2($author$project$Editor$remove, i, g));
+			}
+		}
+	});
+var $author$project$Editor$unwrap = function (ml) {
+	return function (_v0) {
+		var l = _v0.a;
+		return l;
+	}(ml);
+};
+var $author$project$Editor$popRedo = function (newmod) {
+	var _v0 = $author$project$Editor$unwrap(newmod.redoList);
+	if (!_v0.b) {
+		return newmod;
+	} else {
+		var h = _v0.a;
+		var t = _v0.b;
+		return h;
+	}
+};
+var $author$project$Editor$popUndo = function (newmod) {
+	var _v0 = $author$project$Editor$unwrap(newmod.undoList);
+	if (!_v0.b) {
+		return newmod;
+	} else {
+		var h = _v0.a;
+		var t = _v0.b;
+		return h;
+	}
+};
+var $author$project$Editor$pushRedo = F2(
+	function (oldmod, newmod) {
+		return _Utils_update(
+			newmod,
+			{
+				redoList: $author$project$Editor$ModelList(
+					A2(
+						$elm$core$List$cons,
+						oldmod,
+						$author$project$Editor$unwrap(newmod.redoList)))
+			});
+	});
+var $author$project$Editor$pushUndo = F2(
+	function (oldmod, newmod) {
+		return _Utils_update(
+			newmod,
+			{
+				undoList: $author$project$Editor$ModelList(
+					A2(
+						$elm$core$List$cons,
+						oldmod,
+						$author$project$Editor$unwrap(newmod.undoList)))
+			});
+	});
+var $author$project$Editor$setChord = F3(
+	function (g, i, c) {
+		var _v0 = A2($elm$core$Array$get, i, g);
+		if (_v0.$ === 'Nothing') {
+			return g;
+		} else {
+			var cell = _v0.a;
+			return A3(
+				$elm$core$Array$set,
+				i,
+				_Utils_update(
+					cell,
+					{chord: c}),
+				g);
+		}
+	});
+var $author$project$Editor$splitCell = F2(
+	function (i, g) {
+		var mprevcell = A2($elm$core$Array$get, i, g);
+		if (mprevcell.$ === 'Nothing') {
+			return g;
+		} else {
+			var prevcell = mprevcell.a;
+			var prevlen = prevcell.len;
+			var half = prevlen / 2;
+			var newg = A3(
+				$elm$core$Array$set,
+				i,
+				_Utils_update(
+					prevcell,
+					{
+						len: $elm$core$Basics$ceiling(half)
+					}),
+				g);
+			return A3(
+				$author$project$Editor$insert,
+				i,
+				{
+					chord: $elm$core$Maybe$Nothing,
+					len: $elm$core$Basics$floor(half)
+				},
+				newg);
+		}
+	});
+var $author$project$Editor$update = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'CaseClicked':
+				var i = msg.a;
+				var newmod = function () {
+					var _v1 = model.tool;
+					switch (_v1.$) {
+						case 'SetChord':
+							return _Utils_update(
+								model,
+								{
+									grid: A3(
+										$author$project$Editor$setChord,
+										model.grid,
+										i,
+										$elm$core$Maybe$Just(model.curChord))
+								});
+						case 'SplitCase':
+							return _Utils_update(
+								model,
+								{
+									grid: A2($author$project$Editor$splitCell, i, model.grid)
+								});
+						case 'MergeWithBefore':
+							return _Utils_update(
+								model,
+								{
+									grid: A2($author$project$Editor$mergeCell, i, model.grid)
+								});
+						case 'RemoveBar':
+							return _Utils_update(
+								model,
+								{
+									grid: A2($author$project$Editor$remove, i, model.grid)
+								});
+						case 'SetToNothing':
+							return _Utils_update(
+								model,
+								{
+									grid: A3($author$project$Editor$setChord, model.grid, i, $elm$core$Maybe$Nothing)
+								});
+						default:
+							return _Utils_update(
+								model,
+								{
+									grid: A3(
+										$author$project$Editor$insert,
+										i - 1,
+										{chord: $elm$core$Maybe$Nothing, len: 4},
+										model.grid)
+								});
+					}
+				}();
+				return _Utils_Tuple2(
+					A2($author$project$Editor$pushUndo, model, newmod),
+					$elm$core$Platform$Cmd$none);
+			case 'AppendBar':
+				return _Utils_Tuple2(
+					function () {
+						var newmod = _Utils_update(
+							model,
+							{
+								grid: A2(
+									$elm$core$Array$push,
+									{chord: $elm$core$Maybe$Nothing, len: 4},
+									model.grid)
+							});
+						return A2($author$project$Editor$pushUndo, model, newmod);
+					}(),
+					$elm$core$Platform$Cmd$none);
+			case 'SetTool':
+				var t = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{tool: t}),
+					$elm$core$Platform$Cmd$none);
+			case 'SetBase':
+				var n = msg.a;
+				var prevchord = model.curChord;
+				var prevnote = prevchord.note;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							curChord: _Utils_update(
+								prevchord,
+								{
+									note: _Utils_update(
+										prevnote,
+										{name: n})
+								})
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'SetAlteration':
+				var n = msg.a;
+				var prevchord = model.curChord;
+				var prevnote = prevchord.note;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							curChord: _Utils_update(
+								prevchord,
+								{
+									note: _Utils_update(
+										prevnote,
+										{alt: n})
+								})
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'SetChordType':
+				var t = msg.a;
+				var prevchord = model.curChord;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							curChord: _Utils_update(
+								prevchord,
+								{type_: t})
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'Undo':
+				return _Utils_Tuple2(
+					A2(
+						$author$project$Editor$pushRedo,
+						model,
+						$author$project$Editor$popUndo(model)),
+					$elm$core$Platform$Cmd$none);
+			case 'Redo':
+				return _Utils_Tuple2(
+					A2(
+						$author$project$Editor$pushUndo,
+						model,
+						$author$project$Editor$popRedo(model)),
+					$elm$core$Platform$Cmd$none);
+			case 'TitleChanged':
+				var t = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{title: t}),
+					$elm$core$Platform$Cmd$none);
+			case 'ComposerChanged':
+				var c = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{composer: c}),
+					$elm$core$Platform$Cmd$none);
+			case 'TempoChanged':
+				var f = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{defTempo: f}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+		}
+	});
+var $elm$core$Basics$not = _Basics_not;
+var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Tune$pause = _Platform_outgoingPort(
 	'pause',
 	function ($) {
-		return elm$json$Json$Encode$null;
+		return $elm$json$Json$Encode$null;
 	});
-var author$project$Tune$play = _Platform_outgoingPort(
+var $author$project$Tune$play = _Platform_outgoingPort(
 	'play',
 	function ($) {
-		return elm$json$Json$Encode$null;
+		return $elm$json$Json$Encode$null;
 	});
-var elm$json$Json$Encode$float = _Json_wrap;
-var author$project$Tune$setBpm = _Platform_outgoingPort('setBpm', elm$json$Json$Encode$float);
-var author$project$Tune$setCursor = _Platform_outgoingPort('setCursor', elm$json$Json$Encode$float);
-var elm$json$Json$Encode$bool = _Json_wrap;
-var elm$json$Json$Encode$int = _Json_wrap;
-var elm$json$Json$Encode$list = F2(
+var $elm$json$Json$Encode$float = _Json_wrap;
+var $author$project$Tune$setBpm = _Platform_outgoingPort('setBpm', $elm$json$Json$Encode$float);
+var $author$project$Tune$setCursor = _Platform_outgoingPort('setCursor', $elm$json$Json$Encode$float);
+var $elm$json$Json$Encode$bool = _Json_wrap;
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$json$Json$Encode$list = F2(
 	function (func, entries) {
 		return _Json_wrap(
 			A3(
-				elm$core$List$foldl,
+				$elm$core$List$foldl,
 				_Json_addEntry(func),
 				_Json_emptyArray(_Utils_Tuple0),
 				entries));
 	});
-var elm$json$Json$Encode$object = function (pairs) {
+var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
 		A3(
-			elm$core$List$foldl,
+			$elm$core$List$foldl,
 			F2(
-				function (_n0, obj) {
-					var k = _n0.a;
-					var v = _n0.b;
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
 					return A3(_Json_addField, k, v, obj);
 				}),
 			_Json_emptyObject(_Utils_Tuple0),
 			pairs));
 };
-var elm$json$Json$Encode$string = _Json_wrap;
-var author$project$Tune$setSequence = _Platform_outgoingPort(
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Tune$setSequence = _Platform_outgoingPort(
 	'setSequence',
-	elm$json$Json$Encode$list(
+	$elm$json$Json$Encode$list(
 		function ($) {
-			return elm$json$Json$Encode$object(
+			return $elm$json$Json$Encode$object(
 				_List_fromArray(
 					[
 						_Utils_Tuple2(
 						'gain',
-						elm$json$Json$Encode$float($.gain)),
+						$elm$json$Json$Encode$float($.gain)),
 						_Utils_Tuple2(
 						'instrument',
-						elm$json$Json$Encode$string($.instrument)),
+						$elm$json$Json$Encode$string($.instrument)),
 						_Utils_Tuple2(
 						'onset',
-						elm$json$Json$Encode$bool($.onset)),
+						$elm$json$Json$Encode$bool($.onset)),
 						_Utils_Tuple2(
 						'pitch',
-						elm$json$Json$Encode$int($.pitch)),
+						$elm$json$Json$Encode$int($.pitch)),
 						_Utils_Tuple2(
 						'time',
-						elm$json$Json$Encode$float($.time))
+						$elm$json$Json$Encode$float($.time))
 					]));
 		}));
-var elm$core$Basics$not = _Basics_not;
-var author$project$PlayerPage$update = F2(
+var $author$project$PlayerPage$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
 			case 'CaseClicked':
 				var f = msg.a;
 				return _Utils_Tuple2(
 					model,
-					author$project$Tune$setCursor(f));
+					$author$project$Tune$setCursor(f));
 			case 'TogglePlay':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{playing: !model.playing}),
-					model.playing ? author$project$Tune$pause(_Utils_Tuple0) : author$project$Tune$play(_Utils_Tuple0));
+					model.playing ? $author$project$Tune$pause(_Utils_Tuple0) : $author$project$Tune$play(_Utils_Tuple0));
 			case 'SetBpm':
 				var f = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{bpm: f}),
-					author$project$Tune$setBpm(f));
+					$author$project$Tune$setBpm(f));
 			case 'SetCursor':
 				var f = msg.a;
 				return _Utils_Tuple2(
 					model,
-					elm$core$Platform$Cmd$batch(
+					$elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
-								author$project$Tune$setCursor(f),
-								author$project$PlayerPage$genSequence(model)
+								$author$project$Tune$setCursor(f),
+								$author$project$PlayerPage$genSequence(model)
 							])));
 			case 'SeqFinished':
 				return _Utils_Tuple2(
 					model,
-					elm$core$Platform$Cmd$batch(
+					$elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
-								author$project$Tune$setCursor(0),
-								author$project$PlayerPage$genSequence(model)
+								$author$project$Tune$setCursor(0),
+								$author$project$PlayerPage$genSequence(model)
 							])));
 			case 'SequenceGenerated':
 				var b = msg.a;
 				return _Utils_Tuple2(
 					model,
-					author$project$Tune$setSequence(b));
+					$author$project$Tune$setSequence(b));
 			default:
-				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
-var author$project$Main$update = F2(
+var $author$project$DialogBox$DialogBox = F3(
+	function (title, body, actions) {
+		return {actions: actions, body: body, title: title};
+	});
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$DialogBox$yesNoDialog = F4(
+	function (title, subtext, yescmd, nocmd) {
+		return A3(
+			$author$project$DialogBox$DialogBox,
+			title,
+			$elm$html$Html$text(subtext),
+			_List_fromArray(
+				[
+					{cmd: yescmd, text: 'Yes'},
+					{cmd: nocmd, text: 'No'}
+				]));
+	});
+var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
 			case 'SetCursor':
@@ -7500,42 +7724,42 @@ var author$project$Main$update = F2(
 								submod,
 								{cursor: f})
 						}),
-					elm$core$Platform$Cmd$none);
+					$elm$core$Platform$Cmd$none);
 			case 'PpEvent':
 				var submsg = msg.a;
 				switch (submsg.$) {
 					case 'Edit':
-						var einit = author$project$Editor$init;
+						var einit = $author$project$Editor$init;
 						var newEditorModel = _Utils_update(
 							einit,
 							{
 								composer: model.playerModel.song.composer,
-								grid: author$project$Editor$chordprog2grid(model.playerModel),
+								grid: $author$project$Editor$chordprog2grid(model.playerModel),
 								title: model.playerModel.song.title
 							});
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
-								{curPage: author$project$Main$Editor, editorModel: newEditorModel}),
-							elm$core$Platform$Cmd$none);
+								{curPage: $author$project$Main$Editor, editorModel: newEditorModel}),
+							$elm$core$Platform$Cmd$none);
 					case 'ToLibrary':
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
-								{curPage: author$project$Main$Library}),
-							elm$core$Platform$Cmd$none);
+								{curPage: $author$project$Main$Library}),
+							$elm$core$Platform$Cmd$none);
 					default:
-						var _n2 = A2(author$project$PlayerPage$update, submsg, model.playerModel);
-						var newmod = _n2.a;
-						var newcmd = _n2.b;
+						var _v2 = A2($author$project$PlayerPage$update, submsg, model.playerModel);
+						var newmod = _v2.a;
+						var newcmd = _v2.b;
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
 								{playerModel: newmod}),
 							A2(
-								elm$core$Platform$Cmd$map,
+								$elm$core$Platform$Cmd$map,
 								function (sm) {
-									return author$project$Main$PpEvent(sm);
+									return $author$project$Main$PpEvent(sm);
 								},
 								newcmd));
 				}
@@ -7545,56 +7769,56 @@ var author$project$Main$update = F2(
 					case 'Quit':
 						return _Utils_Tuple2(
 							A2(
-								author$project$Main$asDialogBoxIn,
+								$author$project$Main$asDialogBoxIn,
 								model,
 								A4(
-									author$project$DialogBox$yesNoDialog,
+									$author$project$DialogBox$yesNoDialog,
 									'Sure ?',
 									'it will not be saved',
-									author$project$Main$EditorEvent(author$project$Editor$ConfirmQuit),
-									author$project$Main$ResetDialog)),
-							elm$core$Platform$Cmd$none);
+									$author$project$Main$EditorEvent($author$project$Editor$ConfirmQuit),
+									$author$project$Main$ResetDialog)),
+							$elm$core$Platform$Cmd$none);
 					case 'ConfirmQuit':
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
-								{curPage: author$project$Main$Player, dialogBox: elm$core$Maybe$Nothing}),
-							elm$core$Platform$Cmd$none);
+								{curPage: $author$project$Main$Player, dialogBox: $elm$core$Maybe$Nothing}),
+							$elm$core$Platform$Cmd$none);
 					case 'SaveAndQuit':
 						var newsong = A2(
-							author$project$PlayerPage$setComposer,
+							$author$project$PlayerPage$setComposer,
 							model.editorModel.composer,
 							A2(
-								author$project$PlayerPage$setTitle,
+								$author$project$PlayerPage$setTitle,
 								model.editorModel.title,
 								A2(
-									author$project$PlayerPage$asChordProgIn,
+									$author$project$PlayerPage$asChordProgIn,
 									model.playerModel.song,
-									author$project$Editor$grid2chordprog(model.editorModel.grid))));
+									$author$project$Editor$grid2chordprog(model.editorModel.grid))));
 						var newmod = A2(
-							author$project$Main$setLibrary,
-							A2(author$project$Library$addSong, model.libraryModel, newsong),
+							$author$project$Main$setLibrary,
+							A2($author$project$Library$addSong, model.libraryModel, newsong),
 							A2(
-								author$project$Main$asPlayerModIn,
+								$author$project$Main$asPlayerModIn,
 								model,
-								A2(author$project$PlayerPage$asSongIn, model.playerModel, newsong)));
+								A2($author$project$PlayerPage$asSongIn, model.playerModel, newsong)));
 						return _Utils_Tuple2(
 							_Utils_update(
 								newmod,
-								{curPage: author$project$Main$Player}),
-							author$project$Main$genSequence(newmod));
+								{curPage: $author$project$Main$Player}),
+							$author$project$Main$genSequence(newmod));
 					default:
-						var _n4 = A2(author$project$Editor$update, submsg, model.editorModel);
-						var newmod = _n4.a;
-						var newcmd = _n4.b;
+						var _v4 = A2($author$project$Editor$update, submsg, model.editorModel);
+						var newmod = _v4.a;
+						var newcmd = _v4.b;
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
 								{editorModel: newmod}),
 							A2(
-								elm$core$Platform$Cmd$map,
+								$elm$core$Platform$Cmd$map,
 								function (sm) {
-									return author$project$Main$EditorEvent(sm);
+									return $author$project$Main$EditorEvent(sm);
 								},
 								newcmd));
 				}
@@ -7604,26 +7828,26 @@ var author$project$Main$update = F2(
 					case 'SongClicked':
 						var s = submsg.a;
 						var newmod = A2(
-							author$project$Main$asPlayerModIn,
+							$author$project$Main$asPlayerModIn,
 							model,
-							A2(author$project$PlayerPage$asSongIn, model.playerModel, s));
+							A2($author$project$PlayerPage$asSongIn, model.playerModel, s));
 						return _Utils_Tuple2(
 							_Utils_update(
 								newmod,
-								{curPage: author$project$Main$Player}),
-							author$project$Main$genSequence(newmod));
+								{curPage: $author$project$Main$Player}),
+							$author$project$Main$genSequence(newmod));
 					case 'Close':
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
-								{curPage: author$project$Main$Player}),
-							author$project$Main$genSequence(model));
+								{curPage: $author$project$Main$Player}),
+							$author$project$Main$genSequence(model));
 					default:
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
-								{curPage: author$project$Main$Editor, editorModel: author$project$Editor$init}),
-							elm$core$Platform$Cmd$none);
+								{curPage: $author$project$Main$Editor, editorModel: $author$project$Editor$init}),
+							$elm$core$Platform$Cmd$none);
 				}
 			case 'ChangePage':
 				var newp = msg.a;
@@ -7631,92 +7855,95 @@ var author$project$Main$update = F2(
 					_Utils_update(
 						model,
 						{curPage: newp}),
-					elm$core$Platform$Cmd$none);
+					$elm$core$Platform$Cmd$none);
 			default:
 				return _Utils_Tuple2(
-					author$project$Main$resetDialog(model),
-					elm$core$Platform$Cmd$none);
+					$author$project$Main$resetDialog(model),
+					$elm$core$Platform$Cmd$none);
 		}
 	});
-var elm$html$Html$button = _VirtualDom_node('button');
-var elm$html$Html$div = _VirtualDom_node('div');
-var elm$html$Html$h1 = _VirtualDom_node('h1');
-var elm$html$Html$Attributes$stringProperty = F2(
+var $author$project$Main$LibEvent = function (a) {
+	return {$: 'LibEvent', a: a};
+};
+var $elm$html$Html$button = _VirtualDom_node('button');
+var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
 			_VirtualDom_property,
 			key,
-			elm$json$Json$Encode$string(string));
+			$elm$json$Json$Encode$string(string));
 	});
-var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
-var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
-var elm$virtual_dom$VirtualDom$Normal = function (a) {
+var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
-var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var elm$html$Html$Events$on = F2(
+var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var $elm$html$Html$Events$on = F2(
 	function (event, decoder) {
 		return A2(
-			elm$virtual_dom$VirtualDom$on,
+			$elm$virtual_dom$VirtualDom$on,
 			event,
-			elm$virtual_dom$VirtualDom$Normal(decoder));
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
 	});
-var elm$html$Html$Events$onClick = function (msg) {
+var $elm$html$Html$Events$onClick = function (msg) {
 	return A2(
-		elm$html$Html$Events$on,
+		$elm$html$Html$Events$on,
 		'click',
-		elm$json$Json$Decode$succeed(msg));
+		$elm$json$Json$Decode$succeed(msg));
 };
-var author$project$DialogBox$displayDialog = function (dialogBox) {
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $author$project$DialogBox$displayDialog = function (dialogBox) {
 	return A2(
-		elm$html$Html$div,
+		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				elm$html$Html$Attributes$class('w3-modal'),
-				A2(elm$html$Html$Attributes$style, 'display', 'block')
+				$elm$html$Html$Attributes$class('w3-modal'),
+				A2($elm$html$Html$Attributes$style, 'display', 'block')
 			]),
 		_List_fromArray(
 			[
 				A2(
-				elm$html$Html$div,
+				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						elm$html$Html$Attributes$class('w3-modal-content')
+						$elm$html$Html$Attributes$class('w3-modal-content')
 					]),
 				_List_fromArray(
 					[
 						A2(
-						elm$html$Html$div,
+						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								elm$html$Html$Attributes$class('w3-container')
+								$elm$html$Html$Attributes$class('w3-container')
 							]),
 						_List_fromArray(
 							[
 								A2(
-								elm$html$Html$h1,
+								$elm$html$Html$h1,
 								_List_Nil,
 								_List_fromArray(
 									[
-										elm$html$Html$text(dialogBox.title)
+										$elm$html$Html$text(dialogBox.title)
 									])),
 								dialogBox.body,
 								A2(
-								elm$html$Html$div,
+								$elm$html$Html$div,
 								_List_Nil,
 								A2(
-									elm$core$List$map,
+									$elm$core$List$map,
 									function (x) {
 										return A2(
-											elm$html$Html$button,
+											$elm$html$Html$button,
 											_List_fromArray(
 												[
-													elm$html$Html$Events$onClick(x.cmd)
+													$elm$html$Html$Events$onClick(x.cmd)
 												]),
 											_List_fromArray(
 												[
-													elm$html$Html$text(x.text)
+													$elm$html$Html$text(x.text)
 												]));
 									},
 									dialogBox.actions))
@@ -7724,241 +7951,243 @@ var author$project$DialogBox$displayDialog = function (dialogBox) {
 					]))
 			]));
 };
-var author$project$Editor$AppendBar = {$: 'AppendBar'};
-var author$project$Editor$ComposerChanged = function (a) {
+var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
+var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
+var $author$project$Editor$AppendBar = {$: 'AppendBar'};
+var $author$project$Editor$ComposerChanged = function (a) {
 	return {$: 'ComposerChanged', a: a};
 };
-var author$project$Editor$Quit = {$: 'Quit'};
-var author$project$Editor$Redo = {$: 'Redo'};
-var author$project$Editor$SaveAndQuit = {$: 'SaveAndQuit'};
-var author$project$Editor$TempoChanged = function (a) {
+var $author$project$Editor$Quit = {$: 'Quit'};
+var $author$project$Editor$Redo = {$: 'Redo'};
+var $author$project$Editor$SaveAndQuit = {$: 'SaveAndQuit'};
+var $author$project$Editor$TempoChanged = function (a) {
 	return {$: 'TempoChanged', a: a};
 };
-var author$project$Editor$TitleChanged = function (a) {
+var $author$project$Editor$TitleChanged = function (a) {
 	return {$: 'TitleChanged', a: a};
 };
-var author$project$Editor$Undo = {$: 'Undo'};
-var author$project$Editor$SetAlteration = function (a) {
+var $author$project$Editor$Undo = {$: 'Undo'};
+var $author$project$Generator$Dim = {$: 'Dim'};
+var $author$project$Generator$Dom7b9 = {$: 'Dom7b9'};
+var $author$project$Generator$Dom7s5 = {$: 'Dom7s5'};
+var $author$project$Generator$Maj7s5 = {$: 'Maj7s5'};
+var $author$project$Generator$MinMaj = {$: 'MinMaj'};
+var $author$project$Editor$SetAlteration = function (a) {
 	return {$: 'SetAlteration', a: a};
 };
-var author$project$Editor$SetBase = function (a) {
+var $author$project$Editor$SetBase = function (a) {
 	return {$: 'SetBase', a: a};
 };
-var author$project$Editor$SetChordType = function (a) {
+var $author$project$Editor$SetChordType = function (a) {
 	return {$: 'SetChordType', a: a};
 };
-var author$project$Generator$Dim = {$: 'Dim'};
-var author$project$Generator$Dom7b9 = {$: 'Dom7b9'};
-var author$project$Generator$Dom7s5 = {$: 'Dom7s5'};
-var author$project$Generator$Maj7s5 = {$: 'Maj7s5'};
-var author$project$Generator$MinMaj = {$: 'MinMaj'};
-var elm$core$Basics$neq = _Utils_notEqual;
-var elm$html$Html$span = _VirtualDom_node('span');
-var author$project$Editor$chordSelectBar = function (c) {
+var $elm$core$Basics$neq = _Utils_notEqual;
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $author$project$Editor$chordSelectBar = function (c) {
 	var buttonAttr = F3(
 		function (_var, t, cmd) {
 			return _List_fromArray(
 				[
 					A2(
-					elm$html$Html$Attributes$style,
+					$elm$html$Html$Attributes$style,
 					'background-color',
 					(!_Utils_eq(_var, t)) ? '#e7e7e7' : '#f44336'),
-					elm$html$Html$Events$onClick(
+					$elm$html$Html$Events$onClick(
 					cmd(t))
 				]);
 		});
 	return A2(
-		elm$html$Html$div,
+		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				A2(elm$html$Html$Attributes$style, 'color', 'white')
+				A2($elm$html$Html$Attributes$style, 'color', 'white')
 			]),
 		_List_fromArray(
 			[
 				A2(
-				elm$html$Html$span,
+				$elm$html$Html$span,
 				_List_Nil,
 				_List_fromArray(
 					[
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.note.name, author$project$Generator$C, author$project$Editor$SetBase),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.note.name, $author$project$Generator$C, $author$project$Editor$SetBase),
 						_List_fromArray(
 							[
-								elm$html$Html$text('C')
+								$elm$html$Html$text('C')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.note.name, author$project$Generator$D, author$project$Editor$SetBase),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.note.name, $author$project$Generator$D, $author$project$Editor$SetBase),
 						_List_fromArray(
 							[
-								elm$html$Html$text('D')
+								$elm$html$Html$text('D')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.note.name, author$project$Generator$E, author$project$Editor$SetBase),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.note.name, $author$project$Generator$E, $author$project$Editor$SetBase),
 						_List_fromArray(
 							[
-								elm$html$Html$text('E')
+								$elm$html$Html$text('E')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.note.name, author$project$Generator$F, author$project$Editor$SetBase),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.note.name, $author$project$Generator$F, $author$project$Editor$SetBase),
 						_List_fromArray(
 							[
-								elm$html$Html$text('F')
+								$elm$html$Html$text('F')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.note.name, author$project$Generator$G, author$project$Editor$SetBase),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.note.name, $author$project$Generator$G, $author$project$Editor$SetBase),
 						_List_fromArray(
 							[
-								elm$html$Html$text('G')
+								$elm$html$Html$text('G')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.note.name, author$project$Generator$A, author$project$Editor$SetBase),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.note.name, $author$project$Generator$A, $author$project$Editor$SetBase),
 						_List_fromArray(
 							[
-								elm$html$Html$text('A')
+								$elm$html$Html$text('A')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.note.name, author$project$Generator$B, author$project$Editor$SetBase),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.note.name, $author$project$Generator$B, $author$project$Editor$SetBase),
 						_List_fromArray(
 							[
-								elm$html$Html$text('B')
+								$elm$html$Html$text('B')
 							]))
 					])),
 				A2(
-				elm$html$Html$span,
+				$elm$html$Html$span,
 				_List_fromArray(
 					[
-						A2(elm$html$Html$Attributes$style, 'padding', '20px')
+						A2($elm$html$Html$Attributes$style, 'padding', '20px')
 					]),
 				_List_fromArray(
 					[
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.note.alt, author$project$Generator$Natural, author$project$Editor$SetAlteration),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.note.alt, $author$project$Generator$Natural, $author$project$Editor$SetAlteration),
 						_List_fromArray(
 							[
-								elm$html$Html$text('natural')
+								$elm$html$Html$text('natural')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.note.alt, author$project$Generator$Sharp, author$project$Editor$SetAlteration),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.note.alt, $author$project$Generator$Sharp, $author$project$Editor$SetAlteration),
 						_List_fromArray(
 							[
-								elm$html$Html$text('#')
+								$elm$html$Html$text('#')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.note.alt, author$project$Generator$Flat, author$project$Editor$SetAlteration),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.note.alt, $author$project$Generator$Flat, $author$project$Editor$SetAlteration),
 						_List_fromArray(
 							[
-								elm$html$Html$text('b')
+								$elm$html$Html$text('b')
 							]))
 					])),
 				A2(
-				elm$html$Html$span,
+				$elm$html$Html$span,
 				_List_Nil,
 				_List_fromArray(
 					[
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.type_, author$project$Generator$Dom7, author$project$Editor$SetChordType),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.type_, $author$project$Generator$Dom7, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								elm$html$Html$text('7')
+								$elm$html$Html$text('7')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.type_, author$project$Generator$Min7, author$project$Editor$SetChordType),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.type_, $author$project$Generator$Min7, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								elm$html$Html$text('-7')
+								$elm$html$Html$text('-7')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.type_, author$project$Generator$Maj7, author$project$Editor$SetChordType),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.type_, $author$project$Generator$Maj7, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								elm$html$Html$text('∆')
+								$elm$html$Html$text('∆')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.type_, author$project$Generator$Alt7, author$project$Editor$SetChordType),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.type_, $author$project$Generator$Alt7, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								elm$html$Html$text('7alt')
+								$elm$html$Html$text('7alt')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.type_, author$project$Generator$Dom7b9, author$project$Editor$SetChordType),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.type_, $author$project$Generator$Dom7b9, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								elm$html$Html$text('7b9')
+								$elm$html$Html$text('7b9')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.type_, author$project$Generator$Dom7s5, author$project$Editor$SetChordType),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.type_, $author$project$Generator$Dom7s5, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								elm$html$Html$text('7#5')
+								$elm$html$Html$text('7#5')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.type_, author$project$Generator$Min7b5, author$project$Editor$SetChordType),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.type_, $author$project$Generator$Min7b5, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								elm$html$Html$text('-7b5')
+								$elm$html$Html$text('-7b5')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.type_, author$project$Generator$Dim, author$project$Editor$SetChordType),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.type_, $author$project$Generator$Dim, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								elm$html$Html$text('o')
+								$elm$html$Html$text('o')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.type_, author$project$Generator$MinMaj, author$project$Editor$SetChordType),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.type_, $author$project$Generator$MinMaj, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								elm$html$Html$text('-∆')
+								$elm$html$Html$text('-∆')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.type_, author$project$Generator$Maj7s5, author$project$Editor$SetChordType),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.type_, $author$project$Generator$Maj7s5, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								elm$html$Html$text('∆#5')
+								$elm$html$Html$text('∆#5')
 							])),
 						A2(
-						elm$html$Html$button,
-						A3(buttonAttr, c.type_, author$project$Generator$NA, author$project$Editor$SetChordType),
+						$elm$html$Html$button,
+						A3(buttonAttr, c.type_, $author$project$Generator$NA, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								elm$html$Html$text('NA')
+								$elm$html$Html$text('NA')
 							]))
 					]))
 			]));
 };
-var author$project$Editor$CaseClicked = function (a) {
+var $author$project$Editor$CaseClicked = function (a) {
 	return {$: 'CaseClicked', a: a};
 };
-var author$project$PlayerPage$chord2text = function (mc) {
+var $author$project$PlayerPage$chord2text = function (mc) {
 	if (mc.$ === 'Nothing') {
 		return '%';
 	} else {
 		var c = mc.a;
-		if (_Utils_eq(c.type_, author$project$Generator$NA)) {
+		if (_Utils_eq(c.type_, $author$project$Generator$NA)) {
 			return 'NA';
 		} else {
 			var typ = function () {
-				var _n3 = c.type_;
-				switch (_n3.$) {
+				var _v3 = c.type_;
+				switch (_v3.$) {
 					case 'Dom7':
 						return '7';
 					case 'Min7':
@@ -7984,8 +8213,8 @@ var author$project$PlayerPage$chord2text = function (mc) {
 				}
 			}();
 			var name = function () {
-				var _n2 = c.note.name;
-				switch (_n2.$) {
+				var _v2 = c.note.name;
+				switch (_v2.$) {
 					case 'C':
 						return 'C';
 					case 'D':
@@ -8003,8 +8232,8 @@ var author$project$PlayerPage$chord2text = function (mc) {
 				}
 			}();
 			var alt = function () {
-				var _n1 = c.note.alt;
-				switch (_n1.$) {
+				var _v1 = c.note.alt;
+				switch (_v1.$) {
 					case 'Natural':
 						return '';
 					case 'Flat':
@@ -8019,408 +8248,407 @@ var author$project$PlayerPage$chord2text = function (mc) {
 		}
 	}
 };
-var elm$core$Array$toIndexedList = function (array) {
+var $elm$core$Array$toIndexedList = function (array) {
 	var len = array.a;
 	var helper = F2(
-		function (entry, _n0) {
-			var index = _n0.a;
-			var list = _n0.b;
+		function (entry, _v0) {
+			var index = _v0.a;
+			var list = _v0.b;
 			return _Utils_Tuple2(
 				index - 1,
 				A2(
-					elm$core$List$cons,
+					$elm$core$List$cons,
 					_Utils_Tuple2(index, entry),
 					list));
 		});
 	return A3(
-		elm$core$Array$foldr,
+		$elm$core$Array$foldr,
 		helper,
 		_Utils_Tuple2(len - 1, _List_Nil),
 		array).b;
 };
-var author$project$Editor$displayGrid = function (g) {
+var $author$project$Editor$displayGrid = function (g) {
 	return A2(
-		elm$html$Html$div,
+		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				elm$html$Html$Attributes$class('realbook')
+				$elm$html$Html$Attributes$class('realbook')
 			]),
 		A2(
-			elm$core$List$map,
-			function (_n0) {
-				var i = _n0.a;
-				var c = _n0.b;
+			$elm$core$List$map,
+			function (_v0) {
+				var i = _v0.a;
+				var c = _v0.b;
 				return A2(
-					elm$html$Html$div,
+					$elm$html$Html$div,
 					_List_fromArray(
 						[
 							A2(
-							elm$html$Html$Attributes$style,
+							$elm$html$Html$Attributes$style,
 							'width',
-							elm$core$String$fromInt(
-								elm$core$Basics$floor(c.len * 50)) + 'px'),
-							A2(elm$html$Html$Attributes$style, 'height', '100px'),
-							A2(elm$html$Html$Attributes$style, 'display', 'inline-block'),
-							elm$html$Html$Events$onClick(
-							author$project$Editor$CaseClicked(i))
+							$elm$core$String$fromInt(
+								$elm$core$Basics$floor(c.len * 50)) + 'px'),
+							A2($elm$html$Html$Attributes$style, 'height', '100px'),
+							A2($elm$html$Html$Attributes$style, 'display', 'inline-block'),
+							$elm$html$Html$Events$onClick(
+							$author$project$Editor$CaseClicked(i))
 						]),
 					_List_fromArray(
 						[
-							elm$html$Html$text(
-							author$project$PlayerPage$chord2text(c.chord))
+							$elm$html$Html$text(
+							$author$project$PlayerPage$chord2text(c.chord))
 						]));
 			},
-			elm$core$Array$toIndexedList(g)));
+			$elm$core$Array$toIndexedList(g)));
 };
-var author$project$Editor$InsertBar = {$: 'InsertBar'};
-var author$project$Editor$MergeWithBefore = {$: 'MergeWithBefore'};
-var author$project$Editor$RemoveBar = {$: 'RemoveBar'};
-var author$project$Editor$SetToNothing = {$: 'SetToNothing'};
-var author$project$Editor$SetTool = function (a) {
+var $elm$core$String$fromFloat = _String_fromNumber;
+var $elm$html$Html$input = _VirtualDom_node('input');
+var $elm$html$Html$Attributes$max = $elm$html$Html$Attributes$stringProperty('max');
+var $elm$html$Html$Attributes$min = $elm$html$Html$Attributes$stringProperty('min');
+var $elm$html$Html$Events$alwaysStop = function (x) {
+	return _Utils_Tuple2(x, true);
+};
+var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var $elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var $elm$json$Json$Decode$field = _Json_decodeField;
+var $elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
+	});
+var $elm$json$Json$Decode$string = _Json_decodeString;
+var $elm$html$Html$Events$targetValue = A2(
+	$elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	$elm$json$Json$Decode$string);
+var $elm$html$Html$Events$onInput = function (tagger) {
+	return A2(
+		$elm$html$Html$Events$stopPropagationOn,
+		'input',
+		A2(
+			$elm$json$Json$Decode$map,
+			$elm$html$Html$Events$alwaysStop,
+			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
+};
+var $elm$html$Html$Attributes$step = function (n) {
+	return A2($elm$html$Html$Attributes$stringProperty, 'step', n);
+};
+var $elm$core$String$toFloat = _String_toFloat;
+var $author$project$Editor$InsertBar = {$: 'InsertBar'};
+var $author$project$Editor$MergeWithBefore = {$: 'MergeWithBefore'};
+var $author$project$Editor$RemoveBar = {$: 'RemoveBar'};
+var $author$project$Editor$SetToNothing = {$: 'SetToNothing'};
+var $author$project$Editor$SetTool = function (a) {
 	return {$: 'SetTool', a: a};
 };
-var author$project$Editor$SplitCase = {$: 'SplitCase'};
-var author$project$Editor$toolSelectBar = function (tool) {
+var $author$project$Editor$SplitCase = {$: 'SplitCase'};
+var $author$project$Editor$toolSelectBar = function (tool) {
 	var buttonAttr = function (t) {
 		return _List_fromArray(
 			[
 				A2(
-				elm$html$Html$Attributes$style,
+				$elm$html$Html$Attributes$style,
 				'background-color',
 				(!_Utils_eq(tool, t)) ? '#e7e7e7' : '#f44336'),
-				elm$html$Html$Events$onClick(
-				author$project$Editor$SetTool(t))
+				$elm$html$Html$Events$onClick(
+				$author$project$Editor$SetTool(t))
 			]);
 	};
 	return A2(
-		elm$html$Html$div,
+		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				A2(elm$html$Html$Attributes$style, 'color', 'white')
+				A2($elm$html$Html$Attributes$style, 'color', 'white')
 			]),
 		_List_fromArray(
 			[
 				A2(
-				elm$html$Html$button,
-				buttonAttr(author$project$Editor$SetChord),
+				$elm$html$Html$button,
+				buttonAttr($author$project$Editor$SetChord),
 				_List_fromArray(
 					[
-						elm$html$Html$text('pen')
+						$elm$html$Html$text('pen')
 					])),
 				A2(
-				elm$html$Html$button,
-				buttonAttr(author$project$Editor$SplitCase),
+				$elm$html$Html$button,
+				buttonAttr($author$project$Editor$SplitCase),
 				_List_fromArray(
 					[
-						elm$html$Html$text('split')
+						$elm$html$Html$text('split')
 					])),
 				A2(
-				elm$html$Html$button,
-				buttonAttr(author$project$Editor$MergeWithBefore),
+				$elm$html$Html$button,
+				buttonAttr($author$project$Editor$MergeWithBefore),
 				_List_fromArray(
 					[
-						elm$html$Html$text('merge')
+						$elm$html$Html$text('merge')
 					])),
 				A2(
-				elm$html$Html$button,
-				buttonAttr(author$project$Editor$InsertBar),
+				$elm$html$Html$button,
+				buttonAttr($author$project$Editor$InsertBar),
 				_List_fromArray(
 					[
-						elm$html$Html$text('insert bar')
+						$elm$html$Html$text('insert bar')
 					])),
 				A2(
-				elm$html$Html$button,
-				buttonAttr(author$project$Editor$RemoveBar),
+				$elm$html$Html$button,
+				buttonAttr($author$project$Editor$RemoveBar),
 				_List_fromArray(
 					[
-						elm$html$Html$text('remove bar')
+						$elm$html$Html$text('remove bar')
 					])),
 				A2(
-				elm$html$Html$button,
-				buttonAttr(author$project$Editor$SetToNothing),
+				$elm$html$Html$button,
+				buttonAttr($author$project$Editor$SetToNothing),
 				_List_fromArray(
 					[
-						elm$html$Html$text('remove chord')
+						$elm$html$Html$text('remove chord')
 					]))
 			]));
 };
-var elm$core$String$fromFloat = _String_fromNumber;
-var elm$core$String$toFloat = _String_toFloat;
-var elm$html$Html$input = _VirtualDom_node('input');
-var elm$html$Html$Attributes$max = elm$html$Html$Attributes$stringProperty('max');
-var elm$html$Html$Attributes$min = elm$html$Html$Attributes$stringProperty('min');
-var elm$html$Html$Attributes$step = function (n) {
-	return A2(elm$html$Html$Attributes$stringProperty, 'step', n);
-};
-var elm$html$Html$Attributes$type_ = elm$html$Html$Attributes$stringProperty('type');
-var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
-var elm$html$Html$Events$alwaysStop = function (x) {
-	return _Utils_Tuple2(x, true);
-};
-var elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
-	return {$: 'MayStopPropagation', a: a};
-};
-var elm$html$Html$Events$stopPropagationOn = F2(
-	function (event, decoder) {
-		return A2(
-			elm$virtual_dom$VirtualDom$on,
-			event,
-			elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
-	});
-var elm$json$Json$Decode$field = _Json_decodeField;
-var elm$json$Json$Decode$at = F2(
-	function (fields, decoder) {
-		return A3(elm$core$List$foldr, elm$json$Json$Decode$field, decoder, fields);
-	});
-var elm$json$Json$Decode$string = _Json_decodeString;
-var elm$html$Html$Events$targetValue = A2(
-	elm$json$Json$Decode$at,
-	_List_fromArray(
-		['target', 'value']),
-	elm$json$Json$Decode$string);
-var elm$html$Html$Events$onInput = function (tagger) {
+var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
+var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
+var $author$project$Editor$view = function (model) {
 	return A2(
-		elm$html$Html$Events$stopPropagationOn,
-		'input',
-		A2(
-			elm$json$Json$Decode$map,
-			elm$html$Html$Events$alwaysStop,
-			A2(elm$json$Json$Decode$map, tagger, elm$html$Html$Events$targetValue)));
-};
-var author$project$Editor$view = function (model) {
-	return A2(
-		elm$html$Html$div,
+		$elm$html$Html$div,
 		_List_Nil,
 		_List_fromArray(
 			[
 				A2(
-				elm$html$Html$button,
+				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						elm$html$Html$Events$onClick(author$project$Editor$Quit)
+						$elm$html$Html$Events$onClick($author$project$Editor$Quit)
 					]),
 				_List_fromArray(
 					[
-						elm$html$Html$text('quit editor')
+						$elm$html$Html$text('quit editor')
 					])),
 				A2(
-				elm$html$Html$button,
+				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						elm$html$Html$Events$onClick(author$project$Editor$SaveAndQuit)
+						$elm$html$Html$Events$onClick($author$project$Editor$SaveAndQuit)
 					]),
 				_List_fromArray(
 					[
-						elm$html$Html$text('save and quit')
+						$elm$html$Html$text('save and quit')
 					])),
 				A2(
-				elm$html$Html$button,
+				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						elm$html$Html$Events$onClick(author$project$Editor$AppendBar)
+						$elm$html$Html$Events$onClick($author$project$Editor$AppendBar)
 					]),
 				_List_fromArray(
 					[
-						elm$html$Html$text('+1 bar')
+						$elm$html$Html$text('+1 bar')
 					])),
-				author$project$Editor$chordSelectBar(model.curChord),
-				author$project$Editor$toolSelectBar(model.tool),
+				$author$project$Editor$chordSelectBar(model.curChord),
+				$author$project$Editor$toolSelectBar(model.tool),
 				A2(
-				elm$html$Html$button,
+				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						elm$html$Html$Events$onClick(author$project$Editor$AppendBar)
+						$elm$html$Html$Events$onClick($author$project$Editor$AppendBar)
 					]),
 				_List_fromArray(
 					[
-						elm$html$Html$text('+1 bar')
+						$elm$html$Html$text('+1 bar')
 					])),
 				A2(
-				elm$html$Html$button,
+				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						elm$html$Html$Events$onClick(author$project$Editor$Undo)
+						$elm$html$Html$Events$onClick($author$project$Editor$Undo)
 					]),
 				_List_fromArray(
 					[
-						elm$html$Html$text('Undo')
+						$elm$html$Html$text('Undo')
 					])),
 				A2(
-				elm$html$Html$button,
+				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						elm$html$Html$Events$onClick(author$project$Editor$Redo)
+						$elm$html$Html$Events$onClick($author$project$Editor$Redo)
 					]),
 				_List_fromArray(
 					[
-						elm$html$Html$text('Redo')
+						$elm$html$Html$text('Redo')
 					])),
 				A2(
-				elm$html$Html$div,
+				$elm$html$Html$div,
 				_List_Nil,
 				_List_fromArray(
 					[
-						elm$html$Html$text('Title: '),
+						$elm$html$Html$text('Title: '),
 						A2(
-						elm$html$Html$input,
+						$elm$html$Html$input,
 						_List_fromArray(
 							[
-								elm$html$Html$Attributes$type_('text'),
-								elm$html$Html$Attributes$value(model.title),
-								elm$html$Html$Events$onInput(author$project$Editor$TitleChanged)
+								$elm$html$Html$Attributes$type_('text'),
+								$elm$html$Html$Attributes$value(model.title),
+								$elm$html$Html$Events$onInput($author$project$Editor$TitleChanged)
 							]),
 						_List_Nil)
 					])),
 				A2(
-				elm$html$Html$div,
+				$elm$html$Html$div,
 				_List_Nil,
 				_List_fromArray(
 					[
-						elm$html$Html$text('Composer: '),
+						$elm$html$Html$text('Composer: '),
 						A2(
-						elm$html$Html$input,
+						$elm$html$Html$input,
 						_List_fromArray(
 							[
-								elm$html$Html$Attributes$type_('text'),
-								elm$html$Html$Attributes$value(model.composer),
-								elm$html$Html$Events$onInput(author$project$Editor$ComposerChanged)
+								$elm$html$Html$Attributes$type_('text'),
+								$elm$html$Html$Attributes$value(model.composer),
+								$elm$html$Html$Events$onInput($author$project$Editor$ComposerChanged)
 							]),
 						_List_Nil)
 					])),
 				A2(
-				elm$html$Html$div,
+				$elm$html$Html$div,
 				_List_Nil,
 				_List_fromArray(
 					[
-						elm$html$Html$text('Default tempo: '),
+						$elm$html$Html$text('Default tempo: '),
 						A2(
-						elm$html$Html$input,
+						$elm$html$Html$input,
 						_List_fromArray(
 							[
-								elm$html$Html$Attributes$type_('range'),
-								elm$html$Html$Events$onInput(
+								$elm$html$Html$Attributes$type_('range'),
+								$elm$html$Html$Events$onInput(
 								function (s) {
-									var _n0 = elm$core$String$toFloat(s);
-									if (_n0.$ === 'Just') {
-										var f = _n0.a;
-										return author$project$Editor$TempoChanged(f);
+									var _v0 = $elm$core$String$toFloat(s);
+									if (_v0.$ === 'Just') {
+										var f = _v0.a;
+										return $author$project$Editor$TempoChanged(f);
 									} else {
-										return author$project$Editor$TempoChanged(model.defTempo);
+										return $author$project$Editor$TempoChanged(model.defTempo);
 									}
 								}),
-								elm$html$Html$Attributes$min('30'),
-								elm$html$Html$Attributes$max('300'),
-								elm$html$Html$Attributes$value(
-								elm$core$String$fromFloat(model.defTempo)),
-								elm$html$Html$Attributes$step('1')
+								$elm$html$Html$Attributes$min('30'),
+								$elm$html$Html$Attributes$max('300'),
+								$elm$html$Html$Attributes$value(
+								$elm$core$String$fromFloat(model.defTempo)),
+								$elm$html$Html$Attributes$step('1')
 							]),
 						_List_Nil),
-						elm$html$Html$text(
-						elm$core$String$fromFloat(model.defTempo) + ' BPM')
+						$elm$html$Html$text(
+						$elm$core$String$fromFloat(model.defTempo) + ' BPM')
 					])),
-				author$project$Editor$displayGrid(model.grid)
+				$author$project$Editor$displayGrid(model.grid)
 			]));
 };
-var author$project$Library$Close = {$: 'Close'};
-var author$project$Library$NewSong = {$: 'NewSong'};
-var author$project$Library$SongClicked = function (a) {
+var $author$project$Library$Close = {$: 'Close'};
+var $author$project$Library$NewSong = {$: 'NewSong'};
+var $author$project$Library$SongClicked = function (a) {
 	return {$: 'SongClicked', a: a};
 };
-var elm$core$Dict$values = function (dict) {
+var $elm$html$Html$a = _VirtualDom_node('a');
+var $elm$core$Dict$values = function (dict) {
 	return A3(
-		elm$core$Dict$foldr,
+		$elm$core$Dict$foldr,
 		F3(
 			function (key, value, valueList) {
-				return A2(elm$core$List$cons, value, valueList);
+				return A2($elm$core$List$cons, value, valueList);
 			}),
 		_List_Nil,
 		dict);
 };
-var elm$html$Html$a = _VirtualDom_node('a');
-var author$project$Library$view = function (m) {
+var $author$project$Library$view = function (m) {
 	return A2(
-		elm$html$Html$div,
+		$elm$html$Html$div,
 		_List_Nil,
 		A2(
-			elm$core$List$cons,
+			$elm$core$List$cons,
 			A2(
-				elm$html$Html$button,
+				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						elm$html$Html$Events$onClick(author$project$Library$Close)
+						$elm$html$Html$Events$onClick($author$project$Library$Close)
 					]),
 				_List_fromArray(
 					[
-						elm$html$Html$text('Close')
+						$elm$html$Html$text('Close')
 					])),
 			_Utils_ap(
 				A2(
-					elm$core$List$map,
+					$elm$core$List$map,
 					function (s) {
 						return A2(
-							elm$html$Html$div,
+							$elm$html$Html$div,
 							_List_fromArray(
 								[
-									elm$html$Html$Events$onClick(
-									author$project$Library$SongClicked(s))
+									$elm$html$Html$Events$onClick(
+									$author$project$Library$SongClicked(s))
 								]),
 							_List_fromArray(
 								[
-									elm$html$Html$text(s.title + (' - ' + s.composer))
+									$elm$html$Html$text(s.title + (' - ' + s.composer))
 								]));
 					},
-					elm$core$Dict$values(m)),
+					$elm$core$Dict$values(m)),
 				_List_fromArray(
 					[
 						A2(
-						elm$html$Html$div,
+						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								elm$html$Html$Events$onClick(author$project$Library$NewSong)
+								$elm$html$Html$Events$onClick($author$project$Library$NewSong)
 							]),
 						_List_fromArray(
 							[
 								A2(
-								elm$html$Html$a,
+								$elm$html$Html$a,
 								_List_Nil,
 								_List_fromArray(
 									[
-										elm$html$Html$text('New Song')
+										$elm$html$Html$text('New Song')
 									]))
 							]))
 					]))));
 };
-var author$project$Main$LibEvent = function (a) {
-	return {$: 'LibEvent', a: a};
-};
-var author$project$PlayerPage$Edit = {$: 'Edit'};
-var author$project$PlayerPage$SetBpm = function (a) {
+var $author$project$PlayerPage$Edit = {$: 'Edit'};
+var $author$project$PlayerPage$SetBpm = function (a) {
 	return {$: 'SetBpm', a: a};
 };
-var author$project$PlayerPage$SetCursor = function (a) {
+var $author$project$PlayerPage$SetCursor = function (a) {
 	return {$: 'SetCursor', a: a};
 };
-var author$project$PlayerPage$ToLibrary = {$: 'ToLibrary'};
-var author$project$PlayerPage$TogglePlay = {$: 'TogglePlay'};
-var elm$core$List$partition = F2(
+var $author$project$PlayerPage$ToLibrary = {$: 'ToLibrary'};
+var $author$project$PlayerPage$TogglePlay = {$: 'TogglePlay'};
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $elm$html$Html$p = _VirtualDom_node('p');
+var $elm$core$List$partition = F2(
 	function (pred, list) {
 		var step = F2(
-			function (x, _n0) {
-				var trues = _n0.a;
-				var falses = _n0.b;
+			function (x, _v0) {
+				var trues = _v0.a;
+				var falses = _v0.b;
 				return pred(x) ? _Utils_Tuple2(
-					A2(elm$core$List$cons, x, trues),
+					A2($elm$core$List$cons, x, trues),
 					falses) : _Utils_Tuple2(
 					trues,
-					A2(elm$core$List$cons, x, falses));
+					A2($elm$core$List$cons, x, falses));
 			});
 		return A3(
-			elm$core$List$foldr,
+			$elm$core$List$foldr,
 			step,
 			_Utils_Tuple2(_List_Nil, _List_Nil),
 			list);
 	});
-var author$project$PlayerPage$splitGrid = F2(
+var $author$project$PlayerPage$splitGrid = F2(
 	function (beatsPerLine, grid) {
 		var recurPart = F3(
 			function (done, remainder, i) {
@@ -8429,15 +8657,15 @@ var author$project$PlayerPage$splitGrid = F2(
 					if (_Utils_eq(remainder, _List_Nil)) {
 						return done;
 					} else {
-						var _n0 = A2(
-							elm$core$List$partition,
+						var _v0 = A2(
+							$elm$core$List$partition,
 							function (x) {
 								return _Utils_cmp(x.chord.b, i) < 0;
 							},
 							remainder);
-						var before = _n0.a;
-						var after = _n0.b;
-						var $temp$done = A2(elm$core$List$cons, before, done),
+						var before = _v0.a;
+						var after = _v0.b;
+						var $temp$done = A2($elm$core$List$cons, before, done),
 							$temp$remainder = after,
 							$temp$i = i + beatsPerLine;
 						done = $temp$done;
@@ -8447,442 +8675,214 @@ var author$project$PlayerPage$splitGrid = F2(
 					}
 				}
 			});
-		return elm$core$List$reverse(
+		return $elm$core$List$reverse(
 			A3(recurPart, _List_Nil, grid, beatsPerLine));
 	});
-var author$project$PlayerPage$viewGrid = function (model) {
+var $author$project$PlayerPage$viewGrid = function (model) {
 	var gridlist = A2(
-		author$project$PlayerPage$splitGrid,
+		$author$project$PlayerPage$splitGrid,
 		model.barsPerLine * model.song.beatsPerBar,
-		author$project$PlayerPage$chordprog2grid(model));
+		$author$project$PlayerPage$chordprog2grid(model));
 	return A2(
-		elm$html$Html$div,
+		$elm$html$Html$div,
 		_List_Nil,
 		A2(
-			elm$core$List$map,
+			$elm$core$List$map,
 			function (line) {
 				return A2(
-					elm$html$Html$div,
+					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							A2(elm$html$Html$Attributes$style, 'height', '100px')
+							A2($elm$html$Html$Attributes$style, 'height', '100px')
 						]),
 					A2(
-						elm$core$List$map,
+						$elm$core$List$map,
 						function (box) {
 							return A2(
-								elm$html$Html$div,
+								$elm$html$Html$div,
 								_List_fromArray(
 									[
 										A2(
-										elm$html$Html$Attributes$style,
+										$elm$html$Html$Attributes$style,
 										'width',
-										elm$core$String$fromInt(
-											elm$core$Basics$floor(box.len * 50)) + 'px'),
-										A2(elm$html$Html$Attributes$style, 'margin-top', 'auto'),
-										A2(elm$html$Html$Attributes$style, 'display', 'inline-block'),
+										$elm$core$String$fromInt(
+											$elm$core$Basics$floor(box.len * 50)) + 'px'),
+										A2($elm$html$Html$Attributes$style, 'margin-top', 'auto'),
+										A2($elm$html$Html$Attributes$style, 'display', 'inline-block'),
 										A2(
-										elm$html$Html$Attributes$style,
+										$elm$html$Html$Attributes$style,
 										'color',
 										((_Utils_cmp(model.cursor, box.chord.b) > -1) && (_Utils_cmp(model.cursor, box.chord.b + box.len) < 0)) ? 'red' : 'black'),
-										elm$html$Html$Events$onClick(
-										author$project$PlayerPage$SetCursor(box.chord.b))
+										$elm$html$Html$Events$onClick(
+										$author$project$PlayerPage$SetCursor(box.chord.b))
 									]),
 								_List_fromArray(
 									[
-										elm$html$Html$text(
-										author$project$PlayerPage$chord2text(box.chord.a))
+										$elm$html$Html$text(
+										$author$project$PlayerPage$chord2text(box.chord.a))
 									]));
 						},
 						line));
 			},
 			gridlist));
 };
-var elm$core$String$slice = _String_slice;
-var elm$core$String$left = F2(
-	function (n, string) {
-		return (n < 1) ? '' : A3(elm$core$String$slice, 0, n, string);
-	});
-var elm$html$Html$h2 = _VirtualDom_node('h2');
-var elm$html$Html$p = _VirtualDom_node('p');
-var author$project$PlayerPage$view = function (model) {
+var $author$project$PlayerPage$view = function (model) {
 	return A2(
-		elm$html$Html$div,
+		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				elm$html$Html$Attributes$class('realbook')
+				$elm$html$Html$Attributes$class('realbook')
 			]),
 		_List_fromArray(
 			[
 				A2(
-				elm$html$Html$p,
+				$elm$html$Html$p,
 				_List_Nil,
 				_List_fromArray(
 					[
 						A2(
-						elm$html$Html$button,
+						$elm$html$Html$button,
 						_List_fromArray(
 							[
-								elm$html$Html$Events$onClick(author$project$PlayerPage$ToLibrary)
+								$elm$html$Html$Events$onClick($author$project$PlayerPage$ToLibrary)
 							]),
 						_List_fromArray(
 							[
-								elm$html$Html$text('library')
+								$elm$html$Html$text('library')
 							]))
 					])),
 				A2(
-				elm$html$Html$h1,
+				$elm$html$Html$h1,
 				_List_Nil,
 				_List_fromArray(
 					[
-						elm$html$Html$text(model.song.title)
+						$elm$html$Html$text(model.song.title)
 					])),
 				A2(
-				elm$html$Html$h2,
+				$elm$html$Html$h2,
 				_List_Nil,
 				_List_fromArray(
 					[
-						elm$html$Html$text(model.song.composer)
+						$elm$html$Html$text(model.song.composer)
 					])),
 				A2(
-				elm$html$Html$button,
+				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						elm$html$Html$Events$onClick(author$project$PlayerPage$TogglePlay)
+						$elm$html$Html$Events$onClick($author$project$PlayerPage$TogglePlay)
 					]),
 				_List_fromArray(
 					[
-						elm$html$Html$text(
+						$elm$html$Html$text(
 						model.playing ? 'pause' : 'play')
 					])),
 				A2(
-				elm$html$Html$button,
+				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						elm$html$Html$Events$onClick(
-						author$project$PlayerPage$SetCursor(0))
+						$elm$html$Html$Events$onClick(
+						$author$project$PlayerPage$SetCursor(0))
 					]),
 				_List_fromArray(
 					[
-						elm$html$Html$text('Reset')
+						$elm$html$Html$text('Reset')
 					])),
 				A2(
-				elm$html$Html$input,
+				$elm$html$Html$input,
 				_List_fromArray(
 					[
-						elm$html$Html$Attributes$type_('range'),
-						elm$html$Html$Events$onInput(
+						$elm$html$Html$Attributes$type_('range'),
+						$elm$html$Html$Events$onInput(
 						function (s) {
-							var _n0 = elm$core$String$toFloat(s);
-							if (_n0.$ === 'Just') {
-								var f = _n0.a;
-								return author$project$PlayerPage$SetBpm(f);
+							var _v0 = $elm$core$String$toFloat(s);
+							if (_v0.$ === 'Just') {
+								var f = _v0.a;
+								return $author$project$PlayerPage$SetBpm(f);
 							} else {
-								return author$project$PlayerPage$SetBpm(model.bpm);
+								return $author$project$PlayerPage$SetBpm(model.bpm);
 							}
 						}),
-						elm$html$Html$Attributes$min('30'),
-						elm$html$Html$Attributes$max('300'),
-						elm$html$Html$Attributes$value(
-						elm$core$String$fromFloat(model.bpm)),
-						elm$html$Html$Attributes$step('1')
+						$elm$html$Html$Attributes$min('30'),
+						$elm$html$Html$Attributes$max('300'),
+						$elm$html$Html$Attributes$value(
+						$elm$core$String$fromFloat(model.bpm)),
+						$elm$html$Html$Attributes$step('1')
 					]),
 				_List_Nil),
-				elm$html$Html$text(
-				elm$core$String$fromFloat(model.bpm) + ' BPM'),
+				$elm$html$Html$text(
+				$elm$core$String$fromFloat(model.bpm) + ' BPM'),
 				A2(
-				elm$html$Html$p,
+				$elm$html$Html$p,
 				_List_Nil,
 				_List_fromArray(
 					[
-						elm$html$Html$text(
+						$elm$html$Html$text(
 						A2(
-							elm$core$String$left,
+							$elm$core$String$left,
 							4,
-							elm$core$String$fromFloat(model.cursor)))
+							$elm$core$String$fromFloat(model.cursor)))
 					])),
 				A2(
-				elm$html$Html$button,
+				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						elm$html$Html$Events$onClick(author$project$PlayerPage$Edit)
+						$elm$html$Html$Events$onClick($author$project$PlayerPage$Edit)
 					]),
 				_List_fromArray(
 					[
-						elm$html$Html$text('edit song')
+						$elm$html$Html$text('edit song')
 					])),
-				author$project$PlayerPage$viewGrid(model)
+				$author$project$PlayerPage$viewGrid(model)
 			]));
 };
-var elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
-var elm$html$Html$map = elm$virtual_dom$VirtualDom$map;
-var author$project$Main$view = function (model) {
+var $author$project$Main$view = function (model) {
 	return A2(
-		elm$html$Html$div,
+		$elm$html$Html$div,
 		_List_Nil,
 		_Utils_ap(
 			function () {
-				var _n0 = model.dialogBox;
-				if (_n0.$ === 'Nothing') {
+				var _v0 = model.dialogBox;
+				if (_v0.$ === 'Nothing') {
 					return _List_Nil;
 				} else {
-					var db = _n0.a;
+					var db = _v0.a;
 					return _List_fromArray(
 						[
-							author$project$DialogBox$displayDialog(db)
+							$author$project$DialogBox$displayDialog(db)
 						]);
 				}
 			}(),
 			_List_fromArray(
 				[
 					function () {
-					var _n1 = model.curPage;
-					switch (_n1.$) {
+					var _v1 = model.curPage;
+					switch (_v1.$) {
 						case 'Player':
 							return A2(
-								elm$html$Html$map,
+								$elm$html$Html$map,
 								function (submsg) {
-									return author$project$Main$PpEvent(submsg);
+									return $author$project$Main$PpEvent(submsg);
 								},
-								author$project$PlayerPage$view(model.playerModel));
+								$author$project$PlayerPage$view(model.playerModel));
 						case 'Editor':
 							return A2(
-								elm$html$Html$map,
+								$elm$html$Html$map,
 								function (submsg) {
-									return author$project$Main$EditorEvent(submsg);
+									return $author$project$Main$EditorEvent(submsg);
 								},
-								author$project$Editor$view(model.editorModel));
+								$author$project$Editor$view(model.editorModel));
 						default:
 							return A2(
-								elm$html$Html$map,
+								$elm$html$Html$map,
 								function (submsg) {
-									return author$project$Main$LibEvent(submsg);
+									return $author$project$Main$LibEvent(submsg);
 								},
-								author$project$Library$view(model.libraryModel));
+								$author$project$Library$view(model.libraryModel));
 					}
 				}()
 				])));
 };
-var elm$browser$Browser$External = function (a) {
-	return {$: 'External', a: a};
-};
-var elm$browser$Browser$Internal = function (a) {
-	return {$: 'Internal', a: a};
-};
-var elm$browser$Browser$Dom$NotFound = function (a) {
-	return {$: 'NotFound', a: a};
-};
-var elm$core$Basics$never = function (_n0) {
-	never:
-	while (true) {
-		var nvr = _n0.a;
-		var $temp$_n0 = nvr;
-		_n0 = $temp$_n0;
-		continue never;
-	}
-};
-var elm$core$Task$Perform = function (a) {
-	return {$: 'Perform', a: a};
-};
-var elm$core$Task$init = elm$core$Task$succeed(_Utils_Tuple0);
-var elm$core$Task$map = F2(
-	function (func, taskA) {
-		return A2(
-			elm$core$Task$andThen,
-			function (a) {
-				return elm$core$Task$succeed(
-					func(a));
-			},
-			taskA);
-	});
-var elm$core$Task$map2 = F3(
-	function (func, taskA, taskB) {
-		return A2(
-			elm$core$Task$andThen,
-			function (a) {
-				return A2(
-					elm$core$Task$andThen,
-					function (b) {
-						return elm$core$Task$succeed(
-							A2(func, a, b));
-					},
-					taskB);
-			},
-			taskA);
-	});
-var elm$core$Task$sequence = function (tasks) {
-	return A3(
-		elm$core$List$foldr,
-		elm$core$Task$map2(elm$core$List$cons),
-		elm$core$Task$succeed(_List_Nil),
-		tasks);
-};
-var elm$core$Task$spawnCmd = F2(
-	function (router, _n0) {
-		var task = _n0.a;
-		return _Scheduler_spawn(
-			A2(
-				elm$core$Task$andThen,
-				elm$core$Platform$sendToApp(router),
-				task));
-	});
-var elm$core$Task$onEffects = F3(
-	function (router, commands, state) {
-		return A2(
-			elm$core$Task$map,
-			function (_n0) {
-				return _Utils_Tuple0;
-			},
-			elm$core$Task$sequence(
-				A2(
-					elm$core$List$map,
-					elm$core$Task$spawnCmd(router),
-					commands)));
-	});
-var elm$core$Task$onSelfMsg = F3(
-	function (_n0, _n1, _n2) {
-		return elm$core$Task$succeed(_Utils_Tuple0);
-	});
-var elm$core$Task$cmdMap = F2(
-	function (tagger, _n0) {
-		var task = _n0.a;
-		return elm$core$Task$Perform(
-			A2(elm$core$Task$map, tagger, task));
-	});
-_Platform_effectManagers['Task'] = _Platform_createManager(elm$core$Task$init, elm$core$Task$onEffects, elm$core$Task$onSelfMsg, elm$core$Task$cmdMap);
-var elm$core$Task$command = _Platform_leaf('Task');
-var elm$core$Task$perform = F2(
-	function (toMessage, task) {
-		return elm$core$Task$command(
-			elm$core$Task$Perform(
-				A2(elm$core$Task$map, toMessage, task)));
-	});
-var elm$core$String$length = _String_length;
-var elm$core$String$dropLeft = F2(
-	function (n, string) {
-		return (n < 1) ? string : A3(
-			elm$core$String$slice,
-			n,
-			elm$core$String$length(string),
-			string);
-	});
-var elm$core$String$startsWith = _String_startsWith;
-var elm$url$Url$Http = {$: 'Http'};
-var elm$url$Url$Https = {$: 'Https'};
-var elm$core$String$indexes = _String_indexes;
-var elm$core$String$isEmpty = function (string) {
-	return string === '';
-};
-var elm$core$String$contains = _String_contains;
-var elm$core$String$toInt = _String_toInt;
-var elm$url$Url$Url = F6(
-	function (protocol, host, port_, path, query, fragment) {
-		return {fragment: fragment, host: host, path: path, port_: port_, protocol: protocol, query: query};
-	});
-var elm$url$Url$chompBeforePath = F5(
-	function (protocol, path, params, frag, str) {
-		if (elm$core$String$isEmpty(str) || A2(elm$core$String$contains, '@', str)) {
-			return elm$core$Maybe$Nothing;
-		} else {
-			var _n0 = A2(elm$core$String$indexes, ':', str);
-			if (!_n0.b) {
-				return elm$core$Maybe$Just(
-					A6(elm$url$Url$Url, protocol, str, elm$core$Maybe$Nothing, path, params, frag));
-			} else {
-				if (!_n0.b.b) {
-					var i = _n0.a;
-					var _n1 = elm$core$String$toInt(
-						A2(elm$core$String$dropLeft, i + 1, str));
-					if (_n1.$ === 'Nothing') {
-						return elm$core$Maybe$Nothing;
-					} else {
-						var port_ = _n1;
-						return elm$core$Maybe$Just(
-							A6(
-								elm$url$Url$Url,
-								protocol,
-								A2(elm$core$String$left, i, str),
-								port_,
-								path,
-								params,
-								frag));
-					}
-				} else {
-					return elm$core$Maybe$Nothing;
-				}
-			}
-		}
-	});
-var elm$url$Url$chompBeforeQuery = F4(
-	function (protocol, params, frag, str) {
-		if (elm$core$String$isEmpty(str)) {
-			return elm$core$Maybe$Nothing;
-		} else {
-			var _n0 = A2(elm$core$String$indexes, '/', str);
-			if (!_n0.b) {
-				return A5(elm$url$Url$chompBeforePath, protocol, '/', params, frag, str);
-			} else {
-				var i = _n0.a;
-				return A5(
-					elm$url$Url$chompBeforePath,
-					protocol,
-					A2(elm$core$String$dropLeft, i, str),
-					params,
-					frag,
-					A2(elm$core$String$left, i, str));
-			}
-		}
-	});
-var elm$url$Url$chompBeforeFragment = F3(
-	function (protocol, frag, str) {
-		if (elm$core$String$isEmpty(str)) {
-			return elm$core$Maybe$Nothing;
-		} else {
-			var _n0 = A2(elm$core$String$indexes, '?', str);
-			if (!_n0.b) {
-				return A4(elm$url$Url$chompBeforeQuery, protocol, elm$core$Maybe$Nothing, frag, str);
-			} else {
-				var i = _n0.a;
-				return A4(
-					elm$url$Url$chompBeforeQuery,
-					protocol,
-					elm$core$Maybe$Just(
-						A2(elm$core$String$dropLeft, i + 1, str)),
-					frag,
-					A2(elm$core$String$left, i, str));
-			}
-		}
-	});
-var elm$url$Url$chompAfterProtocol = F2(
-	function (protocol, str) {
-		if (elm$core$String$isEmpty(str)) {
-			return elm$core$Maybe$Nothing;
-		} else {
-			var _n0 = A2(elm$core$String$indexes, '#', str);
-			if (!_n0.b) {
-				return A3(elm$url$Url$chompBeforeFragment, protocol, elm$core$Maybe$Nothing, str);
-			} else {
-				var i = _n0.a;
-				return A3(
-					elm$url$Url$chompBeforeFragment,
-					protocol,
-					elm$core$Maybe$Just(
-						A2(elm$core$String$dropLeft, i + 1, str)),
-					A2(elm$core$String$left, i, str));
-			}
-		}
-	});
-var elm$url$Url$fromString = function (str) {
-	return A2(elm$core$String$startsWith, 'http://', str) ? A2(
-		elm$url$Url$chompAfterProtocol,
-		elm$url$Url$Http,
-		A2(elm$core$String$dropLeft, 7, str)) : (A2(elm$core$String$startsWith, 'https://', str) ? A2(
-		elm$url$Url$chompAfterProtocol,
-		elm$url$Url$Https,
-		A2(elm$core$String$dropLeft, 8, str)) : elm$core$Maybe$Nothing);
-};
-var elm$browser$Browser$element = _Browser_element;
-var author$project$Main$main = elm$browser$Browser$element(
-	{init: author$project$Main$init, subscriptions: author$project$Main$subscriptions, update: author$project$Main$update, view: author$project$Main$view});
-_Platform_export({'Main':{'init':author$project$Main$main(
-	elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));
+var $author$project$Main$main = $elm$browser$Browser$element(
+	{init: $author$project$Main$init, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
+_Platform_export({'Main':{'init':$author$project$Main$main(
+	$elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));
