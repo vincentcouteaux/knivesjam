@@ -23,7 +23,8 @@
 
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const instruments = { bass: bassBufInstrument(ctx)
-                        , drums: drumsBufInstrument(ctx) };
+                        , drums: drumsBufInstrument(ctx)
+                        , piano: pianoBufInstrument(ctx) };
     //bassBufInstrument(ctx);
 
     var BPM = 120;

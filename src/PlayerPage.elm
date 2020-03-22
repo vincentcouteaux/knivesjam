@@ -8,6 +8,7 @@ import Random as R
 import Dict exposing (Dict)
 import JazzDrums
 import JazzBass
+import JazzPiano
 
 type alias Song = { chordProg : G.ChordProg
                   , title : String
@@ -41,6 +42,7 @@ type SubMsg =
     | SequenceGenerated Tune.Sequence
     | Edit
     | ToLibrary
+    | DebugGenerated (List (Float, Float))
     
 
 init = { barsPerLine = 4
@@ -49,7 +51,7 @@ init = { barsPerLine = 4
        , bpm = 120
        , cursor = 0
        }
-initCmd = Cmd.none --R.generate SequenceGenerated JazzBass.bbbass
+initCmd = R.generate DebugGenerated (JazzPiano.genRhythm 4 64) -- Cmd.none --R.generate SequenceGenerated JazzBass.bbbass
 
 update : SubMsg -> SubModel -> (SubModel, Cmd SubMsg)
 update msg model = 
@@ -66,12 +68,14 @@ update msg model =
                                           , genSequence model ]
                        )
         SequenceGenerated b -> (model, Tune.setSequence b)
+        DebugGenerated a -> let _ = Debug.log "debug" a in (model, Cmd.none)
         _ -> (model, Cmd.none)
 
 genSequence : SubModel -> Cmd SubMsg
 genSequence m =
     G.mergeSeqGenerators [ JazzBass.sequenceGenerator
-                         , JazzDrums.sequenceGenerator ] m.song.chordProg m.song.beatsPerBar
+                         , JazzDrums.sequenceGenerator
+                         , JazzPiano.sequenceGenerator ] m.song.chordProg m.song.beatsPerBar
     |> R.generate SequenceGenerated
 
 type alias Grid = List { len : Float, chord : (Maybe G.Chord, Float) }

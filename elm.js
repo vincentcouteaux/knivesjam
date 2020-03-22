@@ -5518,9 +5518,297 @@ var $author$project$PlayerPage$init = {
 	playing: false,
 	song: A4($author$project$PlayerPage$Song, $author$project$Generator$blueBossa, 'Blue Bossa', 'Dexter Gordon', 4)
 };
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $author$project$PlayerPage$initCmd = $elm$core$Platform$Cmd$none;
+var $author$project$PlayerPage$DebugGenerated = function (a) {
+	return {$: 'DebugGenerated', a: a};
+};
+var $elm$random$Random$Generator = function (a) {
+	return {$: 'Generator', a: a};
+};
+var $elm$random$Random$constant = function (value) {
+	return $elm$random$Random$Generator(
+		function (seed) {
+			return _Utils_Tuple2(value, seed);
+		});
+};
+var $elm$random$Random$map = F2(
+	function (func, _v0) {
+		var genA = _v0.a;
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v1 = genA(seed0);
+				var a = _v1.a;
+				var seed1 = _v1.b;
+				return _Utils_Tuple2(
+					func(a),
+					seed1);
+			});
+	});
+var $elm$random$Random$map2 = F3(
+	function (func, _v0, _v1) {
+		var genA = _v0.a;
+		var genB = _v1.a;
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v2 = genA(seed0);
+				var a = _v2.a;
+				var seed1 = _v2.b;
+				var _v3 = genB(seed1);
+				var b = _v3.a;
+				var seed2 = _v3.b;
+				return _Utils_Tuple2(
+					A2(func, a, b),
+					seed2);
+			});
+	});
+var $author$project$JazzPiano$possibleBars = function (signature) {
+	if (signature === 4) {
+		return _List_fromArray(
+			[
+				_List_fromArray(
+				[
+					_Utils_Tuple2(0, 0.33),
+					_Utils_Tuple2(1.66, 1.33)
+				]),
+				_List_fromArray(
+				[
+					_Utils_Tuple2(0.66, 0.33),
+					_Utils_Tuple2(2, 1.33)
+				]),
+				_List_fromArray(
+				[
+					_Utils_Tuple2(0.66, 0.33),
+					_Utils_Tuple2(2.66, 0.33)
+				]),
+				_List_fromArray(
+				[
+					_Utils_Tuple2(0, 2),
+					_Utils_Tuple2(2, 2)
+				])
+			]);
+	} else {
+		return _List_Nil;
+	}
+};
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
+};
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$random$Random$Seed = F2(
+	function (a, b) {
+		return {$: 'Seed', a: a, b: b};
+	});
+var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
+var $elm$random$Random$next = function (_v0) {
+	var state0 = _v0.a;
+	var incr = _v0.b;
+	return A2($elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
+};
+var $elm$core$Bitwise$xor = _Bitwise_xor;
+var $elm$random$Random$peel = function (_v0) {
+	var state = _v0.a;
+	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
+	return ((word >>> 22) ^ word) >>> 0;
+};
+var $elm$random$Random$float = F2(
+	function (a, b) {
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var seed1 = $elm$random$Random$next(seed0);
+				var range = $elm$core$Basics$abs(b - a);
+				var n1 = $elm$random$Random$peel(seed1);
+				var n0 = $elm$random$Random$peel(seed0);
+				var lo = (134217727 & n1) * 1.0;
+				var hi = (67108863 & n0) * 1.0;
+				var val = ((hi * 134217728.0) + lo) / 9007199254740992.0;
+				var scaled = (val * range) + a;
+				return _Utils_Tuple2(
+					scaled,
+					$elm$random$Random$next(seed1));
+			});
+	});
+var $elm$random$Random$getByWeight = F3(
+	function (_v0, others, countdown) {
+		getByWeight:
+		while (true) {
+			var weight = _v0.a;
+			var value = _v0.b;
+			if (!others.b) {
+				return value;
+			} else {
+				var second = others.a;
+				var otherOthers = others.b;
+				if (_Utils_cmp(
+					countdown,
+					$elm$core$Basics$abs(weight)) < 1) {
+					return value;
+				} else {
+					var $temp$_v0 = second,
+						$temp$others = otherOthers,
+						$temp$countdown = countdown - $elm$core$Basics$abs(weight);
+					_v0 = $temp$_v0;
+					others = $temp$others;
+					countdown = $temp$countdown;
+					continue getByWeight;
+				}
+			}
+		}
+	});
+var $elm$core$List$sum = function (numbers) {
+	return A3($elm$core$List$foldl, $elm$core$Basics$add, 0, numbers);
+};
+var $elm$random$Random$weighted = F2(
+	function (first, others) {
+		var normalize = function (_v0) {
+			var weight = _v0.a;
+			return $elm$core$Basics$abs(weight);
+		};
+		var total = normalize(first) + $elm$core$List$sum(
+			A2($elm$core$List$map, normalize, others));
+		return A2(
+			$elm$random$Random$map,
+			A2($elm$random$Random$getByWeight, first, others),
+			A2($elm$random$Random$float, 0, total));
+	});
+var $author$project$JazzPiano$unif2 = F2(
+	function (a, la) {
+		return A2(
+			$elm$random$Random$weighted,
+			_Utils_Tuple2(0, a),
+			A2(
+				$elm$core$List$map,
+				function (x) {
+					return _Utils_Tuple2(1, x);
+				},
+				la));
+	});
+var $author$project$JazzPiano$genRhythm = F2(
+	function (signature, end) {
+		var barsTemplates = $author$project$JazzPiano$possibleBars(signature);
+		var pickbar = A2($author$project$JazzPiano$unif2, _List_Nil, barsTemplates);
+		var addbar = F2(
+			function (genlist, idbar) {
+				var pickbarmap = A2(
+					$elm$random$Random$map,
+					function (l) {
+						return A2(
+							$elm$core$List$map,
+							function (_v0) {
+								var o = _v0.a;
+								var d = _v0.b;
+								return _Utils_Tuple2(o + (idbar * signature), d);
+							},
+							l);
+					},
+					pickbar);
+				return A3(
+					$elm$random$Random$map2,
+					F2(
+						function (gl, pbm) {
+							return _Utils_ap(gl, pbm);
+						}),
+					genlist,
+					pickbarmap);
+			});
+		return A3(
+			$elm$core$List$foldl,
+			F2(
+				function (i, out) {
+					return A2(addbar, out, i);
+				}),
+			$elm$random$Random$constant(_List_Nil),
+			A2(
+				$elm$core$List$range,
+				0,
+				($elm$core$Basics$floor(end) / 4) | 0));
+	});
+var $elm$random$Random$Generate = function (a) {
+	return {$: 'Generate', a: a};
+};
+var $elm$random$Random$initialSeed = function (x) {
+	var _v0 = $elm$random$Random$next(
+		A2($elm$random$Random$Seed, 0, 1013904223));
+	var state1 = _v0.a;
+	var incr = _v0.b;
+	var state2 = (state1 + x) >>> 0;
+	return $elm$random$Random$next(
+		A2($elm$random$Random$Seed, state2, incr));
+};
+var $elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var $elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$customZone = $elm$time$Time$Zone;
+var $elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$random$Random$init = A2(
+	$elm$core$Task$andThen,
+	function (time) {
+		return $elm$core$Task$succeed(
+			$elm$random$Random$initialSeed(
+				$elm$time$Time$posixToMillis(time)));
+	},
+	$elm$time$Time$now);
+var $elm$random$Random$step = F2(
+	function (_v0, seed) {
+		var generator = _v0.a;
+		return generator(seed);
+	});
+var $elm$random$Random$onEffects = F3(
+	function (router, commands, seed) {
+		if (!commands.b) {
+			return $elm$core$Task$succeed(seed);
+		} else {
+			var generator = commands.a.a;
+			var rest = commands.b;
+			var _v1 = A2($elm$random$Random$step, generator, seed);
+			var value = _v1.a;
+			var newSeed = _v1.b;
+			return A2(
+				$elm$core$Task$andThen,
+				function (_v2) {
+					return A3($elm$random$Random$onEffects, router, rest, newSeed);
+				},
+				A2($elm$core$Platform$sendToApp, router, value));
+		}
+	});
+var $elm$random$Random$onSelfMsg = F3(
+	function (_v0, _v1, seed) {
+		return $elm$core$Task$succeed(seed);
+	});
+var $elm$random$Random$cmdMap = F2(
+	function (func, _v0) {
+		var generator = _v0.a;
+		return $elm$random$Random$Generate(
+			A2($elm$random$Random$map, func, generator));
+	});
+_Platform_effectManagers['Random'] = _Platform_createManager($elm$random$Random$init, $elm$random$Random$onEffects, $elm$random$Random$onSelfMsg, $elm$random$Random$cmdMap);
+var $elm$random$Random$command = _Platform_leaf('Random');
+var $elm$random$Random$generate = F2(
+	function (tagger, generator) {
+		return $elm$random$Random$command(
+			$elm$random$Random$Generate(
+				A2($elm$random$Random$map, tagger, generator)));
+	});
+var $author$project$PlayerPage$initCmd = A2(
+	$elm$random$Random$generate,
+	$author$project$PlayerPage$DebugGenerated,
+	A2($author$project$JazzPiano$genRhythm, 4, 64));
 var $elm$core$Platform$Cmd$map = _Platform_map;
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
@@ -5755,136 +6043,6 @@ var $author$project$Editor$chordprog2grid = function (model) {
 var $author$project$PlayerPage$SequenceGenerated = function (a) {
 	return {$: 'SequenceGenerated', a: a};
 };
-var $elm$random$Random$Generate = function (a) {
-	return {$: 'Generate', a: a};
-};
-var $elm$random$Random$Seed = F2(
-	function (a, b) {
-		return {$: 'Seed', a: a, b: b};
-	});
-var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
-var $elm$random$Random$next = function (_v0) {
-	var state0 = _v0.a;
-	var incr = _v0.b;
-	return A2($elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
-};
-var $elm$random$Random$initialSeed = function (x) {
-	var _v0 = $elm$random$Random$next(
-		A2($elm$random$Random$Seed, 0, 1013904223));
-	var state1 = _v0.a;
-	var incr = _v0.b;
-	var state2 = (state1 + x) >>> 0;
-	return $elm$random$Random$next(
-		A2($elm$random$Random$Seed, state2, incr));
-};
-var $elm$time$Time$Name = function (a) {
-	return {$: 'Name', a: a};
-};
-var $elm$time$Time$Offset = function (a) {
-	return {$: 'Offset', a: a};
-};
-var $elm$time$Time$Zone = F2(
-	function (a, b) {
-		return {$: 'Zone', a: a, b: b};
-	});
-var $elm$time$Time$customZone = $elm$time$Time$Zone;
-var $elm$time$Time$Posix = function (a) {
-	return {$: 'Posix', a: a};
-};
-var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
-var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
-var $elm$time$Time$posixToMillis = function (_v0) {
-	var millis = _v0.a;
-	return millis;
-};
-var $elm$random$Random$init = A2(
-	$elm$core$Task$andThen,
-	function (time) {
-		return $elm$core$Task$succeed(
-			$elm$random$Random$initialSeed(
-				$elm$time$Time$posixToMillis(time)));
-	},
-	$elm$time$Time$now);
-var $elm$random$Random$step = F2(
-	function (_v0, seed) {
-		var generator = _v0.a;
-		return generator(seed);
-	});
-var $elm$random$Random$onEffects = F3(
-	function (router, commands, seed) {
-		if (!commands.b) {
-			return $elm$core$Task$succeed(seed);
-		} else {
-			var generator = commands.a.a;
-			var rest = commands.b;
-			var _v1 = A2($elm$random$Random$step, generator, seed);
-			var value = _v1.a;
-			var newSeed = _v1.b;
-			return A2(
-				$elm$core$Task$andThen,
-				function (_v2) {
-					return A3($elm$random$Random$onEffects, router, rest, newSeed);
-				},
-				A2($elm$core$Platform$sendToApp, router, value));
-		}
-	});
-var $elm$random$Random$onSelfMsg = F3(
-	function (_v0, _v1, seed) {
-		return $elm$core$Task$succeed(seed);
-	});
-var $elm$random$Random$Generator = function (a) {
-	return {$: 'Generator', a: a};
-};
-var $elm$random$Random$map = F2(
-	function (func, _v0) {
-		var genA = _v0.a;
-		return $elm$random$Random$Generator(
-			function (seed0) {
-				var _v1 = genA(seed0);
-				var a = _v1.a;
-				var seed1 = _v1.b;
-				return _Utils_Tuple2(
-					func(a),
-					seed1);
-			});
-	});
-var $elm$random$Random$cmdMap = F2(
-	function (func, _v0) {
-		var generator = _v0.a;
-		return $elm$random$Random$Generate(
-			A2($elm$random$Random$map, func, generator));
-	});
-_Platform_effectManagers['Random'] = _Platform_createManager($elm$random$Random$init, $elm$random$Random$onEffects, $elm$random$Random$onSelfMsg, $elm$random$Random$cmdMap);
-var $elm$random$Random$command = _Platform_leaf('Random');
-var $elm$random$Random$generate = F2(
-	function (tagger, generator) {
-		return $elm$random$Random$command(
-			$elm$random$Random$Generate(
-				A2($elm$random$Random$map, tagger, generator)));
-	});
-var $elm$random$Random$constant = function (value) {
-	return $elm$random$Random$Generator(
-		function (seed) {
-			return _Utils_Tuple2(value, seed);
-		});
-};
-var $elm$random$Random$map2 = F3(
-	function (func, _v0, _v1) {
-		var genA = _v0.a;
-		var genB = _v1.a;
-		return $elm$random$Random$Generator(
-			function (seed0) {
-				var _v2 = genA(seed0);
-				var a = _v2.a;
-				var seed1 = _v2.b;
-				var _v3 = genB(seed1);
-				var b = _v3.a;
-				var seed2 = _v3.b;
-				return _Utils_Tuple2(
-					A2(func, a, b),
-					seed2);
-			});
-	});
 var $author$project$Generator$mergeSeqGenerators = F3(
 	function (l, cp, signature) {
 		return A3(
@@ -5917,16 +6075,6 @@ var $elm$random$Random$andThen = F2(
 				return genB(newSeed);
 			});
 	});
-var $elm$core$Bitwise$and = _Bitwise_and;
-var $elm$core$Basics$negate = function (n) {
-	return -n;
-};
-var $elm$core$Bitwise$xor = _Bitwise_xor;
-var $elm$random$Random$peel = function (_v0) {
-	var state = _v0.a;
-	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
-	return ((word >>> 22) ^ word) >>> 0;
-};
 var $elm$random$Random$int = F2(
 	function (a, b) {
 		return $elm$random$Random$Generator(
@@ -6442,9 +6590,6 @@ var $author$project$Tune$Event = F5(
 	function (time, onset, pitch, instrument, gain) {
 		return {gain: gain, instrument: instrument, onset: onset, pitch: pitch, time: time};
 	});
-var $elm$core$Basics$abs = function (n) {
-	return (n < 0) ? (-n) : n;
-};
 var $elm$core$Basics$min = F2(
 	function (x, y) {
 		return (_Utils_cmp(x, y) < 0) ? x : y;
@@ -6637,23 +6782,6 @@ var $elm$random$Random$map3 = F4(
 					seed3);
 			});
 	});
-var $elm$random$Random$float = F2(
-	function (a, b) {
-		return $elm$random$Random$Generator(
-			function (seed0) {
-				var seed1 = $elm$random$Random$next(seed0);
-				var range = $elm$core$Basics$abs(b - a);
-				var n1 = $elm$random$Random$peel(seed1);
-				var n0 = $elm$random$Random$peel(seed0);
-				var lo = (134217727 & n1) * 1.0;
-				var hi = (67108863 & n0) * 1.0;
-				var val = ((hi * 134217728.0) + lo) / 9007199254740992.0;
-				var scaled = (val * range) + a;
-				return _Utils_Tuple2(
-					scaled,
-					$elm$random$Random$next(seed1));
-			});
-	});
 var $elm$random$Random$listHelp = F4(
 	function (revList, n, gen, seed) {
 		listHelp:
@@ -6730,6 +6858,165 @@ var $author$project$JazzDrums$sequenceGenerator = F2(
 			$elm$random$Random$constant(
 				$author$project$JazzDrums$chabadaCrash(cp.end)));
 	});
+var $author$project$Generator$Dominant = {$: 'Dominant'};
+var $author$project$Generator$Major = {$: 'Major'};
+var $author$project$Generator$Minor = {$: 'Minor'};
+var $author$project$Generator$chordClass = function (c) {
+	switch (c.$) {
+		case 'Dom7':
+			return $author$project$Generator$Dominant;
+		case 'Alt7':
+			return $author$project$Generator$Dominant;
+		case 'Dom7b9':
+			return $author$project$Generator$Dominant;
+		case 'Dom7s5':
+			return $author$project$Generator$Dominant;
+		case 'Min7':
+			return $author$project$Generator$Minor;
+		case 'Min7b5':
+			return $author$project$Generator$Minor;
+		case 'Dim':
+			return $author$project$Generator$Minor;
+		case 'MinMaj':
+			return $author$project$Generator$Minor;
+		default:
+			return $author$project$Generator$Major;
+	}
+};
+var $author$project$JazzPiano$compact = _Utils_Tuple2(
+	53,
+	_List_fromArray(
+		[$author$project$Generator$getThirdOf, $author$project$Generator$getFifthOf, $author$project$Generator$getSeventhOf, $author$project$Generator$getNinethOf]));
+var $author$project$Generator$getThirteenthOf = function (c) {
+	var _v0 = c.type_;
+	switch (_v0.$) {
+		case 'Alt7':
+			return A2($author$project$Generator$getSemitonesOf, 8, c);
+		case 'Min7b5':
+			return A2($author$project$Generator$getSemitonesOf, 8, c);
+		default:
+			return A2($author$project$Generator$getSemitonesOf, 9, c);
+	}
+};
+var $author$project$JazzPiano$compact13 = _Utils_Tuple2(
+	53,
+	_List_fromArray(
+		[$author$project$Generator$getThirdOf, $author$project$Generator$getThirteenthOf, $author$project$Generator$getSeventhOf, $author$project$Generator$getNinethOf]));
+var $author$project$JazzPiano$all_compact = function (c) {
+	return _Utils_eq(
+		$author$project$Generator$chordClass(c),
+		$author$project$Generator$Dominant) ? _List_fromArray(
+		[$author$project$JazzPiano$compact13]) : _List_fromArray(
+		[$author$project$JazzPiano$compact]);
+};
+var $author$project$JazzPiano$getAbove = F2(
+	function (l, n) {
+		var n0 = A2($author$project$Generator$note2pitch, 0, n);
+		return (12 * $elm$core$Basics$ceiling((l - n0) / 12)) + n0;
+	});
+var $author$project$Generator$listGen2GenList = function (l) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (gen, list) {
+				return A3(
+					$elm$random$Random$map2,
+					F2(
+						function (g, l_) {
+							return A2($elm$core$List$cons, g, l_);
+						}),
+					gen,
+					list);
+			}),
+		$elm$random$Random$constant(_List_Nil),
+		l);
+};
+var $author$project$JazzPiano$populateRhythm = F2(
+	function (l, cp) {
+		return $author$project$Generator$listGen2GenList(
+			A2(
+				$elm$core$List$map,
+				function (_v3) {
+					var onset = _v3.onset;
+					var duration = _v3.duration;
+					var chord = _v3.chord;
+					return A2(
+						$elm$random$Random$map,
+						function (c) {
+							return {chord: c, duration: duration, onset: onset};
+						},
+						chord);
+				},
+				A2(
+					$elm$core$List$filter,
+					function (_v2) {
+						var onset = _v2.onset;
+						var duration = _v2.duration;
+						return _Utils_cmp(onset + duration, cp.end) < 1;
+					},
+					A2(
+						$elm$core$List$map,
+						function (_v0) {
+							var onset = _v0.a;
+							var duration = _v0.b;
+							var chord = A2($author$project$Generator$getChordAt, cp, onset + 0.4);
+							var voicing = A2(
+								$author$project$JazzPiano$unif2,
+								_Utils_Tuple2(0, _List_Nil),
+								$author$project$JazzPiano$all_compact(chord.type_));
+							var notes = A2(
+								$elm$random$Random$map,
+								function (_v1) {
+									var lowest = _v1.a;
+									var funcs = _v1.b;
+									return A2(
+										$elm$core$List$map,
+										function (n) {
+											return A2($author$project$JazzPiano$getAbove, lowest, n);
+										},
+										A2(
+											$elm$core$List$map,
+											function (f) {
+												return f(chord);
+											},
+											funcs));
+								},
+								voicing);
+							return {chord: notes, duration: duration, onset: onset};
+						},
+						l))));
+	});
+var $author$project$JazzPiano$sequenceGenerator = F2(
+	function (cp, signature) {
+		return A2(
+			$elm$random$Random$map,
+			function (l) {
+				return A2(
+					$elm$core$List$concatMap,
+					function (_v0) {
+						var onset = _v0.onset;
+						var duration = _v0.duration;
+						var chord = _v0.chord;
+						return A2(
+							$elm$core$List$concatMap,
+							function (p) {
+								return _List_fromArray(
+									[
+										A5($author$project$Tune$Event, onset, true, p, 'piano', 0.05),
+										A5($author$project$Tune$Event, onset + duration, false, p, 'piano', 0.1)
+									]);
+							},
+							chord);
+					},
+					l);
+			},
+			A2(
+				$elm$random$Random$andThen,
+				function (lff) {
+					return A2($author$project$JazzPiano$populateRhythm, lff, cp);
+				},
+				A2($author$project$JazzPiano$genRhythm, signature, cp.end)));
+	});
 var $author$project$PlayerPage$genSequence = function (m) {
 	return A2(
 		$elm$random$Random$generate,
@@ -6737,7 +7024,7 @@ var $author$project$PlayerPage$genSequence = function (m) {
 		A3(
 			$author$project$Generator$mergeSeqGenerators,
 			_List_fromArray(
-				[$author$project$JazzBass$sequenceGenerator, $author$project$JazzDrums$sequenceGenerator]),
+				[$author$project$JazzBass$sequenceGenerator, $author$project$JazzDrums$sequenceGenerator, $author$project$JazzPiano$sequenceGenerator]),
 			m.song.chordProg,
 			m.song.beatsPerBar));
 };
@@ -6782,6 +7069,8 @@ var $author$project$Editor$grid2chordprog = function (g) {
 	var chords = A2(foldrec, glist, 0);
 	return {chords: chords, end: end};
 };
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$resetDialog = function (m) {
 	return _Utils_update(
 		m,
@@ -7579,6 +7868,7 @@ var $author$project$Editor$update = F2(
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
+var $elm$core$Debug$log = _Debug_log;
 var $elm$core$Basics$not = _Basics_not;
 var $elm$json$Json$Encode$null = _Json_encodeNull;
 var $author$project$Tune$pause = _Platform_outgoingPort(
@@ -7688,6 +7978,10 @@ var $author$project$PlayerPage$update = F2(
 				return _Utils_Tuple2(
 					model,
 					$author$project$Tune$setSequence(b));
+			case 'DebugGenerated':
+				var a = msg.a;
+				var _v1 = A2($elm$core$Debug$log, 'debug', a);
+				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 			default:
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}

@@ -88,6 +88,58 @@ const bassBufInstrument = ctx => {
     };
 };
 
+const pianoBufInstrument = ctx => {
+    const wavfiles_available = [51, 54, 57, 60, 63, 66, 69, 72, 75];
+    let buffersMap = [];
+    wavfiles_available.forEach(i => {
+        let request = new XMLHttpRequest();
+        request.open("GET", "wavs/piano/"+i+".wav", true);
+        request.responseType = "arraybuffer";
+        request.onload = () => {
+            ctx.decodeAudioData(request.response,
+                                buf => {
+                                    buffersMap[i] = buf;
+                                },
+                                e => console.log("error: ", e));
+        };
+        request.send();
+    });
+    const argMax = array => array.map((x, i) => [x, i]).reduce((r, a) => (a[0] > r[0] ? a : r))[1];
+
+    const closest = i => {
+        const dist = wavfiles_available.map(x => -Math.abs(x-i)); 
+        return wavfiles_available[argMax(dist)];
+    };
+
+    const halfstep = Math.pow(2, 1/12);
+    //console.log("halfstep", halfstep);
+    let sources = [];
+
+    return {
+        stopNote: function(pitch) {
+            if (pitch in sources && sources[pitch] !== null) {
+                sources[pitch].gain.exponentialRampToValueAtTime(.001, ctx.currentTime+1); 
+            }
+        },
+        startNote: function(pitch, gain) {
+            this.stopNote(pitch);
+            let bufferSource = ctx.createBufferSource()
+            const gainNode = ctx.createGain();
+            const closestnote = closest(pitch);
+            gainNode.gain.setValueAtTime(gain, ctx.currentTime);
+            bufferSource.buffer = buffersMap[closestnote];
+            bufferSource.playbackRate.value = Math.pow(halfstep, pitch-closestnote);
+            bufferSource.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            bufferSource.start();
+            sources[pitch] = gainNode;
+        },
+        stopAllNotes: function() {
+            sources.forEach((_, i) => this.stopNote(i));
+        }
+    };
+};
+
 const drumsBufInstrument = ctx => {
     let ride_buffer;
     let snare_buffer;

@@ -16,6 +16,19 @@ type alias Chord = { note: Note, type_ : ChordType }
 type alias ChordProg = { chords: List { time: Float, chord: Chord },
                          end: Float }
 
+type ChordClass = Minor | Major | Dominant
+chordClass : ChordType -> ChordClass
+chordClass c = case c of
+    Dom7 -> Dominant
+    Alt7 -> Dominant
+    Dom7b9 -> Dominant
+    Dom7s5 -> Dominant
+    Min7 -> Minor
+    Min7b5 -> Minor
+    Dim -> Minor
+    MinMaj -> Minor
+    _ -> Major
+
 chord : NoteName -> Alteration -> ChordType -> Chord
 chord n a t = Chord (Note n a) t
 
@@ -102,6 +115,12 @@ getSeventhOf c = case c.type_ of
     Maj7s5 -> getSemitonesOf 11 c
     _ -> getSemitonesOf 10 c
 
+getThirteenthOf : Chord -> Note
+getThirteenthOf c = case c.type_ of
+    Alt7 -> getSemitonesOf 8 c
+    Min7b5 -> getSemitonesOf 8 c
+    _ -> getSemitonesOf 9 c
+
 blueBossa = ChordProg
                 [ { time=0, chord=chord C Natural Min7 }
                 , { time=8, chord=chord F Natural Min7 }
@@ -132,3 +151,10 @@ mergeSeqGenerators l cp signature =
 insertNoReplace : comparable -> v -> Dict comparable v -> Dict comparable v
 insertNoReplace k v d =
     if Dict.member k d then d else (Dict.insert k v d)
+
+listGen2GenList : List (R.Generator a) -> R.Generator (List a)
+listGen2GenList l =
+    List.foldl
+        (\gen list -> R.map2 (\g l_ -> g::l_) gen list)
+        (R.constant [])
+        l
