@@ -73,7 +73,7 @@ const bassBufInstrument = ctx => {
                 // TODO investigate when the same note is played twice consecutively
                 let bufferSource = ctx.createBufferSource()
                 const gainNode = ctx.createGain();
-                gainNode.gain.setValueAtTime(gain, ctx.currentTime);
+                gainNode.gain.setValueAtTime(gain*this.volume, ctx.currentTime);
                 bufferSource.buffer = buffersMap[pitch];
                 bufferSource.connect(gainNode);
                 gainNode.connect(ctx.destination);
@@ -84,7 +84,8 @@ const bassBufInstrument = ctx => {
         },
         stopAllNotes: function() {
             sources.forEach((_, i) => this.stopNote(i));
-        }
+        },
+        volume: 1
     };
 };
 
@@ -126,7 +127,7 @@ const pianoBufInstrument = ctx => {
             let bufferSource = ctx.createBufferSource()
             const gainNode = ctx.createGain();
             const closestnote = closest(pitch);
-            gainNode.gain.setValueAtTime(gain, ctx.currentTime);
+            gainNode.gain.setValueAtTime(gain*this.volume, ctx.currentTime);
             bufferSource.buffer = buffersMap[closestnote];
             bufferSource.playbackRate.value = Math.pow(halfstep, pitch-closestnote);
             bufferSource.connect(gainNode);
@@ -136,7 +137,8 @@ const pianoBufInstrument = ctx => {
         },
         stopAllNotes: function() {
             sources.forEach((_, i) => this.stopNote(i));
-        }
+        },
+        volume: 1
     };
 };
 
@@ -219,7 +221,7 @@ const drumsBufInstrument = ctx => {
         startNote: function(pitch, gain) {
             let bufferSource = ctx.createBufferSource()
             const gainNode = ctx.createGain();
-            gainNode.gain.setValueAtTime(gain, ctx.currentTime);
+            gainNode.gain.setValueAtTime(gain*this.volume, ctx.currentTime);
             bufferSource.buffer = pitch==0?kick_buffer:
                                   pitch==1?snare_buffer:
                                   pitch==2?ride_buffer:
@@ -230,6 +232,7 @@ const drumsBufInstrument = ctx => {
             bufferSource.start();
         },
         stopAllNotes: function() {
-        }
+        },
+        volume: 1
     };
 };
