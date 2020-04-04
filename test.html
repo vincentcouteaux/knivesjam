@@ -15,6 +15,7 @@
 <script src="immutable.min.js" ></script>
 <script src="instrument.js" ></script>
 <script src="elm.js"></script>
+<script src="dexie.js"></script>
 <script src="librarydb.js"></script>
 <script src="tune.js"></script>
 <script>
@@ -27,6 +28,7 @@
                         , drums: drumsBufInstrument(ctx)
                         , piano: pianoBufInstrument(ctx) };
     //bassBufInstrument(ctx);
+    initDixie(app);
     initTune(ctx, instruments, app);
 
     //var BPM = 120;

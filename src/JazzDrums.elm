@@ -4,20 +4,29 @@ import Tune
 import Random as R
 import Generator as G
 
-chabada : Float -> Tune.Sequence
-chabada end =
-    List.range 0 (floor ((end-1)/4))
-    |> List.map ((*) 4)
+chabada : Float -> Int -> Tune.Sequence
+chabada end beatsPerBar =
+    List.range 0 (floor ((end-1)/(toFloat beatsPerBar)))
+    |> List.map ((*) beatsPerBar)
     |> List.concatMap
         (\i -> let fb = toFloat i in
                [ Tune.Event fb True 2 "drums" 0.5
                , Tune.Event (fb + 1) True 2 "drums" 0.5
                , Tune.Event (fb + 1) True 3 "drums" 1
                , Tune.Event (fb + 1.66) True 2 "drums" 0.7
-               , Tune.Event (fb + 2) True 2 "drums" 0.5
-               , Tune.Event (fb + 3) True 2 "drums" 0.5
-               , Tune.Event (fb + 3) True 3 "drums" 1 
-               , Tune.Event (fb + 3.66) True 2 "drums" 0.7 ])
+               , Tune.Event (fb + 2) True 2 "drums" 0.5 ]
+               ++ (if beatsPerBar > 3 then
+                   ([ Tune.Event (fb + 3) True 2 "drums" 0.5
+                   , Tune.Event (fb + 3) True 3 "drums" 1 
+                   , Tune.Event (fb + 3.66) True 2 "drums" 0.7 ]
+                   ++ (if beatsPerBar > 4 then
+                       [ Tune.Event (fb + 3) True 2 "drums" 0.5]
+                       else []
+                      )
+                   )
+                   else []
+                  )
+        )
 
 randomShots : Float -> Int -> R.Generator (List (Maybe Float))
 randomShots p n =
@@ -44,15 +53,15 @@ listShots2seq l pitch =
             )
             zip
 
-chabadaCrash : Float -> Tune.Sequence
-chabadaCrash end = (Tune.Event 0 True 5 "drums" 1)::(chabada end)
+chabadaCrash : Float -> Int -> Tune.Sequence
+chabadaCrash end beatsPerBar = (Tune.Event 0 True 5 "drums" 1)::(chabada end beatsPerBar)
 
 sequenceGenerator : G.ChordProg -> Int -> R.Generator (Tune.Sequence)
-sequenceGenerator cp _ =
+sequenceGenerator cp beatsPerBar =
     let n = floor (cp.end)
         shotGen = randomShots 0.2 (2*n)
         snare = R.map (\l -> listShots2seq l 1) shotGen
         kick = R.map (\l -> listShots2seq l 0) shotGen
     in
-        R.map3 (\s1 s2 s3 -> s1++s2++s3) snare kick (R.constant (chabadaCrash (cp.end)))
+        R.map3 (\s1 s2 s3 -> s1++s2++s3) snare kick (R.constant (chabadaCrash cp.end beatsPerBar))
 

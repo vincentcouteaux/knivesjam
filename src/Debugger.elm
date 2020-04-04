@@ -18,3 +18,13 @@ closest pitch note =
     in
         if closestnote < vmin then closestnote + 12 else if closestnote > vmax then closestnote-12 else closestnote
 
+
+cumsumlist l i res =
+    case l of
+        [] -> res
+        h::t -> cumsumlist t (h+i) ((h+i)::res)
+
+cumsum l i =
+    case l of
+        [] -> []
+        h::t -> (h+i)::(cumsum t (h+i))

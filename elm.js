@@ -5231,6 +5231,7 @@ var $author$project$Main$Library = {$: 'Library'};
 var $author$project$Main$PpEvent = function (a) {
 	return {$: 'PpEvent', a: a};
 };
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $author$project$Generator$C = {$: 'C'};
 var $author$project$Generator$Dom7 = {$: 'Dom7'};
 var $author$project$Editor$ModelList = function (a) {
@@ -5289,6 +5290,7 @@ var $elm$core$Array$fromList = function (list) {
 	}
 };
 var $author$project$Editor$init = {
+	beatsPerBar: 4,
 	composer: 'Unknown',
 	curChord: A3($author$project$Generator$chord, $author$project$Generator$C, $author$project$Generator$Natural, $author$project$Generator$Dom7),
 	defTempo: 160,
@@ -5305,9 +5307,12 @@ var $author$project$Editor$init = {
 	tool: $author$project$Editor$SetChord,
 	undoList: $author$project$Editor$ModelList(_List_Nil)
 };
-var $author$project$PlayerPage$Song = F4(
-	function (chordProg, title, composer, beatsPerBar) {
-		return {beatsPerBar: beatsPerBar, chordProg: chordProg, composer: composer, title: title};
+var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
+var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
+var $author$project$Library$init = $elm$core$Dict$empty;
+var $author$project$PlayerPage$Song = F5(
+	function (chordProg, title, composer, beatsPerBar, defaultTempo) {
+		return {beatsPerBar: beatsPerBar, chordProg: chordProg, composer: composer, defaultTempo: defaultTempo, title: title};
 	});
 var $author$project$Generator$A = {$: 'A'};
 var $author$project$Generator$Alt7 = {$: 'Alt7'};
@@ -5381,8 +5386,108 @@ var $author$project$Generator$blueBossa = A2(
 		}
 		]),
 	64);
-var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
-var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
+var $author$project$PlayerPage$init = {
+	barsPerLine: 4,
+	bpm: 120,
+	cursor: 0,
+	playing: false,
+	song: A5($author$project$PlayerPage$Song, $author$project$Generator$blueBossa, 'Blue Bossa', 'Dexter Gordon', 4, 160),
+	volBass: 100,
+	volDrums: 100,
+	volPiano: 100
+};
+var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Library$queryAllSongs = _Platform_outgoingPort(
+	'queryAllSongs',
+	function ($) {
+		return $elm$json$Json$Encode$null;
+	});
+var $author$project$Library$initCmd = $author$project$Library$queryAllSongs(_Utils_Tuple0);
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$PlayerPage$initCmd = $elm$core$Platform$Cmd$none;
+var $elm$core$Platform$Cmd$map = _Platform_map;
+var $author$project$Main$init = function (_v0) {
+	return _Utils_Tuple2(
+		{curPage: $author$project$Main$Library, dialogBox: $elm$core$Maybe$Nothing, editorModel: $author$project$Editor$init, libraryModel: $author$project$Library$init, playerModel: $author$project$PlayerPage$init},
+		$elm$core$Platform$Cmd$batch(
+			_List_fromArray(
+				[
+					A2(
+					$elm$core$Platform$Cmd$map,
+					function (sm) {
+						return $author$project$Main$PpEvent(sm);
+					},
+					$author$project$PlayerPage$initCmd),
+					$author$project$Library$initCmd
+				])));
+};
+var $author$project$Library$GotASong = function (a) {
+	return {$: 'GotASong', a: a};
+};
+var $author$project$Main$LibEvent = function (a) {
+	return {$: 'LibEvent', a: a};
+};
+var $author$project$PlayerPage$SeqFinished = {$: 'SeqFinished'};
+var $author$project$Main$SetCursor = function (a) {
+	return {$: 'SetCursor', a: a};
+};
+var $elm$core$Basics$always = F2(
+	function (a, _v0) {
+		return a;
+	});
+var $elm$core$Platform$Sub$batch = _Platform_batch;
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var $elm$json$Json$Decode$float = _Json_decodeFloat;
+var $author$project$Tune$cursorChanged = _Platform_incomingPort('cursorChanged', $elm$json$Json$Decode$float);
+var $elm$json$Json$Decode$string = _Json_decodeString;
+var $author$project$Library$gotASong = _Platform_incomingPort('gotASong', $elm$json$Json$Decode$string);
+var $elm$json$Json$Decode$null = _Json_decodeNull;
+var $author$project$Tune$sequenceFinished = _Platform_incomingPort(
+	'sequenceFinished',
+	$elm$json$Json$Decode$null(_Utils_Tuple0));
+var $author$project$Main$subscriptions = function (model) {
+	return $elm$core$Platform$Sub$batch(
+		_List_fromArray(
+			[
+				$author$project$Tune$cursorChanged($author$project$Main$SetCursor),
+				$author$project$Tune$sequenceFinished(
+				$elm$core$Basics$always(
+					$author$project$Main$PpEvent($author$project$PlayerPage$SeqFinished))),
+				$author$project$Library$gotASong(
+				A2($elm$core$Basics$composeL, $author$project$Main$LibEvent, $author$project$Library$GotASong))
+			]));
+};
+var $author$project$Editor$ConfirmQuit = {$: 'ConfirmQuit'};
+var $author$project$Library$Delete = function (a) {
+	return {$: 'Delete', a: a};
+};
+var $author$project$Main$Editor = {$: 'Editor'};
+var $author$project$Main$EditorEvent = function (a) {
+	return {$: 'EditorEvent', a: a};
+};
+var $author$project$Main$Player = {$: 'Player'};
+var $author$project$Main$ResetDialog = {$: 'ResetDialog'};
+var $elm$core$String$cons = _String_cons;
+var $elm$core$String$foldr = _String_foldr;
+var $author$project$Library$escape = function (s) {
+	return A3(
+		$elm$core$String$foldr,
+		F2(
+			function (c, t) {
+				return _Utils_eq(
+					c,
+					_Utils_chr('-')) ? ('\\-' + t) : A2($elm$core$String$cons, c, t);
+			}),
+		'',
+		s);
+};
+var $author$project$Library$getKey = function (s) {
+	return $author$project$Library$escape(s.title) + ('--' + $author$project$Library$escape(s.composer));
+};
 var $elm$core$Dict$Black = {$: 'Black'};
 var $elm$core$Dict$RBNode_elm_builtin = F5(
 	function (a, b, c, d, e) {
@@ -5492,385 +5597,15 @@ var $elm$core$Dict$insert = F3(
 			return x;
 		}
 	});
-var $elm$core$Dict$fromList = function (assocs) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (_v0, dict) {
-				var key = _v0.a;
-				var value = _v0.b;
-				return A3($elm$core$Dict$insert, key, value, dict);
-			}),
-		$elm$core$Dict$empty,
-		assocs);
-};
-var $author$project$Library$init = $elm$core$Dict$fromList(
-	_List_fromArray(
-		[
-			_Utils_Tuple2(
-			'Blue Bossa--Dexter Gordon',
-			A4($author$project$PlayerPage$Song, $author$project$Generator$blueBossa, 'Blue Bossa', 'Dexter Gordon', 4))
-		]));
-var $author$project$PlayerPage$init = {
-	barsPerLine: 4,
-	bpm: 120,
-	cursor: 0,
-	playing: false,
-	song: A4($author$project$PlayerPage$Song, $author$project$Generator$blueBossa, 'Blue Bossa', 'Dexter Gordon', 4)
-};
-var $author$project$PlayerPage$DebugGenerated = function (a) {
-	return {$: 'DebugGenerated', a: a};
-};
-var $elm$random$Random$Generator = function (a) {
-	return {$: 'Generator', a: a};
-};
-var $elm$random$Random$constant = function (value) {
-	return $elm$random$Random$Generator(
-		function (seed) {
-			return _Utils_Tuple2(value, seed);
-		});
-};
-var $elm$random$Random$map = F2(
-	function (func, _v0) {
-		var genA = _v0.a;
-		return $elm$random$Random$Generator(
-			function (seed0) {
-				var _v1 = genA(seed0);
-				var a = _v1.a;
-				var seed1 = _v1.b;
-				return _Utils_Tuple2(
-					func(a),
-					seed1);
-			});
-	});
-var $elm$random$Random$map2 = F3(
-	function (func, _v0, _v1) {
-		var genA = _v0.a;
-		var genB = _v1.a;
-		return $elm$random$Random$Generator(
-			function (seed0) {
-				var _v2 = genA(seed0);
-				var a = _v2.a;
-				var seed1 = _v2.b;
-				var _v3 = genB(seed1);
-				var b = _v3.a;
-				var seed2 = _v3.b;
-				return _Utils_Tuple2(
-					A2(func, a, b),
-					seed2);
-			});
-	});
-var $author$project$JazzPiano$possibleBars = function (signature) {
-	if (signature === 4) {
-		return _List_fromArray(
-			[
-				_List_fromArray(
-				[
-					_Utils_Tuple2(0, 0.33),
-					_Utils_Tuple2(1.66, 1.33)
-				]),
-				_List_fromArray(
-				[
-					_Utils_Tuple2(0.66, 0.33),
-					_Utils_Tuple2(2, 1.33)
-				]),
-				_List_fromArray(
-				[
-					_Utils_Tuple2(0.66, 0.33),
-					_Utils_Tuple2(2.66, 0.33)
-				]),
-				_List_fromArray(
-				[
-					_Utils_Tuple2(0, 2),
-					_Utils_Tuple2(2, 2)
-				])
-			]);
-	} else {
-		return _List_Nil;
-	}
-};
-var $elm$core$Basics$negate = function (n) {
-	return -n;
-};
-var $elm$core$Basics$abs = function (n) {
-	return (n < 0) ? (-n) : n;
-};
-var $elm$core$Bitwise$and = _Bitwise_and;
-var $elm$random$Random$Seed = F2(
-	function (a, b) {
-		return {$: 'Seed', a: a, b: b};
-	});
-var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
-var $elm$random$Random$next = function (_v0) {
-	var state0 = _v0.a;
-	var incr = _v0.b;
-	return A2($elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
-};
-var $elm$core$Bitwise$xor = _Bitwise_xor;
-var $elm$random$Random$peel = function (_v0) {
-	var state = _v0.a;
-	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
-	return ((word >>> 22) ^ word) >>> 0;
-};
-var $elm$random$Random$float = F2(
-	function (a, b) {
-		return $elm$random$Random$Generator(
-			function (seed0) {
-				var seed1 = $elm$random$Random$next(seed0);
-				var range = $elm$core$Basics$abs(b - a);
-				var n1 = $elm$random$Random$peel(seed1);
-				var n0 = $elm$random$Random$peel(seed0);
-				var lo = (134217727 & n1) * 1.0;
-				var hi = (67108863 & n0) * 1.0;
-				var val = ((hi * 134217728.0) + lo) / 9007199254740992.0;
-				var scaled = (val * range) + a;
-				return _Utils_Tuple2(
-					scaled,
-					$elm$random$Random$next(seed1));
-			});
-	});
-var $elm$random$Random$getByWeight = F3(
-	function (_v0, others, countdown) {
-		getByWeight:
-		while (true) {
-			var weight = _v0.a;
-			var value = _v0.b;
-			if (!others.b) {
-				return value;
-			} else {
-				var second = others.a;
-				var otherOthers = others.b;
-				if (_Utils_cmp(
-					countdown,
-					$elm$core$Basics$abs(weight)) < 1) {
-					return value;
-				} else {
-					var $temp$_v0 = second,
-						$temp$others = otherOthers,
-						$temp$countdown = countdown - $elm$core$Basics$abs(weight);
-					_v0 = $temp$_v0;
-					others = $temp$others;
-					countdown = $temp$countdown;
-					continue getByWeight;
-				}
-			}
-		}
-	});
-var $elm$core$List$sum = function (numbers) {
-	return A3($elm$core$List$foldl, $elm$core$Basics$add, 0, numbers);
-};
-var $elm$random$Random$weighted = F2(
-	function (first, others) {
-		var normalize = function (_v0) {
-			var weight = _v0.a;
-			return $elm$core$Basics$abs(weight);
-		};
-		var total = normalize(first) + $elm$core$List$sum(
-			A2($elm$core$List$map, normalize, others));
-		return A2(
-			$elm$random$Random$map,
-			A2($elm$random$Random$getByWeight, first, others),
-			A2($elm$random$Random$float, 0, total));
-	});
-var $author$project$JazzPiano$unif2 = F2(
-	function (a, la) {
-		return A2(
-			$elm$random$Random$weighted,
-			_Utils_Tuple2(0, a),
-			A2(
-				$elm$core$List$map,
-				function (x) {
-					return _Utils_Tuple2(1, x);
-				},
-				la));
-	});
-var $author$project$JazzPiano$genRhythm = F2(
-	function (signature, end) {
-		var barsTemplates = $author$project$JazzPiano$possibleBars(signature);
-		var pickbar = A2($author$project$JazzPiano$unif2, _List_Nil, barsTemplates);
-		var addbar = F2(
-			function (genlist, idbar) {
-				var pickbarmap = A2(
-					$elm$random$Random$map,
-					function (l) {
-						return A2(
-							$elm$core$List$map,
-							function (_v0) {
-								var o = _v0.a;
-								var d = _v0.b;
-								return _Utils_Tuple2(o + (idbar * signature), d);
-							},
-							l);
-					},
-					pickbar);
-				return A3(
-					$elm$random$Random$map2,
-					F2(
-						function (gl, pbm) {
-							return _Utils_ap(gl, pbm);
-						}),
-					genlist,
-					pickbarmap);
-			});
-		return A3(
-			$elm$core$List$foldl,
-			F2(
-				function (i, out) {
-					return A2(addbar, out, i);
-				}),
-			$elm$random$Random$constant(_List_Nil),
-			A2(
-				$elm$core$List$range,
-				0,
-				($elm$core$Basics$floor(end) / 4) | 0));
-	});
-var $elm$random$Random$Generate = function (a) {
-	return {$: 'Generate', a: a};
-};
-var $elm$random$Random$initialSeed = function (x) {
-	var _v0 = $elm$random$Random$next(
-		A2($elm$random$Random$Seed, 0, 1013904223));
-	var state1 = _v0.a;
-	var incr = _v0.b;
-	var state2 = (state1 + x) >>> 0;
-	return $elm$random$Random$next(
-		A2($elm$random$Random$Seed, state2, incr));
-};
-var $elm$time$Time$Name = function (a) {
-	return {$: 'Name', a: a};
-};
-var $elm$time$Time$Offset = function (a) {
-	return {$: 'Offset', a: a};
-};
-var $elm$time$Time$Zone = F2(
-	function (a, b) {
-		return {$: 'Zone', a: a, b: b};
-	});
-var $elm$time$Time$customZone = $elm$time$Time$Zone;
-var $elm$time$Time$Posix = function (a) {
-	return {$: 'Posix', a: a};
-};
-var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
-var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
-var $elm$time$Time$posixToMillis = function (_v0) {
-	var millis = _v0.a;
-	return millis;
-};
-var $elm$random$Random$init = A2(
-	$elm$core$Task$andThen,
-	function (time) {
-		return $elm$core$Task$succeed(
-			$elm$random$Random$initialSeed(
-				$elm$time$Time$posixToMillis(time)));
-	},
-	$elm$time$Time$now);
-var $elm$random$Random$step = F2(
-	function (_v0, seed) {
-		var generator = _v0.a;
-		return generator(seed);
-	});
-var $elm$random$Random$onEffects = F3(
-	function (router, commands, seed) {
-		if (!commands.b) {
-			return $elm$core$Task$succeed(seed);
-		} else {
-			var generator = commands.a.a;
-			var rest = commands.b;
-			var _v1 = A2($elm$random$Random$step, generator, seed);
-			var value = _v1.a;
-			var newSeed = _v1.b;
-			return A2(
-				$elm$core$Task$andThen,
-				function (_v2) {
-					return A3($elm$random$Random$onEffects, router, rest, newSeed);
-				},
-				A2($elm$core$Platform$sendToApp, router, value));
-		}
-	});
-var $elm$random$Random$onSelfMsg = F3(
-	function (_v0, _v1, seed) {
-		return $elm$core$Task$succeed(seed);
-	});
-var $elm$random$Random$cmdMap = F2(
-	function (func, _v0) {
-		var generator = _v0.a;
-		return $elm$random$Random$Generate(
-			A2($elm$random$Random$map, func, generator));
-	});
-_Platform_effectManagers['Random'] = _Platform_createManager($elm$random$Random$init, $elm$random$Random$onEffects, $elm$random$Random$onSelfMsg, $elm$random$Random$cmdMap);
-var $elm$random$Random$command = _Platform_leaf('Random');
-var $elm$random$Random$generate = F2(
-	function (tagger, generator) {
-		return $elm$random$Random$command(
-			$elm$random$Random$Generate(
-				A2($elm$random$Random$map, tagger, generator)));
-	});
-var $author$project$PlayerPage$initCmd = A2(
-	$elm$random$Random$generate,
-	$author$project$PlayerPage$DebugGenerated,
-	A2($author$project$JazzPiano$genRhythm, 4, 64));
-var $elm$core$Platform$Cmd$map = _Platform_map;
-var $author$project$Main$init = function (_v0) {
-	return _Utils_Tuple2(
-		{curPage: $author$project$Main$Library, dialogBox: $elm$core$Maybe$Nothing, editorModel: $author$project$Editor$init, libraryModel: $author$project$Library$init, playerModel: $author$project$PlayerPage$init},
-		A2(
-			$elm$core$Platform$Cmd$map,
-			function (sm) {
-				return $author$project$Main$PpEvent(sm);
-			},
-			$author$project$PlayerPage$initCmd));
-};
-var $author$project$PlayerPage$SeqFinished = {$: 'SeqFinished'};
-var $author$project$Main$SetCursor = function (a) {
-	return {$: 'SetCursor', a: a};
-};
-var $elm$core$Basics$always = F2(
-	function (a, _v0) {
-		return a;
-	});
-var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$json$Json$Decode$float = _Json_decodeFloat;
-var $author$project$Tune$cursorChanged = _Platform_incomingPort('cursorChanged', $elm$json$Json$Decode$float);
-var $elm$json$Json$Decode$null = _Json_decodeNull;
-var $author$project$Tune$sequenceFinished = _Platform_incomingPort(
-	'sequenceFinished',
-	$elm$json$Json$Decode$null(_Utils_Tuple0));
-var $author$project$Main$subscriptions = function (model) {
-	return $elm$core$Platform$Sub$batch(
-		_List_fromArray(
-			[
-				$author$project$Tune$cursorChanged($author$project$Main$SetCursor),
-				$author$project$Tune$sequenceFinished(
-				$elm$core$Basics$always(
-					$author$project$Main$PpEvent($author$project$PlayerPage$SeqFinished)))
-			]));
-};
-var $author$project$Editor$ConfirmQuit = {$: 'ConfirmQuit'};
-var $author$project$Main$Editor = {$: 'Editor'};
-var $author$project$Main$EditorEvent = function (a) {
-	return {$: 'EditorEvent', a: a};
-};
-var $author$project$Main$Player = {$: 'Player'};
-var $author$project$Main$ResetDialog = {$: 'ResetDialog'};
-var $elm$core$String$cons = _String_cons;
-var $elm$core$String$foldr = _String_foldr;
-var $author$project$Library$escape = function (s) {
-	return A3(
-		$elm$core$String$foldr,
-		F2(
-			function (c, t) {
-				return _Utils_eq(
-					c,
-					_Utils_chr('-')) ? ('\\-' + t) : A2($elm$core$String$cons, c, t);
-			}),
-		'',
-		s);
-};
 var $author$project$Library$addSong = F2(
 	function (m, s) {
-		var key = $author$project$Library$escape(s.title) + ('--' + $author$project$Library$escape(s.composer));
-		return A3($elm$core$Dict$insert, key, s, m);
+		return A3(
+			$elm$core$Dict$insert,
+			$author$project$Library$getKey(s),
+			s,
+			m);
 	});
+var $author$project$Library$addSong2db = _Platform_outgoingPort('addSong2db', $elm$core$Basics$identity);
 var $author$project$PlayerPage$asChordProgIn = F2(
 	function (s, cp) {
 		return _Utils_update(
@@ -6043,6 +5778,136 @@ var $author$project$Editor$chordprog2grid = function (model) {
 var $author$project$PlayerPage$SequenceGenerated = function (a) {
 	return {$: 'SequenceGenerated', a: a};
 };
+var $elm$random$Random$Generate = function (a) {
+	return {$: 'Generate', a: a};
+};
+var $elm$random$Random$Seed = F2(
+	function (a, b) {
+		return {$: 'Seed', a: a, b: b};
+	});
+var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
+var $elm$random$Random$next = function (_v0) {
+	var state0 = _v0.a;
+	var incr = _v0.b;
+	return A2($elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
+};
+var $elm$random$Random$initialSeed = function (x) {
+	var _v0 = $elm$random$Random$next(
+		A2($elm$random$Random$Seed, 0, 1013904223));
+	var state1 = _v0.a;
+	var incr = _v0.b;
+	var state2 = (state1 + x) >>> 0;
+	return $elm$random$Random$next(
+		A2($elm$random$Random$Seed, state2, incr));
+};
+var $elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var $elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$customZone = $elm$time$Time$Zone;
+var $elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$random$Random$init = A2(
+	$elm$core$Task$andThen,
+	function (time) {
+		return $elm$core$Task$succeed(
+			$elm$random$Random$initialSeed(
+				$elm$time$Time$posixToMillis(time)));
+	},
+	$elm$time$Time$now);
+var $elm$random$Random$step = F2(
+	function (_v0, seed) {
+		var generator = _v0.a;
+		return generator(seed);
+	});
+var $elm$random$Random$onEffects = F3(
+	function (router, commands, seed) {
+		if (!commands.b) {
+			return $elm$core$Task$succeed(seed);
+		} else {
+			var generator = commands.a.a;
+			var rest = commands.b;
+			var _v1 = A2($elm$random$Random$step, generator, seed);
+			var value = _v1.a;
+			var newSeed = _v1.b;
+			return A2(
+				$elm$core$Task$andThen,
+				function (_v2) {
+					return A3($elm$random$Random$onEffects, router, rest, newSeed);
+				},
+				A2($elm$core$Platform$sendToApp, router, value));
+		}
+	});
+var $elm$random$Random$onSelfMsg = F3(
+	function (_v0, _v1, seed) {
+		return $elm$core$Task$succeed(seed);
+	});
+var $elm$random$Random$Generator = function (a) {
+	return {$: 'Generator', a: a};
+};
+var $elm$random$Random$map = F2(
+	function (func, _v0) {
+		var genA = _v0.a;
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v1 = genA(seed0);
+				var a = _v1.a;
+				var seed1 = _v1.b;
+				return _Utils_Tuple2(
+					func(a),
+					seed1);
+			});
+	});
+var $elm$random$Random$cmdMap = F2(
+	function (func, _v0) {
+		var generator = _v0.a;
+		return $elm$random$Random$Generate(
+			A2($elm$random$Random$map, func, generator));
+	});
+_Platform_effectManagers['Random'] = _Platform_createManager($elm$random$Random$init, $elm$random$Random$onEffects, $elm$random$Random$onSelfMsg, $elm$random$Random$cmdMap);
+var $elm$random$Random$command = _Platform_leaf('Random');
+var $elm$random$Random$generate = F2(
+	function (tagger, generator) {
+		return $elm$random$Random$command(
+			$elm$random$Random$Generate(
+				A2($elm$random$Random$map, tagger, generator)));
+	});
+var $elm$random$Random$constant = function (value) {
+	return $elm$random$Random$Generator(
+		function (seed) {
+			return _Utils_Tuple2(value, seed);
+		});
+};
+var $elm$random$Random$map2 = F3(
+	function (func, _v0, _v1) {
+		var genA = _v0.a;
+		var genB = _v1.a;
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v2 = genA(seed0);
+				var a = _v2.a;
+				var seed1 = _v2.b;
+				var _v3 = genB(seed1);
+				var b = _v3.a;
+				var seed2 = _v3.b;
+				return _Utils_Tuple2(
+					A2(func, a, b),
+					seed2);
+			});
+	});
 var $author$project$Generator$mergeSeqGenerators = F3(
 	function (l, cp, signature) {
 		return A3(
@@ -6075,6 +5940,16 @@ var $elm$random$Random$andThen = F2(
 				return genB(newSeed);
 			});
 	});
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $elm$core$Bitwise$xor = _Bitwise_xor;
+var $elm$random$Random$peel = function (_v0) {
+	var state = _v0.a;
+	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
+	return ((word >>> 22) ^ word) >>> 0;
+};
 var $elm$random$Random$int = F2(
 	function (a, b) {
 		return $elm$random$Random$Generator(
@@ -6274,6 +6149,18 @@ var $author$project$JazzBass$addApproach = F2(
 var $TSFoster$elm_tuple_extra$Tuple3$first = function (_v0) {
 	var a = _v0.a;
 	return a;
+};
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
 };
 var $author$project$JazzBass$listGen2GenList = function (l) {
 	return A3(
@@ -6571,6 +6458,368 @@ var $author$project$JazzBass$fondaOnChange = function (cp) {
 		$elm$core$Dict$empty,
 		cp.chords);
 };
+var $elm$core$Dict$getMin = function (dict) {
+	getMin:
+	while (true) {
+		if ((dict.$ === 'RBNode_elm_builtin') && (dict.d.$ === 'RBNode_elm_builtin')) {
+			var left = dict.d;
+			var $temp$dict = left;
+			dict = $temp$dict;
+			continue getMin;
+		} else {
+			return dict;
+		}
+	}
+};
+var $elm$core$Dict$moveRedLeft = function (dict) {
+	if (((dict.$ === 'RBNode_elm_builtin') && (dict.d.$ === 'RBNode_elm_builtin')) && (dict.e.$ === 'RBNode_elm_builtin')) {
+		if ((dict.e.d.$ === 'RBNode_elm_builtin') && (dict.e.d.a.$ === 'Red')) {
+			var clr = dict.a;
+			var k = dict.b;
+			var v = dict.c;
+			var _v1 = dict.d;
+			var lClr = _v1.a;
+			var lK = _v1.b;
+			var lV = _v1.c;
+			var lLeft = _v1.d;
+			var lRight = _v1.e;
+			var _v2 = dict.e;
+			var rClr = _v2.a;
+			var rK = _v2.b;
+			var rV = _v2.c;
+			var rLeft = _v2.d;
+			var _v3 = rLeft.a;
+			var rlK = rLeft.b;
+			var rlV = rLeft.c;
+			var rlL = rLeft.d;
+			var rlR = rLeft.e;
+			var rRight = _v2.e;
+			return A5(
+				$elm$core$Dict$RBNode_elm_builtin,
+				$elm$core$Dict$Red,
+				rlK,
+				rlV,
+				A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Black,
+					k,
+					v,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, lK, lV, lLeft, lRight),
+					rlL),
+				A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, rK, rV, rlR, rRight));
+		} else {
+			var clr = dict.a;
+			var k = dict.b;
+			var v = dict.c;
+			var _v4 = dict.d;
+			var lClr = _v4.a;
+			var lK = _v4.b;
+			var lV = _v4.c;
+			var lLeft = _v4.d;
+			var lRight = _v4.e;
+			var _v5 = dict.e;
+			var rClr = _v5.a;
+			var rK = _v5.b;
+			var rV = _v5.c;
+			var rLeft = _v5.d;
+			var rRight = _v5.e;
+			if (clr.$ === 'Black') {
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Black,
+					k,
+					v,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, lK, lV, lLeft, lRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, rK, rV, rLeft, rRight));
+			} else {
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Black,
+					k,
+					v,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, lK, lV, lLeft, lRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, rK, rV, rLeft, rRight));
+			}
+		}
+	} else {
+		return dict;
+	}
+};
+var $elm$core$Dict$moveRedRight = function (dict) {
+	if (((dict.$ === 'RBNode_elm_builtin') && (dict.d.$ === 'RBNode_elm_builtin')) && (dict.e.$ === 'RBNode_elm_builtin')) {
+		if ((dict.d.d.$ === 'RBNode_elm_builtin') && (dict.d.d.a.$ === 'Red')) {
+			var clr = dict.a;
+			var k = dict.b;
+			var v = dict.c;
+			var _v1 = dict.d;
+			var lClr = _v1.a;
+			var lK = _v1.b;
+			var lV = _v1.c;
+			var _v2 = _v1.d;
+			var _v3 = _v2.a;
+			var llK = _v2.b;
+			var llV = _v2.c;
+			var llLeft = _v2.d;
+			var llRight = _v2.e;
+			var lRight = _v1.e;
+			var _v4 = dict.e;
+			var rClr = _v4.a;
+			var rK = _v4.b;
+			var rV = _v4.c;
+			var rLeft = _v4.d;
+			var rRight = _v4.e;
+			return A5(
+				$elm$core$Dict$RBNode_elm_builtin,
+				$elm$core$Dict$Red,
+				lK,
+				lV,
+				A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, llK, llV, llLeft, llRight),
+				A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Black,
+					k,
+					v,
+					lRight,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, rK, rV, rLeft, rRight)));
+		} else {
+			var clr = dict.a;
+			var k = dict.b;
+			var v = dict.c;
+			var _v5 = dict.d;
+			var lClr = _v5.a;
+			var lK = _v5.b;
+			var lV = _v5.c;
+			var lLeft = _v5.d;
+			var lRight = _v5.e;
+			var _v6 = dict.e;
+			var rClr = _v6.a;
+			var rK = _v6.b;
+			var rV = _v6.c;
+			var rLeft = _v6.d;
+			var rRight = _v6.e;
+			if (clr.$ === 'Black') {
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Black,
+					k,
+					v,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, lK, lV, lLeft, lRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, rK, rV, rLeft, rRight));
+			} else {
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Black,
+					k,
+					v,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, lK, lV, lLeft, lRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, rK, rV, rLeft, rRight));
+			}
+		}
+	} else {
+		return dict;
+	}
+};
+var $elm$core$Dict$removeHelpPrepEQGT = F7(
+	function (targetKey, dict, color, key, value, left, right) {
+		if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
+			var _v1 = left.a;
+			var lK = left.b;
+			var lV = left.c;
+			var lLeft = left.d;
+			var lRight = left.e;
+			return A5(
+				$elm$core$Dict$RBNode_elm_builtin,
+				color,
+				lK,
+				lV,
+				lLeft,
+				A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, lRight, right));
+		} else {
+			_v2$2:
+			while (true) {
+				if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Black')) {
+					if (right.d.$ === 'RBNode_elm_builtin') {
+						if (right.d.a.$ === 'Black') {
+							var _v3 = right.a;
+							var _v4 = right.d;
+							var _v5 = _v4.a;
+							return $elm$core$Dict$moveRedRight(dict);
+						} else {
+							break _v2$2;
+						}
+					} else {
+						var _v6 = right.a;
+						var _v7 = right.d;
+						return $elm$core$Dict$moveRedRight(dict);
+					}
+				} else {
+					break _v2$2;
+				}
+			}
+			return dict;
+		}
+	});
+var $elm$core$Dict$removeMin = function (dict) {
+	if ((dict.$ === 'RBNode_elm_builtin') && (dict.d.$ === 'RBNode_elm_builtin')) {
+		var color = dict.a;
+		var key = dict.b;
+		var value = dict.c;
+		var left = dict.d;
+		var lColor = left.a;
+		var lLeft = left.d;
+		var right = dict.e;
+		if (lColor.$ === 'Black') {
+			if ((lLeft.$ === 'RBNode_elm_builtin') && (lLeft.a.$ === 'Red')) {
+				var _v3 = lLeft.a;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					color,
+					key,
+					value,
+					$elm$core$Dict$removeMin(left),
+					right);
+			} else {
+				var _v4 = $elm$core$Dict$moveRedLeft(dict);
+				if (_v4.$ === 'RBNode_elm_builtin') {
+					var nColor = _v4.a;
+					var nKey = _v4.b;
+					var nValue = _v4.c;
+					var nLeft = _v4.d;
+					var nRight = _v4.e;
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						$elm$core$Dict$removeMin(nLeft),
+						nRight);
+				} else {
+					return $elm$core$Dict$RBEmpty_elm_builtin;
+				}
+			}
+		} else {
+			return A5(
+				$elm$core$Dict$RBNode_elm_builtin,
+				color,
+				key,
+				value,
+				$elm$core$Dict$removeMin(left),
+				right);
+		}
+	} else {
+		return $elm$core$Dict$RBEmpty_elm_builtin;
+	}
+};
+var $elm$core$Dict$removeHelp = F2(
+	function (targetKey, dict) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return $elm$core$Dict$RBEmpty_elm_builtin;
+		} else {
+			var color = dict.a;
+			var key = dict.b;
+			var value = dict.c;
+			var left = dict.d;
+			var right = dict.e;
+			if (_Utils_cmp(targetKey, key) < 0) {
+				if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Black')) {
+					var _v4 = left.a;
+					var lLeft = left.d;
+					if ((lLeft.$ === 'RBNode_elm_builtin') && (lLeft.a.$ === 'Red')) {
+						var _v6 = lLeft.a;
+						return A5(
+							$elm$core$Dict$RBNode_elm_builtin,
+							color,
+							key,
+							value,
+							A2($elm$core$Dict$removeHelp, targetKey, left),
+							right);
+					} else {
+						var _v7 = $elm$core$Dict$moveRedLeft(dict);
+						if (_v7.$ === 'RBNode_elm_builtin') {
+							var nColor = _v7.a;
+							var nKey = _v7.b;
+							var nValue = _v7.c;
+							var nLeft = _v7.d;
+							var nRight = _v7.e;
+							return A5(
+								$elm$core$Dict$balance,
+								nColor,
+								nKey,
+								nValue,
+								A2($elm$core$Dict$removeHelp, targetKey, nLeft),
+								nRight);
+						} else {
+							return $elm$core$Dict$RBEmpty_elm_builtin;
+						}
+					}
+				} else {
+					return A5(
+						$elm$core$Dict$RBNode_elm_builtin,
+						color,
+						key,
+						value,
+						A2($elm$core$Dict$removeHelp, targetKey, left),
+						right);
+				}
+			} else {
+				return A2(
+					$elm$core$Dict$removeHelpEQGT,
+					targetKey,
+					A7($elm$core$Dict$removeHelpPrepEQGT, targetKey, dict, color, key, value, left, right));
+			}
+		}
+	});
+var $elm$core$Dict$removeHelpEQGT = F2(
+	function (targetKey, dict) {
+		if (dict.$ === 'RBNode_elm_builtin') {
+			var color = dict.a;
+			var key = dict.b;
+			var value = dict.c;
+			var left = dict.d;
+			var right = dict.e;
+			if (_Utils_eq(targetKey, key)) {
+				var _v1 = $elm$core$Dict$getMin(right);
+				if (_v1.$ === 'RBNode_elm_builtin') {
+					var minKey = _v1.b;
+					var minValue = _v1.c;
+					return A5(
+						$elm$core$Dict$balance,
+						color,
+						minKey,
+						minValue,
+						left,
+						$elm$core$Dict$removeMin(right));
+				} else {
+					return $elm$core$Dict$RBEmpty_elm_builtin;
+				}
+			} else {
+				return A5(
+					$elm$core$Dict$balance,
+					color,
+					key,
+					value,
+					left,
+					A2($elm$core$Dict$removeHelp, targetKey, right));
+			}
+		} else {
+			return $elm$core$Dict$RBEmpty_elm_builtin;
+		}
+	});
+var $elm$core$Dict$remove = F2(
+	function (key, dict) {
+		var _v0 = A2($elm$core$Dict$removeHelp, key, dict);
+		if ((_v0.$ === 'RBNode_elm_builtin') && (_v0.a.$ === 'Red')) {
+			var _v1 = _v0.a;
+			var k = _v0.b;
+			var v = _v0.c;
+			var l = _v0.d;
+			var r = _v0.e;
+			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, k, v, l, r);
+		} else {
+			var x = _v0;
+			return x;
+		}
+	});
 var $author$project$JazzBass$bassLineGenerator = F2(
 	function (cp, signature) {
 		var basslineNoFill = A2(
@@ -6582,14 +6831,21 @@ var $author$project$JazzBass$bassLineGenerator = F2(
 				signature),
 			$elm$core$Basics$floor(cp.end));
 		return A2(
-			$author$project$JazzBass$addFill,
-			basslineNoFill,
-			A2($author$project$JazzBass$fillBarsRec, cp, signature));
+			$elm$random$Random$map,
+			$elm$core$Dict$remove(
+				$elm$core$Basics$floor(cp.end)),
+			A2(
+				$author$project$JazzBass$addFill,
+				basslineNoFill,
+				A2($author$project$JazzBass$fillBarsRec, cp, signature)));
 	});
 var $author$project$Tune$Event = F5(
 	function (time, onset, pitch, instrument, gain) {
 		return {gain: gain, instrument: instrument, onset: onset, pitch: pitch, time: time};
 	});
+var $elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
+};
 var $elm$core$Basics$min = F2(
 	function (x, y) {
 		return (_Utils_cmp(x, y) < 0) ? x : y;
@@ -6660,37 +6916,48 @@ var $author$project$JazzBass$sequenceGenerator = F2(
 			$author$project$JazzBass$basslineToSequence,
 			A2($author$project$JazzBass$bassLineGenerator, cp, signature));
 	});
-var $author$project$JazzDrums$chabada = function (end) {
-	return A2(
-		$elm$core$List$concatMap,
-		function (i) {
-			var fb = i;
-			return _List_fromArray(
-				[
-					A5($author$project$Tune$Event, fb, true, 2, 'drums', 0.5),
-					A5($author$project$Tune$Event, fb + 1, true, 2, 'drums', 0.5),
-					A5($author$project$Tune$Event, fb + 1, true, 3, 'drums', 1),
-					A5($author$project$Tune$Event, fb + 1.66, true, 2, 'drums', 0.7),
-					A5($author$project$Tune$Event, fb + 2, true, 2, 'drums', 0.5),
-					A5($author$project$Tune$Event, fb + 3, true, 2, 'drums', 0.5),
-					A5($author$project$Tune$Event, fb + 3, true, 3, 'drums', 1),
-					A5($author$project$Tune$Event, fb + 3.66, true, 2, 'drums', 0.7)
-				]);
-		},
-		A2(
-			$elm$core$List$map,
-			$elm$core$Basics$mul(4),
+var $author$project$JazzDrums$chabada = F2(
+	function (end, beatsPerBar) {
+		return A2(
+			$elm$core$List$concatMap,
+			function (i) {
+				var fb = i;
+				return _Utils_ap(
+					_List_fromArray(
+						[
+							A5($author$project$Tune$Event, fb, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 1, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 1, true, 3, 'drums', 1),
+							A5($author$project$Tune$Event, fb + 1.66, true, 2, 'drums', 0.7),
+							A5($author$project$Tune$Event, fb + 2, true, 2, 'drums', 0.5)
+						]),
+					(beatsPerBar > 3) ? _Utils_ap(
+						_List_fromArray(
+							[
+								A5($author$project$Tune$Event, fb + 3, true, 2, 'drums', 0.5),
+								A5($author$project$Tune$Event, fb + 3, true, 3, 'drums', 1),
+								A5($author$project$Tune$Event, fb + 3.66, true, 2, 'drums', 0.7)
+							]),
+						(beatsPerBar > 4) ? _List_fromArray(
+							[
+								A5($author$project$Tune$Event, fb + 3, true, 2, 'drums', 0.5)
+							]) : _List_Nil) : _List_Nil);
+			},
 			A2(
-				$elm$core$List$range,
-				0,
-				$elm$core$Basics$floor((end - 1) / 4))));
-};
-var $author$project$JazzDrums$chabadaCrash = function (end) {
-	return A2(
-		$elm$core$List$cons,
-		A5($author$project$Tune$Event, 0, true, 5, 'drums', 1),
-		$author$project$JazzDrums$chabada(end));
-};
+				$elm$core$List$map,
+				$elm$core$Basics$mul(beatsPerBar),
+				A2(
+					$elm$core$List$range,
+					0,
+					$elm$core$Basics$floor((end - 1) / beatsPerBar))));
+	});
+var $author$project$JazzDrums$chabadaCrash = F2(
+	function (end, beatsPerBar) {
+		return A2(
+			$elm$core$List$cons,
+			A5($author$project$Tune$Event, 0, true, 5, 'drums', 1),
+			A2($author$project$JazzDrums$chabada, end, beatsPerBar));
+	});
 var $elm$core$List$maybeCons = F3(
 	function (f, mx, xs) {
 		var _v0 = f(mx);
@@ -6782,6 +7049,23 @@ var $elm$random$Random$map3 = F4(
 					seed3);
 			});
 	});
+var $elm$random$Random$float = F2(
+	function (a, b) {
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var seed1 = $elm$random$Random$next(seed0);
+				var range = $elm$core$Basics$abs(b - a);
+				var n1 = $elm$random$Random$peel(seed1);
+				var n0 = $elm$random$Random$peel(seed0);
+				var lo = (134217727 & n1) * 1.0;
+				var hi = (67108863 & n0) * 1.0;
+				var val = ((hi * 134217728.0) + lo) / 9007199254740992.0;
+				var scaled = (val * range) + a;
+				return _Utils_Tuple2(
+					scaled,
+					$elm$random$Random$next(seed1));
+			});
+	});
 var $elm$random$Random$listHelp = F4(
 	function (revList, n, gen, seed) {
 		listHelp:
@@ -6830,7 +7114,7 @@ var $author$project$JazzDrums$randomShots = F2(
 				A2($elm$random$Random$float, 0, 1)));
 	});
 var $author$project$JazzDrums$sequenceGenerator = F2(
-	function (cp, _v0) {
+	function (cp, beatsPerBar) {
 		var n = $elm$core$Basics$floor(cp.end);
 		var shotGen = A2($author$project$JazzDrums$randomShots, 0.2, 2 * n);
 		var snare = A2(
@@ -6856,7 +7140,131 @@ var $author$project$JazzDrums$sequenceGenerator = F2(
 			snare,
 			kick,
 			$elm$random$Random$constant(
-				$author$project$JazzDrums$chabadaCrash(cp.end)));
+				A2($author$project$JazzDrums$chabadaCrash, cp.end, beatsPerBar)));
+	});
+var $author$project$JazzPiano$possibleBars = function (signature) {
+	if (signature === 4) {
+		return _List_fromArray(
+			[
+				_List_fromArray(
+				[
+					_Utils_Tuple2(0, 0.33),
+					_Utils_Tuple2(1.66, 1.33)
+				]),
+				_List_fromArray(
+				[
+					_Utils_Tuple2(0.66, 0.33),
+					_Utils_Tuple2(2, 1.33)
+				]),
+				_List_fromArray(
+				[
+					_Utils_Tuple2(0.66, 0.33),
+					_Utils_Tuple2(2.66, 0.33)
+				]),
+				_List_fromArray(
+				[
+					_Utils_Tuple2(0, 2),
+					_Utils_Tuple2(2, 2)
+				])
+			]);
+	} else {
+		return _List_Nil;
+	}
+};
+var $elm$random$Random$getByWeight = F3(
+	function (_v0, others, countdown) {
+		getByWeight:
+		while (true) {
+			var weight = _v0.a;
+			var value = _v0.b;
+			if (!others.b) {
+				return value;
+			} else {
+				var second = others.a;
+				var otherOthers = others.b;
+				if (_Utils_cmp(
+					countdown,
+					$elm$core$Basics$abs(weight)) < 1) {
+					return value;
+				} else {
+					var $temp$_v0 = second,
+						$temp$others = otherOthers,
+						$temp$countdown = countdown - $elm$core$Basics$abs(weight);
+					_v0 = $temp$_v0;
+					others = $temp$others;
+					countdown = $temp$countdown;
+					continue getByWeight;
+				}
+			}
+		}
+	});
+var $elm$core$List$sum = function (numbers) {
+	return A3($elm$core$List$foldl, $elm$core$Basics$add, 0, numbers);
+};
+var $elm$random$Random$weighted = F2(
+	function (first, others) {
+		var normalize = function (_v0) {
+			var weight = _v0.a;
+			return $elm$core$Basics$abs(weight);
+		};
+		var total = normalize(first) + $elm$core$List$sum(
+			A2($elm$core$List$map, normalize, others));
+		return A2(
+			$elm$random$Random$map,
+			A2($elm$random$Random$getByWeight, first, others),
+			A2($elm$random$Random$float, 0, total));
+	});
+var $author$project$JazzPiano$unif2 = F2(
+	function (a, la) {
+		return A2(
+			$elm$random$Random$weighted,
+			_Utils_Tuple2(0, a),
+			A2(
+				$elm$core$List$map,
+				function (x) {
+					return _Utils_Tuple2(1, x);
+				},
+				la));
+	});
+var $author$project$JazzPiano$genRhythm = F2(
+	function (signature, end) {
+		var barsTemplates = $author$project$JazzPiano$possibleBars(signature);
+		var pickbar = A2($author$project$JazzPiano$unif2, _List_Nil, barsTemplates);
+		var addbar = F2(
+			function (genlist, idbar) {
+				var pickbarmap = A2(
+					$elm$random$Random$map,
+					function (l) {
+						return A2(
+							$elm$core$List$map,
+							function (_v0) {
+								var o = _v0.a;
+								var d = _v0.b;
+								return _Utils_Tuple2(o + (idbar * signature), d);
+							},
+							l);
+					},
+					pickbar);
+				return A3(
+					$elm$random$Random$map2,
+					F2(
+						function (gl, pbm) {
+							return _Utils_ap(gl, pbm);
+						}),
+					genlist,
+					pickbarmap);
+			});
+		return A3(
+			$elm$core$List$foldl,
+			F2(
+				function (i, out) {
+					return A2(addbar, out, i);
+				}),
+			$elm$random$Random$constant(_List_Nil),
+			A2(
+				$elm$core$List$range,
+				0,
+				($elm$core$Basics$floor(end) / 4) | 0));
 	});
 var $author$project$Generator$Dominant = {$: 'Dominant'};
 var $author$project$Generator$Major = {$: 'Major'};
@@ -6940,12 +7348,15 @@ var $author$project$JazzPiano$populateRhythm = F2(
 					var onset = _v3.onset;
 					var duration = _v3.duration;
 					var chord = _v3.chord;
-					return A2(
-						$elm$random$Random$map,
-						function (c) {
-							return {chord: c, duration: duration, onset: onset};
-						},
-						chord);
+					var volume = _v3.volume;
+					return A3(
+						$elm$random$Random$map2,
+						F2(
+							function (c, v) {
+								return {chord: c, duration: duration, onset: onset, volume: v};
+							}),
+						chord,
+						volume);
 				},
 				A2(
 					$elm$core$List$filter,
@@ -6959,6 +7370,7 @@ var $author$project$JazzPiano$populateRhythm = F2(
 						function (_v0) {
 							var onset = _v0.a;
 							var duration = _v0.b;
+							var volume = A2($elm$random$Random$float, 0.05, 0.2);
 							var chord = A2($author$project$Generator$getChordAt, cp, onset + 0.4);
 							var voicing = A2(
 								$author$project$JazzPiano$unif2,
@@ -6982,7 +7394,7 @@ var $author$project$JazzPiano$populateRhythm = F2(
 											funcs));
 								},
 								voicing);
-							return {chord: notes, duration: duration, onset: onset};
+							return {chord: notes, duration: duration, onset: onset, volume: volume};
 						},
 						l))));
 	});
@@ -6997,12 +7409,13 @@ var $author$project$JazzPiano$sequenceGenerator = F2(
 						var onset = _v0.onset;
 						var duration = _v0.duration;
 						var chord = _v0.chord;
+						var volume = _v0.volume;
 						return A2(
 							$elm$core$List$concatMap,
 							function (p) {
 								return _List_fromArray(
 									[
-										A5($author$project$Tune$Event, onset, true, p, 'piano', 0.05),
+										A5($author$project$Tune$Event, onset, true, p, 'piano', volume),
 										A5($author$project$Tune$Event, onset + duration, false, p, 'piano', 0.1)
 									]);
 							},
@@ -7069,18 +7482,43 @@ var $author$project$Editor$grid2chordprog = function (g) {
 	var chords = A2(foldrec, glist, 0);
 	return {chords: chords, end: end};
 };
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$resetDialog = function (m) {
 	return _Utils_update(
 		m,
 		{dialogBox: $elm$core$Maybe$Nothing});
 };
+var $author$project$PlayerPage$setBeatsPerBar = F2(
+	function (i, s) {
+		return _Utils_update(
+			s,
+			{beatsPerBar: i});
+	});
+var $author$project$PlayerPage$setBpm = F2(
+	function (t, sm) {
+		return _Utils_update(
+			sm,
+			{bpm: t});
+	});
+var $elm$json$Json$Encode$float = _Json_wrap;
+var $author$project$Tune$setBpm = _Platform_outgoingPort('setBpm', $elm$json$Json$Encode$float);
 var $author$project$PlayerPage$setComposer = F2(
 	function (c, s) {
 		return _Utils_update(
 			s,
 			{composer: c});
+	});
+var $author$project$PlayerPage$setCursor = F2(
+	function (c, sm) {
+		return _Utils_update(
+			sm,
+			{cursor: c});
+	});
+var $author$project$Tune$setCursor = _Platform_outgoingPort('setCursor', $elm$json$Json$Encode$float);
+var $author$project$PlayerPage$setDefTempo = F2(
+	function (t, s) {
+		return _Utils_update(
+			s,
+			{defaultTempo: t});
 	});
 var $author$project$Main$setLibrary = F2(
 	function (l, m) {
@@ -7098,6 +7536,153 @@ var $author$project$PlayerPage$setTitle = F2(
 	function (t, s) {
 		return A2($author$project$PlayerPage$asTitleIn, s, t);
 	});
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$json$Json$Encode$list = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				$elm$core$List$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
+var $author$project$Library$note2str = function (n) {
+	var name = function () {
+		var _v1 = n.name;
+		switch (_v1.$) {
+			case 'C':
+				return 'C';
+			case 'D':
+				return 'D';
+			case 'E':
+				return 'E';
+			case 'F':
+				return 'F';
+			case 'G':
+				return 'G';
+			case 'A':
+				return 'A';
+			default:
+				return 'B';
+		}
+	}();
+	var alt = function () {
+		var _v0 = n.alt;
+		switch (_v0.$) {
+			case 'Natural':
+				return 'N';
+			case 'Flat':
+				return 'F';
+			default:
+				return 'S';
+		}
+	}();
+	return _Utils_ap(name, alt);
+};
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Library$type2str = function (ct) {
+	switch (ct.$) {
+		case 'Dom7':
+			return 'Dom7';
+		case 'Min7':
+			return '-7';
+		case 'Maj7':
+			return 'Maj7';
+		case 'Alt7':
+			return '7alt';
+		case 'Dom7b9':
+			return '7b9';
+		case 'Dom7s5':
+			return '7s5';
+		case 'Min7b5':
+			return '-7b5';
+		case 'Dim':
+			return 'dim';
+		case 'MinMaj':
+			return 'minmaj';
+		case 'Maj7s5':
+			return 'maj7s5';
+		default:
+			return 'NA';
+	}
+};
+var $author$project$Library$song2json = function (song) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'key',
+				$elm$json$Json$Encode$string(
+					$author$project$Library$getKey(song))),
+				_Utils_Tuple2(
+				'title',
+				$elm$json$Json$Encode$string(song.title)),
+				_Utils_Tuple2(
+				'composer',
+				$elm$json$Json$Encode$string(song.composer)),
+				_Utils_Tuple2(
+				'beatsPerBar',
+				$elm$json$Json$Encode$int(song.beatsPerBar)),
+				_Utils_Tuple2(
+				'defaultTempo',
+				$elm$json$Json$Encode$float(song.defaultTempo)),
+				_Utils_Tuple2(
+				'style',
+				$elm$json$Json$Encode$string('Bop')),
+				_Utils_Tuple2(
+				'chordProg',
+				$elm$json$Json$Encode$object(
+					_List_fromArray(
+						[
+							_Utils_Tuple2(
+							'chords',
+							A2(
+								$elm$json$Json$Encode$list,
+								function (_v0) {
+									var time = _v0.time;
+									var chord = _v0.chord;
+									return $elm$json$Json$Encode$object(
+										_List_fromArray(
+											[
+												_Utils_Tuple2(
+												'time',
+												$elm$json$Json$Encode$float(time)),
+												_Utils_Tuple2(
+												'chord',
+												$elm$json$Json$Encode$object(
+													_List_fromArray(
+														[
+															_Utils_Tuple2(
+															'note',
+															$elm$json$Json$Encode$string(
+																$author$project$Library$note2str(chord.note))),
+															_Utils_Tuple2(
+															'type_',
+															$elm$json$Json$Encode$string(
+																$author$project$Library$type2str(chord.type_)))
+														])))
+											]));
+								},
+								song.chordProg.chords)),
+							_Utils_Tuple2(
+							'end',
+							$elm$json$Json$Encode$float(song.chordProg.end))
+						])))
+			]));
+};
 var $elm$core$Elm$JsArray$appendN = _JsArray_appendN;
 var $elm$core$Elm$JsArray$slice = _JsArray_slice;
 var $elm$core$Array$appendHelpBuilder = F2(
@@ -7754,7 +8339,7 @@ var $author$project$Editor$update = F2(
 									grid: A3(
 										$author$project$Editor$insert,
 										i - 1,
-										{chord: $elm$core$Maybe$Nothing, len: 4},
+										{chord: $elm$core$Maybe$Nothing, len: model.beatsPerBar},
 										model.grid)
 								});
 					}
@@ -7770,7 +8355,7 @@ var $author$project$Editor$update = F2(
 							{
 								grid: A2(
 									$elm$core$Array$push,
-									{chord: $elm$core$Maybe$Nothing, len: 4},
+									{chord: $elm$core$Maybe$Nothing, len: model.beatsPerBar},
 									model.grid)
 							});
 						return A2($author$project$Editor$pushUndo, model, newmod);
@@ -7797,7 +8382,8 @@ var $author$project$Editor$update = F2(
 									note: _Utils_update(
 										prevnote,
 										{name: n})
-								})
+								}),
+							tool: $author$project$Editor$SetChord
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 'SetAlteration':
@@ -7814,7 +8400,8 @@ var $author$project$Editor$update = F2(
 									note: _Utils_update(
 										prevnote,
 										{alt: n})
-								})
+								}),
+							tool: $author$project$Editor$SetChord
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 'SetChordType':
@@ -7826,7 +8413,8 @@ var $author$project$Editor$update = F2(
 						{
 							curChord: _Utils_update(
 								prevchord,
-								{type_: t})
+								{type_: t}),
+							tool: $author$project$Editor$SetChord
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 'Undo':
@@ -7864,13 +8452,165 @@ var $author$project$Editor$update = F2(
 						model,
 						{defTempo: f}),
 					$elm$core$Platform$Cmd$none);
+			case 'SetBeatsPerBar':
+				var bpb = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{beatsPerBar: bpb}),
+					$elm$core$Platform$Cmd$none);
 			default:
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
+var $elm$json$Json$Decode$decodeString = _Json_runOnString;
+var $author$project$Library$deleteSong = _Platform_outgoingPort('deleteSong', $elm$json$Json$Encode$string);
+var $elm$json$Json$Decode$field = _Json_decodeField;
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $elm$json$Json$Decode$list = _Json_decodeList;
+var $elm$json$Json$Decode$map5 = _Json_map5;
+var $elm$core$String$right = F2(
+	function (n, string) {
+		return (n < 1) ? '' : A3(
+			$elm$core$String$slice,
+			-n,
+			$elm$core$String$length(string),
+			string);
+	});
+var $author$project$Library$str2note = function (s) {
+	var name = function () {
+		var _v1 = A2($elm$core$String$left, 1, s);
+		switch (_v1) {
+			case 'C':
+				return $author$project$Generator$C;
+			case 'D':
+				return $author$project$Generator$D;
+			case 'E':
+				return $author$project$Generator$E;
+			case 'F':
+				return $author$project$Generator$F;
+			case 'G':
+				return $author$project$Generator$G;
+			case 'A':
+				return $author$project$Generator$A;
+			default:
+				return $author$project$Generator$B;
+		}
+	}();
+	var alt = function () {
+		var _v0 = A2($elm$core$String$right, 1, s);
+		switch (_v0) {
+			case 'N':
+				return $author$project$Generator$Natural;
+			case 'F':
+				return $author$project$Generator$Flat;
+			default:
+				return $author$project$Generator$Sharp;
+		}
+	}();
+	return A2($author$project$Generator$Note, name, alt);
+};
+var $author$project$Generator$Dim = {$: 'Dim'};
+var $author$project$Generator$Dom7b9 = {$: 'Dom7b9'};
+var $author$project$Generator$Dom7s5 = {$: 'Dom7s5'};
+var $author$project$Generator$Maj7s5 = {$: 'Maj7s5'};
+var $author$project$Generator$MinMaj = {$: 'MinMaj'};
+var $author$project$Library$str2type = function (ct) {
+	switch (ct) {
+		case 'Dom7':
+			return $author$project$Generator$Dom7;
+		case '-7':
+			return $author$project$Generator$Min7;
+		case 'Maj7':
+			return $author$project$Generator$Maj7;
+		case '7alt':
+			return $author$project$Generator$Alt7;
+		case '7b9':
+			return $author$project$Generator$Dom7b9;
+		case '7s5':
+			return $author$project$Generator$Dom7s5;
+		case '-7b5':
+			return $author$project$Generator$Min7b5;
+		case 'dim':
+			return $author$project$Generator$Dim;
+		case 'minmaj':
+			return $author$project$Generator$MinMaj;
+		case 'maj7s5':
+			return $author$project$Generator$Maj7s5;
+		default:
+			return $author$project$Generator$NA;
+	}
+};
+var $author$project$Library$json2song = A6(
+	$elm$json$Json$Decode$map5,
+	$author$project$PlayerPage$Song,
+	A2(
+		$elm$json$Json$Decode$field,
+		'chordProg',
+		A3(
+			$elm$json$Json$Decode$map2,
+			$author$project$Generator$ChordProg,
+			A2(
+				$elm$json$Json$Decode$field,
+				'chords',
+				$elm$json$Json$Decode$list(
+					A3(
+						$elm$json$Json$Decode$map2,
+						F2(
+							function (t, c) {
+								return {chord: c, time: t};
+							}),
+						A2($elm$json$Json$Decode$field, 'time', $elm$json$Json$Decode$float),
+						A2(
+							$elm$json$Json$Decode$field,
+							'chord',
+							A3(
+								$elm$json$Json$Decode$map2,
+								$author$project$Generator$Chord,
+								A2(
+									$elm$json$Json$Decode$field,
+									'note',
+									A2($elm$json$Json$Decode$map, $author$project$Library$str2note, $elm$json$Json$Decode$string)),
+								A2(
+									$elm$json$Json$Decode$field,
+									'type_',
+									A2($elm$json$Json$Decode$map, $author$project$Library$str2type, $elm$json$Json$Decode$string))))))),
+			A2($elm$json$Json$Decode$field, 'end', $elm$json$Json$Decode$float))),
+	A2($elm$json$Json$Decode$field, 'title', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'composer', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'beatsPerBar', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'defaultTempo', $elm$json$Json$Decode$float));
 var $elm$core$Debug$log = _Debug_log;
+var $author$project$Library$update = F2(
+	function (msg, m) {
+		switch (msg.$) {
+			case 'GotASong':
+				var s = msg.a;
+				var resultSong = A2($elm$json$Json$Decode$decodeString, $author$project$Library$json2song, s);
+				if (resultSong.$ === 'Ok') {
+					var song = resultSong.a;
+					return _Utils_Tuple2(
+						A2($author$project$Library$addSong, m, song),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var e = resultSong.a;
+					var _v2 = A2(
+						$elm$core$Debug$log,
+						'decding: ',
+						$elm$json$Json$Decode$errorToString(e));
+					return _Utils_Tuple2(m, $elm$core$Platform$Cmd$none);
+				}
+			case 'Delete':
+				var s = msg.a;
+				var key = $author$project$Library$getKey(s);
+				return _Utils_Tuple2(
+					A2($elm$core$Dict$remove, key, m),
+					$author$project$Library$deleteSong(key));
+			default:
+				return _Utils_Tuple2(m, $elm$core$Platform$Cmd$none);
+		}
+	});
 var $elm$core$Basics$not = _Basics_not;
-var $elm$json$Json$Encode$null = _Json_encodeNull;
 var $author$project$Tune$pause = _Platform_outgoingPort(
 	'pause',
 	function ($) {
@@ -7881,34 +8621,21 @@ var $author$project$Tune$play = _Platform_outgoingPort(
 	function ($) {
 		return $elm$json$Json$Encode$null;
 	});
-var $elm$json$Json$Encode$float = _Json_wrap;
-var $author$project$Tune$setBpm = _Platform_outgoingPort('setBpm', $elm$json$Json$Encode$float);
-var $author$project$Tune$setCursor = _Platform_outgoingPort('setCursor', $elm$json$Json$Encode$float);
-var $elm$json$Json$Encode$bool = _Json_wrap;
-var $elm$json$Json$Encode$int = _Json_wrap;
-var $elm$json$Json$Encode$list = F2(
-	function (func, entries) {
-		return _Json_wrap(
-			A3(
-				$elm$core$List$foldl,
-				_Json_addEntry(func),
-				_Json_emptyArray(_Utils_Tuple0),
-				entries));
+var $author$project$Tune$setInstVolume = _Platform_outgoingPort(
+	'setInstVolume',
+	function ($) {
+		var a = $.a;
+		var b = $.b;
+		return A2(
+			$elm$json$Json$Encode$list,
+			$elm$core$Basics$identity,
+			_List_fromArray(
+				[
+					$elm$json$Json$Encode$string(a),
+					$elm$json$Json$Encode$float(b)
+				]));
 	});
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
-var $elm$json$Json$Encode$string = _Json_wrap;
+var $elm$json$Json$Encode$bool = _Json_wrap;
 var $author$project$Tune$setSequence = _Platform_outgoingPort(
 	'setSequence',
 	$elm$json$Json$Encode$list(
@@ -7978,9 +8705,41 @@ var $author$project$PlayerPage$update = F2(
 				return _Utils_Tuple2(
 					model,
 					$author$project$Tune$setSequence(b));
+			case 'SetVolume':
+				var i = msg.a;
+				var vol = msg.b;
+				var instStr = function () {
+					switch (i.$) {
+						case 'Piano':
+							return 'piano';
+						case 'Bass':
+							return 'bass';
+						default:
+							return 'drums';
+					}
+				}();
+				return _Utils_Tuple2(
+					function () {
+						switch (i.$) {
+							case 'Piano':
+								return _Utils_update(
+									model,
+									{volPiano: vol});
+							case 'Bass':
+								return _Utils_update(
+									model,
+									{volBass: vol});
+							default:
+								return _Utils_update(
+									model,
+									{volDrums: vol});
+						}
+					}(),
+					$author$project$Tune$setInstVolume(
+						_Utils_Tuple2(instStr, vol)));
 			case 'DebugGenerated':
 				var a = msg.a;
-				var _v1 = A2($elm$core$Debug$log, 'debug', a);
+				var _v3 = A2($elm$core$Debug$log, 'debug', a);
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 			default:
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
@@ -8027,7 +8786,9 @@ var $author$project$Main$update = F2(
 						var newEditorModel = _Utils_update(
 							einit,
 							{
+								beatsPerBar: model.playerModel.song.beatsPerBar,
 								composer: model.playerModel.song.composer,
+								defTempo: model.playerModel.song.defaultTempo,
 								grid: $author$project$Editor$chordprog2grid(model.playerModel),
 								title: model.playerModel.song.title
 							});
@@ -8041,6 +8802,19 @@ var $author$project$Main$update = F2(
 							_Utils_update(
 								model,
 								{curPage: $author$project$Main$Library}),
+							$elm$core$Platform$Cmd$none);
+					case 'Delete':
+						return _Utils_Tuple2(
+							A2(
+								$author$project$Main$asDialogBoxIn,
+								model,
+								A4(
+									$author$project$DialogBox$yesNoDialog,
+									'Delete',
+									'Are you sure you want to delete \"' + (model.playerModel.song.title + ('\" by ' + (model.playerModel.song.composer + ' from your local Library ? It cannot be undone'))),
+									$author$project$Main$LibEvent(
+										$author$project$Library$Delete(model.playerModel.song)),
+									$author$project$Main$ResetDialog)),
 							$elm$core$Platform$Cmd$none);
 					default:
 						var _v2 = A2($author$project$PlayerPage$update, submsg, model.playerModel);
@@ -8080,15 +8854,21 @@ var $author$project$Main$update = F2(
 							$elm$core$Platform$Cmd$none);
 					case 'SaveAndQuit':
 						var newsong = A2(
-							$author$project$PlayerPage$setComposer,
-							model.editorModel.composer,
+							$author$project$PlayerPage$setDefTempo,
+							model.editorModel.defTempo,
 							A2(
-								$author$project$PlayerPage$setTitle,
-								model.editorModel.title,
+								$author$project$PlayerPage$setBeatsPerBar,
+								model.editorModel.beatsPerBar,
 								A2(
-									$author$project$PlayerPage$asChordProgIn,
-									model.playerModel.song,
-									$author$project$Editor$grid2chordprog(model.editorModel.grid))));
+									$author$project$PlayerPage$setComposer,
+									model.editorModel.composer,
+									A2(
+										$author$project$PlayerPage$setTitle,
+										model.editorModel.title,
+										A2(
+											$author$project$PlayerPage$asChordProgIn,
+											model.playerModel.song,
+											$author$project$Editor$grid2chordprog(model.editorModel.grid))))));
 						var newmod = A2(
 							$author$project$Main$setLibrary,
 							A2($author$project$Library$addSong, model.libraryModel, newsong),
@@ -8100,7 +8880,13 @@ var $author$project$Main$update = F2(
 							_Utils_update(
 								newmod,
 								{curPage: $author$project$Main$Player}),
-							$author$project$Main$genSequence(newmod));
+							$elm$core$Platform$Cmd$batch(
+								_List_fromArray(
+									[
+										$author$project$Main$genSequence(newmod),
+										$author$project$Library$addSong2db(
+										$author$project$Library$song2json(newsong))
+									])));
 					default:
 						var _v4 = A2($author$project$Editor$update, submsg, model.editorModel);
 						var newmod = _v4.a;
@@ -8124,24 +8910,59 @@ var $author$project$Main$update = F2(
 						var newmod = A2(
 							$author$project$Main$asPlayerModIn,
 							model,
-							A2($author$project$PlayerPage$asSongIn, model.playerModel, s));
+							A2(
+								$author$project$PlayerPage$setCursor,
+								0,
+								A2(
+									$author$project$PlayerPage$setBpm,
+									s.defaultTempo,
+									A2($author$project$PlayerPage$asSongIn, model.playerModel, s))));
 						return _Utils_Tuple2(
 							_Utils_update(
 								newmod,
 								{curPage: $author$project$Main$Player}),
-							$author$project$Main$genSequence(newmod));
+							$elm$core$Platform$Cmd$batch(
+								_List_fromArray(
+									[
+										$author$project$Main$genSequence(newmod),
+										$author$project$Tune$setCursor(0),
+										$author$project$Tune$setBpm(s.defaultTempo)
+									])));
 					case 'Close':
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
 								{curPage: $author$project$Main$Player}),
 							$author$project$Main$genSequence(model));
-					default:
+					case 'NewSong':
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
 								{curPage: $author$project$Main$Editor, editorModel: $author$project$Editor$init}),
 							$elm$core$Platform$Cmd$none);
+					default:
+						var mm = function () {
+							if (submsg.$ === 'Delete') {
+								return _Utils_update(
+									model,
+									{curPage: $author$project$Main$Library, dialogBox: $elm$core$Maybe$Nothing});
+							} else {
+								return model;
+							}
+						}();
+						var _v6 = A2($author$project$Library$update, submsg, model.libraryModel);
+						var newmod = _v6.a;
+						var newcmd = _v6.b;
+						return _Utils_Tuple2(
+							_Utils_update(
+								mm,
+								{libraryModel: newmod}),
+							A2(
+								$elm$core$Platform$Cmd$map,
+								function (sm) {
+									return $author$project$Main$LibEvent(sm);
+								},
+								newcmd));
 				}
 			case 'ChangePage':
 				var newp = msg.a;
@@ -8150,15 +8971,16 @@ var $author$project$Main$update = F2(
 						model,
 						{curPage: newp}),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'ResetDialog':
 				return _Utils_Tuple2(
 					$author$project$Main$resetDialog(model),
 					$elm$core$Platform$Cmd$none);
+			default:
+				var m = msg.a;
+				var c = msg.b;
+				return _Utils_Tuple2(m, c);
 		}
 	});
-var $author$project$Main$LibEvent = function (a) {
-	return {$: 'LibEvent', a: a};
-};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -8261,11 +9083,6 @@ var $author$project$Editor$TitleChanged = function (a) {
 	return {$: 'TitleChanged', a: a};
 };
 var $author$project$Editor$Undo = {$: 'Undo'};
-var $author$project$Generator$Dim = {$: 'Dim'};
-var $author$project$Generator$Dom7b9 = {$: 'Dom7b9'};
-var $author$project$Generator$Dom7s5 = {$: 'Dom7s5'};
-var $author$project$Generator$Maj7s5 = {$: 'Maj7s5'};
-var $author$project$Generator$MinMaj = {$: 'MinMaj'};
 var $author$project$Editor$SetAlteration = function (a) {
 	return {$: 'SetAlteration', a: a};
 };
@@ -8612,12 +9429,10 @@ var $elm$html$Html$Events$stopPropagationOn = F2(
 			event,
 			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
 	});
-var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$at = F2(
 	function (fields, decoder) {
 		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
 	});
-var $elm$json$Json$Decode$string = _Json_decodeString;
 var $elm$html$Html$Events$targetValue = A2(
 	$elm$json$Json$Decode$at,
 	_List_fromArray(
@@ -8631,6 +9446,52 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			$elm$json$Json$Decode$map,
 			$elm$html$Html$Events$alwaysStop,
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
+};
+var $author$project$Editor$SetBeatsPerBar = function (a) {
+	return {$: 'SetBeatsPerBar', a: a};
+};
+var $author$project$Editor$signatureSelectBar = function (sig) {
+	var buttonAttr = function (t) {
+		return _List_fromArray(
+			[
+				A2(
+				$elm$html$Html$Attributes$style,
+				'background-color',
+				(!_Utils_eq(sig, t)) ? '#e7e7e7' : '#f44336'),
+				$elm$html$Html$Events$onClick(
+				$author$project$Editor$SetBeatsPerBar(t))
+			]);
+	};
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'color', 'white')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$button,
+				buttonAttr(3),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('3/4')
+					])),
+				A2(
+				$elm$html$Html$button,
+				buttonAttr(4),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('4/4')
+					])),
+				A2(
+				$elm$html$Html$button,
+				buttonAttr(5),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('5/4')
+					]))
+			]));
 };
 var $elm$html$Html$Attributes$step = function (n) {
 	return A2($elm$html$Html$Attributes$stringProperty, 'step', n);
@@ -8810,6 +9671,7 @@ var $author$project$Editor$view = function (model) {
 							]),
 						_List_Nil)
 					])),
+				$author$project$Editor$signatureSelectBar(model.beatsPerBar),
 				A2(
 				$elm$html$Html$div,
 				_List_Nil,
@@ -8913,7 +9775,11 @@ var $author$project$Library$view = function (m) {
 							]))
 					]))));
 };
+var $author$project$PlayerPage$Bass = {$: 'Bass'};
+var $author$project$PlayerPage$Delete = {$: 'Delete'};
+var $author$project$PlayerPage$Drums = {$: 'Drums'};
 var $author$project$PlayerPage$Edit = {$: 'Edit'};
+var $author$project$PlayerPage$Piano = {$: 'Piano'};
 var $author$project$PlayerPage$SetBpm = function (a) {
 	return {$: 'SetBpm', a: a};
 };
@@ -8924,6 +9790,43 @@ var $author$project$PlayerPage$ToLibrary = {$: 'ToLibrary'};
 var $author$project$PlayerPage$TogglePlay = {$: 'TogglePlay'};
 var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $elm$html$Html$p = _VirtualDom_node('p');
+var $author$project$PlayerPage$SetVolume = F2(
+	function (a, b) {
+		return {$: 'SetVolume', a: a, b: b};
+	});
+var $author$project$PlayerPage$rangeVolume = F3(
+	function (inst, str, vol) {
+		return A2(
+			$elm$html$Html$p,
+			_List_Nil,
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$input,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$type_('range'),
+							$elm$html$Html$Events$onInput(
+							function (s) {
+								var _v0 = $elm$core$String$toFloat(s);
+								if (_v0.$ === 'Just') {
+									var f = _v0.a;
+									return A2($author$project$PlayerPage$SetVolume, inst, f);
+								} else {
+									return A2($author$project$PlayerPage$SetVolume, inst, vol);
+								}
+							}),
+							$elm$html$Html$Attributes$min('0'),
+							$elm$html$Html$Attributes$max('100'),
+							$elm$html$Html$Attributes$value(
+							$elm$core$String$fromFloat(vol)),
+							$elm$html$Html$Attributes$step('1')
+						]),
+					_List_Nil),
+					$elm$html$Html$text(
+					str + (' : ' + $elm$core$String$fromFloat(vol)))
+				]));
+	});
 var $elm$core$List$partition = F2(
 	function (pred, list) {
 		var step = F2(
@@ -9126,7 +10029,26 @@ var $author$project$PlayerPage$view = function (model) {
 					[
 						$elm$html$Html$text('edit song')
 					])),
-				$author$project$PlayerPage$viewGrid(model)
+				$author$project$PlayerPage$viewGrid(model),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A3($author$project$PlayerPage$rangeVolume, $author$project$PlayerPage$Piano, 'piano', model.volPiano),
+						A3($author$project$PlayerPage$rangeVolume, $author$project$PlayerPage$Bass, 'bass', model.volBass),
+						A3($author$project$PlayerPage$rangeVolume, $author$project$PlayerPage$Drums, 'drums', model.volDrums)
+					])),
+				A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick($author$project$PlayerPage$Delete)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Delete song from library')
+					]))
 			]));
 };
 var $author$project$Main$view = function (model) {

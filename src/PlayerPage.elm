@@ -14,24 +14,42 @@ type alias Song = { chordProg : G.ChordProg
                   , title : String
                   , composer : String
                   , beatsPerBar : Int
+                  , defaultTempo : Float
                   }
 asChordProgIn : Song -> G.ChordProg -> Song
 asChordProgIn s cp = { s | chordProg=cp }
 asTitleIn : Song -> String -> Song
 asTitleIn s t = { s | title=t }
+asDefTempoIn : Song -> Float -> Song
+asDefTempoIn s t = { s | defaultTempo=t}
 
 setTitle t s = asTitleIn s t
 setComposer : String -> Song -> Song
 setComposer c s = { s | composer=c}
+setBeatsPerBar : Int -> Song -> Song
+setBeatsPerBar i s = { s | beatsPerBar=i}
+setDefTempo : Float -> Song -> Song
+setDefTempo t s = { s | defaultTempo=t }
 
 type alias SubModel =
     { barsPerLine : Int
     , song : Song
     , playing : Bool
     , bpm : Float
-    , cursor : Float }
+    , cursor : Float
+    , volPiano : Float
+    , volBass : Float
+    , volDrums : Float }
+
 asSongIn : SubModel -> Song -> SubModel
 asSongIn sm s = { sm | song=s }
+
+setBpm : Float -> SubModel -> SubModel
+setBpm t sm = { sm | bpm=t }
+setCursor : Float -> SubModel -> SubModel
+setCursor c sm = { sm | cursor=c }
+
+type Instrument = Piano | Bass | Drums
 
 type SubMsg = 
     CaseClicked Float
@@ -42,16 +60,21 @@ type SubMsg =
     | SequenceGenerated Tune.Sequence
     | Edit
     | ToLibrary
+    | SetVolume Instrument Float
+    | Delete
     | DebugGenerated (List (Float, Float))
     
 
 init = { barsPerLine = 4
-       , song = (Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4)
+       , song = (Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4 160)
        , playing = False
        , bpm = 120
        , cursor = 0
+       , volPiano = 100
+       , volBass = 100
+       , volDrums = 100
        }
-initCmd = R.generate DebugGenerated (JazzPiano.genRhythm 4 64) -- Cmd.none --R.generate SequenceGenerated JazzBass.bbbass
+initCmd = Cmd.none -- R.generate DebugGenerated (JazzPiano.genRhythm 4 64) -- Cmd.none --R.generate SequenceGenerated JazzBass.bbbass
 
 update : SubMsg -> SubModel -> (SubModel, Cmd SubMsg)
 update msg model = 
@@ -68,6 +91,20 @@ update msg model =
                                           , genSequence model ]
                        )
         SequenceGenerated b -> (model, Tune.setSequence b)
+
+        SetVolume i vol ->
+            let 
+                instStr = case i of
+                    Piano -> "piano"
+                    Bass -> "bass"
+                    Drums -> "drums"
+            in
+            ( case i of
+                Piano -> { model | volPiano = vol }
+                Bass -> { model | volBass = vol }
+                Drums -> { model | volDrums = vol }
+            , Tune.setInstVolume (instStr, vol))
+
         DebugGenerated a -> let _ = Debug.log "debug" a in (model, Cmd.none)
         _ -> (model, Cmd.none)
 
@@ -102,7 +139,26 @@ view model =
         , p [] [ text (String.left 4 (String.fromFloat model.cursor)) ]
         , button [ onClick Edit ] [ text "edit song" ]
         , viewGrid model
+        , div []
+            [ rangeVolume Piano "piano" model.volPiano
+            , rangeVolume Bass "bass" model.volBass
+            , rangeVolume Drums "drums" model.volDrums ]
+        , button [ onClick Delete ] [ text "Delete song from library" ]
         ]
+
+rangeVolume : Instrument -> String -> Float -> Html SubMsg
+rangeVolume inst str vol =
+    p [] [
+            input [ Html.Attributes.type_ "range"
+                  , onInput (\s -> (case String.toFloat s of
+                                      Just f -> SetVolume inst f
+                                      _ -> SetVolume inst vol))
+                  , Html.Attributes.min "0"
+                  , Html.Attributes.max "100"
+                  , Html.Attributes.value (String.fromFloat vol)
+                  , Html.Attributes.step "1" ] []
+         , text (str ++ " : " ++ (String.fromFloat vol))
+         ]
 
 
 substract2to2 : List number -> List number

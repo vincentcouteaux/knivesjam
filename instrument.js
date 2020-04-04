@@ -74,7 +74,13 @@ const bassBufInstrument = ctx => {
                 let bufferSource = ctx.createBufferSource()
                 const gainNode = ctx.createGain();
                 gainNode.gain.setValueAtTime(gain*this.volume, ctx.currentTime);
-                bufferSource.buffer = buffersMap[pitch];
+                if (pitch == 25) {
+                    bufferSource.buffer = buffersMap[pitch+1];
+                    bufferSource.playbackRate.value = Math.pow(2, -1/12);
+                }
+                else {
+                    bufferSource.buffer = buffersMap[pitch];
+                }
                 bufferSource.connect(gainNode);
                 gainNode.connect(ctx.destination);
                 bufferSource.start();

@@ -1,0 +1,10 @@
+boite de dialogue pour tempo, signature, et #mesures avec newsong
+Piano pour mesure 3/4 et 5/4
+accord sus4/NA
+
+long terme:
+bossa nova
+bufferiser pour pas avoir de lag à chaque boucle ?
+Transposition affichage/playback
+exporter/importer le json de la base de données
+s'atteler au CSS

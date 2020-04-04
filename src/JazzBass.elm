@@ -162,8 +162,10 @@ bassLineGenerator cp signature =
             addApproach 
                 (addPump (fondaOnChange cp) cp signature)
                 (floor cp.end)
+        --_ = Debug.log "JB.elm l165" (Dict.keys basslineNoFill)
     in
         addFill basslineNoFill (fillBarsRec cp signature)
+        |> R.map (Dict.remove (floor cp.end))
 
 sequenceGenerator : ChordProg -> Int -> R.Generator (Tune.Sequence)
 sequenceGenerator cp signature =

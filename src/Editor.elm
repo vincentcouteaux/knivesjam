@@ -15,7 +15,8 @@ type alias SubModel =
     , redoList : ModelList
     , title : String
     , composer : String
-    , defTempo : Float }
+    , defTempo : Float
+    , beatsPerBar : Int }
 
 type ModelList = ModelList (List SubModel)
 unwrap : ModelList -> List SubModel
@@ -44,6 +45,7 @@ type SubMsg =
     | TitleChanged String
     | ComposerChanged String
     | TempoChanged Float
+    | SetBeatsPerBar Int
 
 init = { grid = Array.fromList [ { len=4, chord=Nothing }
                                , { len=4, chord=Nothing }
@@ -55,7 +57,8 @@ init = { grid = Array.fromList [ { len=4, chord=Nothing }
        , redoList = ModelList []
        , title = "New song"
        , composer = "Unknown"
-       , defTempo = 160 }
+       , defTempo = 160
+       , beatsPerBar = 4 }
 pushUndo : SubModel -> SubModel -> SubModel
 pushUndo oldmod newmod =
     { newmod | undoList=ModelList (oldmod::unwrap(newmod.undoList)) }
@@ -91,13 +94,13 @@ update msg model =
                         SetToNothing ->
                             { model | grid=setChord model.grid i Nothing }
                         InsertBar ->
-                            { model | grid=insert (i-1) { len=4, chord=Nothing } model.grid}
+                            { model | grid=insert (i-1) { len=(toFloat model.beatsPerBar), chord=Nothing } model.grid}
                     )
             in 
                 (pushUndo model newmod, Cmd.none)
         AppendBar -> 
             (let 
-                newmod = { model | grid=Array.push { len=4, chord=Nothing } model.grid} 
+                newmod = { model | grid=Array.push { len=(toFloat model.beatsPerBar), chord=Nothing } model.grid} 
             in 
                 pushUndo model newmod
             , Cmd.none)
@@ -107,18 +110,18 @@ update msg model =
                 prevchord = model.curChord
                 prevnote = prevchord.note
             in
-                ({ model | curChord={prevchord | note={prevnote | name=n}}}, Cmd.none)
+                ({ model | tool=SetChord, curChord={prevchord | note={prevnote | name=n}}}, Cmd.none)
         SetAlteration n ->
             let
                 prevchord = model.curChord
                 prevnote = prevchord.note
             in
-                ({ model | curChord={prevchord | note={prevnote | alt=n}}}, Cmd.none)
+                ({ model | tool=SetChord, curChord={prevchord | note={prevnote | alt=n}}}, Cmd.none)
         SetChordType t ->
             let
                 prevchord = model.curChord
             in
-                ({ model | curChord={prevchord | type_=t}}, Cmd.none)
+                ({ model | tool=SetChord, curChord={prevchord | type_=t}}, Cmd.none)
         Undo ->
             (pushRedo model (popUndo model), Cmd.none)
             --(popUndo model, Cmd.none)
@@ -131,6 +134,8 @@ update msg model =
             ({ model | composer = c}, Cmd.none)
         TempoChanged f ->
             ({ model | defTempo = f}, Cmd.none)
+        SetBeatsPerBar bpb ->
+            ({ model | beatsPerBar = bpb }, Cmd.none)
 
 
         _ -> (model, Cmd.none)
@@ -146,6 +151,7 @@ view model = div [] [ button [ onClick Quit ] [ text "quit editor" ]
                     , button [ onClick Redo ] [ text "Redo" ]
                     , div [] [ text "Title: ", input [ type_ "text", value model.title, onInput TitleChanged ] [] ]
                     , div [] [ text "Composer: ", input [ type_ "text", value model.composer, onInput ComposerChanged ] [] ]
+                    , signatureSelectBar model.beatsPerBar
                     , div []
                         [ text "Default tempo: "
                         , input [ type_ "range"
@@ -159,6 +165,18 @@ view model = div [] [ button [ onClick Quit ] [ text "quit editor" ]
                         , text <| (String.fromFloat model.defTempo) ++ " BPM"
                         ]
                     , displayGrid model.grid ]
+
+signatureSelectBar : Int -> Html SubMsg
+signatureSelectBar sig =
+    let
+        buttonAttr t = [ style "background-color" (if sig/=t then "#e7e7e7" else "#f44336")
+                       , onClick (SetBeatsPerBar t) ]
+    in
+    div [ style "color" "white" ]
+        [ button (buttonAttr 3) [ text "3/4" ]
+        , button (buttonAttr 4) [ text "4/4" ]
+        , button (buttonAttr 5) [ text "5/4" ]
+        ]
 
 toolSelectBar : Tool -> Html SubMsg
 toolSelectBar tool =
@@ -299,3 +317,19 @@ grid2chordprog g =
     in
         { chords=chords, end=end }
                     
+                    --TODO
+--addRem2eachBar : Grid -> Float -> Float -> Grid
+--addRem2eachBar grid prevsig newsig =
+--    let 
+--        foldrec l time =
+--            case l of
+--                [] -> []
+--                h::t -> 
+--                   Just c -> { time=time, chord=h.chord }::(foldrec t (time + h.len))
+--        gridtime = foldrec (Array.toList g) 0
+--        diff = newsig - prevsig
+--        processrec l c =
+--            case l of
+--                [] -> []
+--                h::t ->
+--                    if h.len + c > 

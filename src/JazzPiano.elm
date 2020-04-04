@@ -53,7 +53,7 @@ getAbove l n =
     let n0 = G.note2pitch 0 n in
         12*(ceiling ((toFloat (l-n0))/12)) + n0
 
-populateRhythm : List (Float, Float) -> G.ChordProg -> R.Generator (List { onset: Float, duration: Float, chord: List Int })
+populateRhythm : List (Float, Float) -> G.ChordProg -> R.Generator (List { onset: Float, duration: Float, chord: List Int, volume: Float })
 populateRhythm l cp =
     List.map
         (\(onset, duration) ->
@@ -67,17 +67,19 @@ populateRhythm l cp =
                             |> List.map (\n -> getAbove lowest n)
                         )
                         voicing
+                volume = R.float 0.05 0.2
             in
-                { onset = onset, duration = duration, chord = notes }
+                { onset = onset, duration = duration, chord = notes, volume = volume }
         )
         l
     |> List.filter
         (\{onset, duration} -> onset+duration <= cp.end)
     |> List.map
-        (\{onset, duration, chord} ->
-            R.map
-                (\c -> {onset=onset, duration=duration, chord=c})
+        (\{onset, duration, chord, volume } ->
+            R.map2
+                (\c  v -> {onset=onset, duration=duration, chord=c, volume=v})
                 chord
+                volume
         )
     |> G.listGen2GenList
 
@@ -88,10 +90,10 @@ sequenceGenerator cp signature =
     |> R.map
         (\l ->
             List.concatMap
-                (\{onset, duration, chord} ->
+                (\{onset, duration, chord, volume} ->
                     List.concatMap
                         (\p ->
-                            [ Tune.Event onset True p "piano" 0.05
+                            [ Tune.Event onset True p "piano" volume
                             , Tune.Event (onset+duration) False p "piano" 0.1 ])
                         chord
                 )

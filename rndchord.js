@@ -6672,12 +6672,15 @@ var $author$project$JazzPiano$populateRhythm = F2(
 					var onset = _v3.onset;
 					var duration = _v3.duration;
 					var chord = _v3.chord;
-					return A2(
-						$elm$random$Random$map,
-						function (c) {
-							return {chord: c, duration: duration, onset: onset};
-						},
-						chord);
+					var volume = _v3.volume;
+					return A3(
+						$elm$random$Random$map2,
+						F2(
+							function (c, v) {
+								return {chord: c, duration: duration, onset: onset, volume: v};
+							}),
+						chord,
+						volume);
 				},
 				A2(
 					$elm$core$List$filter,
@@ -6691,6 +6694,7 @@ var $author$project$JazzPiano$populateRhythm = F2(
 						function (_v0) {
 							var onset = _v0.a;
 							var duration = _v0.b;
+							var volume = A2($elm$random$Random$float, 0.05, 0.2);
 							var chord = A2($author$project$Generator$getChordAt, cp, onset + 0.4);
 							var voicing = A2(
 								$author$project$JazzPiano$unif2,
@@ -6714,7 +6718,7 @@ var $author$project$JazzPiano$populateRhythm = F2(
 											funcs));
 								},
 								voicing);
-							return {chord: notes, duration: duration, onset: onset};
+							return {chord: notes, duration: duration, onset: onset, volume: volume};
 						},
 						l))));
 	});
@@ -6729,12 +6733,13 @@ var $author$project$JazzPiano$sequenceGenerator = F2(
 						var onset = _v0.onset;
 						var duration = _v0.duration;
 						var chord = _v0.chord;
+						var volume = _v0.volume;
 						return A2(
 							$elm$core$List$concatMap,
 							function (p) {
 								return _List_fromArray(
 									[
-										A5($author$project$Tune$Event, onset, true, p, 'piano', 0.05),
+										A5($author$project$Tune$Event, onset, true, p, 'piano', volume),
 										A5($author$project$Tune$Event, onset + duration, false, p, 'piano', 0.1)
 									]);
 							},

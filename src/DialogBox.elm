@@ -31,3 +31,24 @@ displayDialog dialogBox =
                 ]
             ]
         ]
+
+type alias DialogBoxModel model msg =
+    { title: String
+    , body: Html msg
+    , actions: List { text: String, mod: model, cmd: Cmd msg }
+    }
+
+displayDialogModel : DialogBoxModel model msg -> (model -> Cmd msg -> msg) -> Html msg
+displayDialogModel db2 action =
+    div [ class "w3-modal" , style "display" "block" ]
+        [ div [ class "w3-modal-content" ]
+            [ div [ class "w3-container" ]
+                [ h1 [] [ text db2.title ]
+                , db2.body
+                , div []
+                    (List.map 
+                        (\x -> button [ E.onClick (action x.mod x.cmd) ] [ text x.text ] )
+                        db2.actions)
+                ]
+            ]
+        ]
