@@ -6396,6 +6396,8 @@ var $author$project$Generator$getThirdOf = function (c) {
 			return A2($author$project$Generator$getSemitonesOf, 3, c);
 		case 'MinMaj':
 			return A2($author$project$Generator$getSemitonesOf, 3, c);
+		case 'Sus4':
+			return A2($author$project$Generator$getSemitonesOf, 5, c);
 		default:
 			return A2($author$project$Generator$getSemitonesOf, 4, c);
 	}
@@ -7341,6 +7343,8 @@ var $author$project$Generator$chordClass = function (c) {
 			return $author$project$Generator$Dominant;
 		case 'Dom7s5':
 			return $author$project$Generator$Dominant;
+		case 'Sus4':
+			return $author$project$Generator$Dominant;
 		case 'Min7':
 			return $author$project$Generator$Minor;
 		case 'Min7b5':
@@ -7899,6 +7903,8 @@ var $author$project$Library$type2str = function (ct) {
 			return 'Maj7';
 		case 'Alt7':
 			return '7alt';
+		case 'Sus4':
+			return '7sus4';
 		case 'Dom7b9':
 			return '7b9';
 		case 'Dom7s5':
@@ -8810,6 +8816,7 @@ var $author$project$Generator$Dom7b9 = {$: 'Dom7b9'};
 var $author$project$Generator$Dom7s5 = {$: 'Dom7s5'};
 var $author$project$Generator$Maj7s5 = {$: 'Maj7s5'};
 var $author$project$Generator$MinMaj = {$: 'MinMaj'};
+var $author$project$Generator$Sus4 = {$: 'Sus4'};
 var $author$project$Library$str2type = function (ct) {
 	switch (ct) {
 		case 'Dom7':
@@ -8820,6 +8827,8 @@ var $author$project$Library$str2type = function (ct) {
 			return $author$project$Generator$Maj7;
 		case '7alt':
 			return $author$project$Generator$Alt7;
+		case '7sus4':
+			return $author$project$Generator$Sus4;
 		case '7b9':
 			return $author$project$Generator$Dom7b9;
 		case '7s5':
@@ -9543,6 +9552,13 @@ var $author$project$Editor$chordSelectBar = function (c) {
 							])),
 						A2(
 						$elm$html$Html$button,
+						A3(buttonAttr, c.type_, $author$project$Generator$Sus4, $author$project$Editor$SetChordType),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('sus4')
+							])),
+						A2(
+						$elm$html$Html$button,
 						A3(buttonAttr, c.type_, $author$project$Generator$Dom7b9, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
@@ -9619,6 +9635,8 @@ var $author$project$PlayerPage$chord2text = function (mc) {
 						return '7β9';
 					case 'Dom7s5':
 						return '7#5';
+					case 'Sus4':
+						return '7sus4';
 					case 'Min7b5':
 						return '-7β5';
 					case 'Dim':

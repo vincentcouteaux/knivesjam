@@ -224,6 +224,7 @@ chordSelectBar c =
                , button (buttonAttr c.type_ G.Min7 SetChordType) [ text "-7" ]
                , button (buttonAttr c.type_ G.Maj7 SetChordType) [ text "∆" ]
                , button (buttonAttr c.type_ G.Alt7 SetChordType) [ text "7alt" ]
+               , button (buttonAttr c.type_ G.Sus4 SetChordType) [ text "sus4" ]
                , button (buttonAttr c.type_ G.Dom7b9 SetChordType) [ text "7b9" ]
                , button (buttonAttr c.type_ G.Dom7s5 SetChordType) [ text "7#5" ]
                , button (buttonAttr c.type_ G.Min7b5 SetChordType) [ text "-7b5" ]

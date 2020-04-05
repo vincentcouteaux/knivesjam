@@ -120,6 +120,7 @@ type2str ct =
         G.Min7 -> "-7"
         G.Maj7 -> "Maj7"
         G.Alt7 -> "7alt"
+        G.Sus4 -> "7sus4"
         G.Dom7b9 -> "7b9"
         G.Dom7s5 -> "7s5"
         G.Min7b5 -> "-7b5"
@@ -134,6 +135,7 @@ str2type ct =
         "-7" -> G.Min7
         "Maj7" -> G.Maj7
         "7alt" -> G.Alt7
+        "7sus4" -> G.Sus4
         "7b9" -> G.Dom7b9
         "7s5" -> G.Dom7s5
         "-7b5" -> G.Min7b5

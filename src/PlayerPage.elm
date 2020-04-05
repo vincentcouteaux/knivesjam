@@ -269,6 +269,7 @@ chord2text mc =
                     G.Alt7 -> "7alt"
                     G.Dom7b9 -> "7β9"
                     G.Dom7s5 -> "7#5"
+                    G.Sus4 -> "7sus4"
                     G.Min7b5 -> "-7β5"
                     G.Dim -> "°"
                     G.MinMaj -> "-∆"

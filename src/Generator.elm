@@ -9,7 +9,7 @@ type NoteName = A | B | C | D | E | F | G
 type Alteration = Natural | Flat | Sharp
 type alias Note =  { name: NoteName, alt: Alteration }
 type ChordType = Dom7 | Min7 | Maj7
-                 | Alt7 | Dom7b9 | Dom7s5
+                 | Alt7 | Dom7b9 | Dom7s5 | Sus4
                  | Min7b5 | Dim | MinMaj | Maj7s5 | NA
 type alias Chord = { note: Note, type_ : ChordType }
 
@@ -23,6 +23,7 @@ chordClass c = case c of
     Alt7 -> Dominant
     Dom7b9 -> Dominant
     Dom7s5 -> Dominant
+    Sus4 -> Dominant
     Min7 -> Minor
     Min7b5 -> Minor
     Dim -> Minor
@@ -99,6 +100,7 @@ getThirdOf c = case c.type_ of
     Min7b5 -> getSemitonesOf 3 c
     Dim -> getSemitonesOf 3 c
     MinMaj -> getSemitonesOf 3 c
+    Sus4 -> getSemitonesOf 5 c
     _ -> getSemitonesOf 4 c
 
 getNinethOf : Chord -> Note
