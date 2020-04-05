@@ -165,12 +165,14 @@ bassLineGenerator cp signature =
         --_ = Debug.log "JB.elm l165" (Dict.keys basslineNoFill)
     in
         addFill basslineNoFill (fillBarsRec cp signature)
+        |> R.map (Dict.filter (\i _ -> (getChordAt cp (toFloat i)).type_ /= NA))
         |> R.map (Dict.remove (floor cp.end))
 
 sequenceGenerator : ChordProg -> Int -> R.Generator (Tune.Sequence)
 sequenceGenerator cp signature =
     bassLineGenerator cp signature
     |> R.map basslineToSequence
+    |> R.map (\l -> (Tune.Event cp.end False 40 "bass" 1)::l)
 
 bbbass = bassLineGenerator blueBossa 4
 

@@ -1,7 +1,3 @@
-accord sus4
-accord NA
-
-long terme:
 Transposition affichage/playback
 mesure à vide au début
 bossa nova

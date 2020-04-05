@@ -59,9 +59,17 @@ getAbove l n =
     let n0 = G.note2pitch 0 n in
         12*(ceiling ((toFloat (l-n0))/12)) + n0
 
+--filterNA : List (Float, Float) -> G.ChordProg -> List (Float, Float)
+--filterNA l cp =
+--    List.filter
+--        (\(onset, _) -> (G.getChordAt cp (onset+0.4)).type_ /= G.NA)
+
 populateRhythm : List (Float, Float) -> G.ChordProg -> R.Generator (List { onset: Float, duration: Float, chord: List Int, volume: Float })
 populateRhythm l cp =
-    List.map
+    List.filter
+        (\(onset, _) -> (G.getChordAt cp (onset+0.4)).type_ /= G.NA)
+        l
+    |> List.map
         (\(onset, duration) ->
             let
                 chord = G.getChordAt cp (onset+0.4)
@@ -77,7 +85,6 @@ populateRhythm l cp =
             in
                 { onset = onset, duration = duration, chord = notes, volume = volume }
         )
-        l
     |> List.filter
         (\{onset, duration} -> onset+duration <= cp.end)
     |> List.map

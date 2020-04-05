@@ -5954,6 +5954,11 @@ var $author$project$Generator$mergeSeqGenerators = F3(
 			$elm$random$Random$constant(_List_Nil),
 			l);
 	});
+var $author$project$Tune$Event = F5(
+	function (time, onset, pitch, instrument, gain) {
+		return {gain: gain, instrument: instrument, onset: onset, pitch: pitch, time: time};
+	});
+var $author$project$Generator$NA = {$: 'NA'};
 var $elm$random$Random$andThen = F2(
 	function (callback, _v0) {
 		var genA = _v0.a;
@@ -6265,7 +6270,6 @@ var $author$project$JazzBass$addFill = F2(
 			listgen);
 		return A2($elm$random$Random$map, $elm$core$Dict$fromList, f2);
 	});
-var $author$project$Generator$NA = {$: 'NA'};
 var $author$project$Generator$getChordAt = F2(
 	function (cp, time) {
 		var sortedChords = A2(
@@ -6473,6 +6477,17 @@ var $author$project$JazzBass$fillBarsRec = F2(
 			});
 		return A2(doRec, _List_Nil, 0);
 	});
+var $elm$core$Dict$filter = F2(
+	function (isGood, dict) {
+		return A3(
+			$elm$core$Dict$foldl,
+			F3(
+				function (k, v, d) {
+					return A2(isGood, k, v) ? A3($elm$core$Dict$insert, k, v, d) : d;
+				}),
+			$elm$core$Dict$empty,
+			dict);
+	});
 var $author$project$JazzBass$fondaOnChange = function (cp) {
 	return A3(
 		$elm$core$List$foldl,
@@ -6487,6 +6502,7 @@ var $author$project$JazzBass$fondaOnChange = function (cp) {
 		$elm$core$Dict$empty,
 		cp.chords);
 };
+var $elm$core$Basics$neq = _Utils_notEqual;
 var $elm$core$Dict$getMin = function (dict) {
 	getMin:
 	while (true) {
@@ -6864,13 +6880,18 @@ var $author$project$JazzBass$bassLineGenerator = F2(
 			$elm$core$Dict$remove(
 				$elm$core$Basics$floor(cp.end)),
 			A2(
-				$author$project$JazzBass$addFill,
-				basslineNoFill,
-				A2($author$project$JazzBass$fillBarsRec, cp, signature)));
-	});
-var $author$project$Tune$Event = F5(
-	function (time, onset, pitch, instrument, gain) {
-		return {gain: gain, instrument: instrument, onset: onset, pitch: pitch, time: time};
+				$elm$random$Random$map,
+				$elm$core$Dict$filter(
+					F2(
+						function (i, _v0) {
+							return !_Utils_eq(
+								A2($author$project$Generator$getChordAt, cp, i).type_,
+								$author$project$Generator$NA);
+						})),
+				A2(
+					$author$project$JazzBass$addFill,
+					basslineNoFill,
+					A2($author$project$JazzBass$fillBarsRec, cp, signature))));
 	});
 var $elm$core$Basics$abs = function (n) {
 	return (n < 0) ? (-n) : n;
@@ -6942,8 +6963,16 @@ var $author$project$JazzBass$sequenceGenerator = F2(
 	function (cp, signature) {
 		return A2(
 			$elm$random$Random$map,
-			$author$project$JazzBass$basslineToSequence,
-			A2($author$project$JazzBass$bassLineGenerator, cp, signature));
+			function (l) {
+				return A2(
+					$elm$core$List$cons,
+					A5($author$project$Tune$Event, cp.end, false, 40, 'bass', 1),
+					l);
+			},
+			A2(
+				$elm$random$Random$map,
+				$author$project$JazzBass$basslineToSequence,
+				A2($author$project$JazzBass$bassLineGenerator, cp, signature)));
 	});
 var $author$project$JazzDrums$chabada = F2(
 	function (end, beatsPerBar) {
@@ -7410,11 +7439,11 @@ var $author$project$JazzPiano$populateRhythm = F2(
 		return $author$project$Generator$listGen2GenList(
 			A2(
 				$elm$core$List$map,
-				function (_v3) {
-					var onset = _v3.onset;
-					var duration = _v3.duration;
-					var chord = _v3.chord;
-					var volume = _v3.volume;
+				function (_v4) {
+					var onset = _v4.onset;
+					var duration = _v4.duration;
+					var chord = _v4.chord;
+					var volume = _v4.volume;
 					return A3(
 						$elm$random$Random$map2,
 						F2(
@@ -7426,16 +7455,16 @@ var $author$project$JazzPiano$populateRhythm = F2(
 				},
 				A2(
 					$elm$core$List$filter,
-					function (_v2) {
-						var onset = _v2.onset;
-						var duration = _v2.duration;
+					function (_v3) {
+						var onset = _v3.onset;
+						var duration = _v3.duration;
 						return _Utils_cmp(onset + duration, cp.end) < 1;
 					},
 					A2(
 						$elm$core$List$map,
-						function (_v0) {
-							var onset = _v0.a;
-							var duration = _v0.b;
+						function (_v1) {
+							var onset = _v1.a;
+							var duration = _v1.b;
 							var volume = A2($elm$random$Random$float, 0.05, 0.2);
 							var chord = A2($author$project$Generator$getChordAt, cp, onset + 0.4);
 							var voicing = A2(
@@ -7444,9 +7473,9 @@ var $author$project$JazzPiano$populateRhythm = F2(
 								$author$project$JazzPiano$all_compact(chord.type_));
 							var notes = A2(
 								$elm$random$Random$map,
-								function (_v1) {
-									var lowest = _v1.a;
-									var funcs = _v1.b;
+								function (_v2) {
+									var lowest = _v2.a;
+									var funcs = _v2.b;
 									return A2(
 										$elm$core$List$map,
 										function (n) {
@@ -7462,7 +7491,15 @@ var $author$project$JazzPiano$populateRhythm = F2(
 								voicing);
 							return {chord: notes, duration: duration, onset: onset, volume: volume};
 						},
-						l))));
+						A2(
+							$elm$core$List$filter,
+							function (_v0) {
+								var onset = _v0.a;
+								return !_Utils_eq(
+									A2($author$project$Generator$getChordAt, cp, onset + 0.4).type_,
+									$author$project$Generator$NA);
+							},
+							l)))));
 	});
 var $author$project$JazzPiano$sequenceGenerator = F2(
 	function (cp, signature) {
@@ -7612,7 +7649,6 @@ var $author$project$DialogBox$SetBeatsPerBar = function (a) {
 	return {$: 'SetBeatsPerBar', a: a};
 };
 var $elm$html$Html$button = _VirtualDom_node('button');
-var $elm$core$Basics$neq = _Utils_notEqual;
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
