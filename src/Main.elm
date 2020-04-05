@@ -26,8 +26,9 @@ type alias Model =
     { playerModel : Pp.SubModel
     , editorModel : E.SubModel
     , libraryModel : L.SubModel
+    , dialogBoxModel : ModelDB
     , curPage : Page
-    , dialogBox : Maybe (DialogBox Msg)
+    , dialogBox : Maybe (DialogBox ModelDB Msg)
     --, dialogBox2 : Maybe (DialogBoxModel Model Msg)
     }
 
@@ -37,8 +38,10 @@ asEditModIn : Model -> Pp.SubModel -> Model
 asEditModIn mod ppmod = { mod | playerModel = ppmod }
 setLibrary : L.SubModel -> Model -> Model
 setLibrary l m = { m | libraryModel = l }
-asDialogBoxIn : Model -> DialogBox Msg -> Model
+asDialogBoxIn : Model -> DialogBox ModelDB Msg -> Model
 asDialogBoxIn m d = { m | dialogBox = Just d }
+setDbModel : ModelDB -> Model -> Model
+setDbModel mdldb m = { m | dialogBoxModel = mdldb }
 --asDialogBox2In : Model -> DialogBoxModel Msg -> Model
 --asDialogBoxIn m d = { m | dialogBox2 = Just d }
 resetDialog : Model -> Model
@@ -49,16 +52,19 @@ type Msg =
     | PpEvent Pp.SubMsg
     | EditorEvent E.SubMsg
     | LibEvent L.SubMsg
+    | DialogEvent MsgDb
     | ChangePage Page
+    | CreateSong
     | ResetDialog
-    | DialogResult Model (Cmd Msg)
+    --| DialogResult Model (Cmd Msg)
 
 init : () -> (Model, Cmd Msg)
 init _ = ({ playerModel = Pp.init
           , editorModel = E.init
           , libraryModel = L.init
           , curPage = Library
-          , dialogBox = Nothing }
+          , dialogBox = Nothing
+          , dialogBoxModel = initDb }
          , Cmd.batch
             [ Cmd.map (\sm -> PpEvent sm) Pp.initCmd
             , L.initCmd ])
@@ -129,13 +135,15 @@ update msg model =
                         newmod =
                             newsong
                                 |> Pp.asSongIn model.playerModel
+                                |> Pp.setBpm model.editorModel.defTempo
                                 |> asPlayerModIn model
                                 |> setLibrary (L.addSong model.libraryModel newsong)
                     in
                     ( { newmod | curPage = Player }
                     , Cmd.batch
                         [ genSequence newmod
-                        , L.addSong2db (L.song2json newsong) ]
+                        , L.addSong2db (L.song2json newsong)
+                        , Tune.setBpm model.editorModel.defTempo ]
                     ) 
                 _ ->
                     let 
@@ -163,7 +171,10 @@ update msg model =
                     ({ model | curPage = Player }, genSequence model)
 
                 L.NewSong ->
-                    ({ model | editorModel = E.init, curPage = Editor }, Cmd.none)
+                    ( newSongDialog DialogEvent CreateSong ResetDialog
+                      |> asDialogBoxIn model
+                      |> setDbModel initDb
+                    , Cmd.none )
                 _ ->
                     let 
                         (newmod, newcmd) = L.update submsg model.libraryModel
@@ -176,9 +187,20 @@ update msg model =
 
         ChangePage newp -> ({ model | curPage = newp }, Cmd.none)
 
+        CreateSong ->
+            ({ model | editorModel=E.initwith
+                model.dialogBoxModel.beatsPerBar
+                model.dialogBoxModel.nBars
+                model.dialogBoxModel.title
+                model.dialogBoxModel.composer
+             , curPage=Editor
+             , dialogBox=Nothing }, Cmd.none)
+
+        DialogEvent msgdb -> ({ model | dialogBoxModel = updateDb msgdb model.dialogBoxModel }, Cmd.none)
+
         ResetDialog -> (resetDialog model, Cmd.none)
 
-        DialogResult m c -> (m, c)
+        --DialogResult m c -> (m, c)
 
 genSequence : Model -> Cmd Msg
 genSequence m = Cmd.map (\sm -> PpEvent sm) (Pp.genSequence m.playerModel)
@@ -196,7 +218,7 @@ view model =
         (
             case model.dialogBox of
                 Nothing -> []
-                Just db -> [ displayDialog db]
+                Just db -> [ displayDialog model.dialogBoxModel db ]
         )
         ++
         [ 

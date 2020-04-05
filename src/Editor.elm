@@ -18,6 +18,9 @@ type alias SubModel =
     , defTempo : Float
     , beatsPerBar : Int }
 
+setBeatsPerBar : Int -> SubModel -> SubModel
+setBeatsPerBar n m = { m | beatsPerBar=n }
+
 type ModelList = ModelList (List SubModel)
 unwrap : ModelList -> List SubModel
 unwrap ml = (\(ModelList l) -> l)(ml)
@@ -47,18 +50,21 @@ type SubMsg =
     | TempoChanged Float
     | SetBeatsPerBar Int
 
-init = { grid = Array.fromList [ { len=4, chord=Nothing }
-                               , { len=4, chord=Nothing }
-                               , { len=4, chord=Nothing }
-                               , { len=4, chord=Nothing }]
+initwith : Int -> Int -> String -> String -> SubModel
+initwith beatsPerBar nBars title composer =
+       { grid = Array.fromList <| List.repeat nBars { len = toFloat beatsPerBar, chord=Nothing }
        , tool = SetChord
        , curChord = G.chord G.C G.Natural G.Dom7
        , undoList = ModelList []
        , redoList = ModelList []
-       , title = "New song"
-       , composer = "Unknown"
+       , title = title
+       , composer = composer
        , defTempo = 160
-       , beatsPerBar = 4 }
+       , beatsPerBar = beatsPerBar }
+
+init : SubModel
+init = initwith 4 12 "New song" "Unknown"
+
 pushUndo : SubModel -> SubModel -> SubModel
 pushUndo oldmod newmod =
     { newmod | undoList=ModelList (oldmod::unwrap(newmod.undoList)) }

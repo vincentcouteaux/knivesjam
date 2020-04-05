@@ -5289,24 +5289,46 @@ var $elm$core$Array$fromList = function (list) {
 		return A3($elm$core$Array$fromListHelp, list, _List_Nil, 0);
 	}
 };
-var $author$project$Editor$init = {
-	beatsPerBar: 4,
-	composer: 'Unknown',
-	curChord: A3($author$project$Generator$chord, $author$project$Generator$C, $author$project$Generator$Natural, $author$project$Generator$Dom7),
-	defTempo: 160,
-	grid: $elm$core$Array$fromList(
-		_List_fromArray(
-			[
-				{chord: $elm$core$Maybe$Nothing, len: 4},
-				{chord: $elm$core$Maybe$Nothing, len: 4},
-				{chord: $elm$core$Maybe$Nothing, len: 4},
-				{chord: $elm$core$Maybe$Nothing, len: 4}
-			])),
-	redoList: $author$project$Editor$ModelList(_List_Nil),
-	title: 'New song',
-	tool: $author$project$Editor$SetChord,
-	undoList: $author$project$Editor$ModelList(_List_Nil)
-};
+var $elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2($elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
+		}
+	});
+var $elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var $author$project$Editor$initwith = F4(
+	function (beatsPerBar, nBars, title, composer) {
+		return {
+			beatsPerBar: beatsPerBar,
+			composer: composer,
+			curChord: A3($author$project$Generator$chord, $author$project$Generator$C, $author$project$Generator$Natural, $author$project$Generator$Dom7),
+			defTempo: 160,
+			grid: $elm$core$Array$fromList(
+				A2(
+					$elm$core$List$repeat,
+					nBars,
+					{chord: $elm$core$Maybe$Nothing, len: beatsPerBar})),
+			redoList: $author$project$Editor$ModelList(_List_Nil),
+			title: title,
+			tool: $author$project$Editor$SetChord,
+			undoList: $author$project$Editor$ModelList(_List_Nil)
+		};
+	});
+var $author$project$Editor$init = A4($author$project$Editor$initwith, 4, 12, 'New song', 'Unknown');
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
 var $author$project$Library$init = $elm$core$Dict$empty;
@@ -5405,10 +5427,11 @@ var $author$project$Library$queryAllSongs = _Platform_outgoingPort(
 var $author$project$Library$initCmd = $author$project$Library$queryAllSongs(_Utils_Tuple0);
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$PlayerPage$initCmd = $elm$core$Platform$Cmd$none;
+var $author$project$DialogBox$initDb = {beatsPerBar: 4, composer: 'Unknown', nBars: 12, title: 'New song'};
 var $elm$core$Platform$Cmd$map = _Platform_map;
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
-		{curPage: $author$project$Main$Library, dialogBox: $elm$core$Maybe$Nothing, editorModel: $author$project$Editor$init, libraryModel: $author$project$Library$init, playerModel: $author$project$PlayerPage$init},
+		{curPage: $author$project$Main$Library, dialogBox: $elm$core$Maybe$Nothing, dialogBoxModel: $author$project$DialogBox$initDb, editorModel: $author$project$Editor$init, libraryModel: $author$project$Library$init, playerModel: $author$project$PlayerPage$init},
 		$elm$core$Platform$Cmd$batch(
 			_List_fromArray(
 				[
@@ -5462,8 +5485,12 @@ var $author$project$Main$subscriptions = function (model) {
 			]));
 };
 var $author$project$Editor$ConfirmQuit = {$: 'ConfirmQuit'};
+var $author$project$Main$CreateSong = {$: 'CreateSong'};
 var $author$project$Library$Delete = function (a) {
 	return {$: 'Delete', a: a};
+};
+var $author$project$Main$DialogEvent = function (a) {
+	return {$: 'DialogEvent', a: a};
 };
 var $author$project$Main$Editor = {$: 'Editor'};
 var $author$project$Main$EditorEvent = function (a) {
@@ -7482,6 +7509,235 @@ var $author$project$Editor$grid2chordprog = function (g) {
 	var chords = A2(foldrec, glist, 0);
 	return {chords: chords, end: end};
 };
+var $author$project$DialogBox$DialogBox = F3(
+	function (title, body, actions) {
+		return {actions: actions, body: body, title: title};
+	});
+var $author$project$DialogBox$SetComposer = function (a) {
+	return {$: 'SetComposer', a: a};
+};
+var $author$project$DialogBox$SetNBars = function (a) {
+	return {$: 'SetNBars', a: a};
+};
+var $author$project$DialogBox$SetTitle = function (a) {
+	return {$: 'SetTitle', a: a};
+};
+var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$html$Html$h4 = _VirtualDom_node('h4');
+var $elm$html$Html$input = _VirtualDom_node('input');
+var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
+var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$string(string));
+	});
+var $elm$html$Html$Attributes$min = $elm$html$Html$Attributes$stringProperty('min');
+var $elm$html$Html$Events$alwaysStop = function (x) {
+	return _Utils_Tuple2(x, true);
+};
+var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var $elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var $elm$json$Json$Decode$field = _Json_decodeField;
+var $elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
+	});
+var $elm$html$Html$Events$targetValue = A2(
+	$elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	$elm$json$Json$Decode$string);
+var $elm$html$Html$Events$onInput = function (tagger) {
+	return A2(
+		$elm$html$Html$Events$stopPropagationOn,
+		'input',
+		A2(
+			$elm$json$Json$Decode$map,
+			$elm$html$Html$Events$alwaysStop,
+			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
+};
+var $author$project$DialogBox$SetBeatsPerBar = function (a) {
+	return {$: 'SetBeatsPerBar', a: a};
+};
+var $elm$html$Html$button = _VirtualDom_node('button');
+var $elm$core$Basics$neq = _Utils_notEqual;
+var $elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var $elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$DialogBox$signatureSelectBar = function (sig) {
+	var buttonAttr = function (t) {
+		return _List_fromArray(
+			[
+				A2(
+				$elm$html$Html$Attributes$style,
+				'background-color',
+				(!_Utils_eq(sig, t)) ? '#e7e7e7' : '#f44336'),
+				$elm$html$Html$Events$onClick(
+				$author$project$DialogBox$SetBeatsPerBar(t))
+			]);
+	};
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'color', 'white')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$button,
+				buttonAttr(3),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('3/4')
+					])),
+				A2(
+				$elm$html$Html$button,
+				buttonAttr(4),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('4/4')
+					])),
+				A2(
+				$elm$html$Html$button,
+				buttonAttr(5),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('5/4')
+					]))
+			]));
+};
+var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
+var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
+var $author$project$DialogBox$newSongDialog = F3(
+	function (mapping, yesmsg, nomsg) {
+		return A3(
+			$author$project$DialogBox$DialogBox,
+			'New Song',
+			function (mdl) {
+				return A2(
+					$elm$html$Html$map,
+					mapping,
+					A2(
+						$elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$h4,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Set time signature and meta-information for your new song')
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Time signature :'),
+										$author$project$DialogBox$signatureSelectBar(mdl.beatsPerBar)
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('#Bars: '),
+										A2(
+										$elm$html$Html$input,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$type_('number'),
+												$elm$html$Html$Attributes$min('0'),
+												$elm$html$Html$Events$onInput(
+												function (s) {
+													return $author$project$DialogBox$SetNBars(
+														function () {
+															var _v0 = $elm$core$String$toInt(s);
+															if (_v0.$ === 'Just') {
+																var i = _v0.a;
+																return i;
+															} else {
+																return 0;
+															}
+														}());
+												}),
+												$elm$html$Html$Attributes$value(
+												$elm$core$String$fromInt(mdl.nBars))
+											]),
+										_List_Nil)
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Title: '),
+										A2(
+										$elm$html$Html$input,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$type_('text'),
+												$elm$html$Html$Attributes$value(mdl.title),
+												$elm$html$Html$Events$onInput($author$project$DialogBox$SetTitle)
+											]),
+										_List_Nil)
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Composer: '),
+										A2(
+										$elm$html$Html$input,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$type_('text'),
+												$elm$html$Html$Attributes$value(mdl.composer),
+												$elm$html$Html$Events$onInput($author$project$DialogBox$SetComposer)
+											]),
+										_List_Nil)
+									]))
+							])));
+			},
+			_List_fromArray(
+				[
+					{cmd: yesmsg, text: 'Create Song'},
+					{cmd: nomsg, text: 'Cancel'}
+				]));
+	});
 var $author$project$Main$resetDialog = function (m) {
 	return _Utils_update(
 		m,
@@ -7514,6 +7770,12 @@ var $author$project$PlayerPage$setCursor = F2(
 			{cursor: c});
 	});
 var $author$project$Tune$setCursor = _Platform_outgoingPort('setCursor', $elm$json$Json$Encode$float);
+var $author$project$Main$setDbModel = F2(
+	function (mdldb, m) {
+		return _Utils_update(
+			m,
+			{dialogBoxModel: mdldb});
+	});
 var $author$project$PlayerPage$setDefTempo = F2(
 	function (t, s) {
 		return _Utils_update(
@@ -7592,7 +7854,6 @@ var $elm$json$Json$Encode$object = function (pairs) {
 			_Json_emptyObject(_Utils_Tuple0),
 			pairs));
 };
-var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$Library$type2str = function (ct) {
 	switch (ct.$) {
 		case 'Dom7':
@@ -8465,7 +8726,6 @@ var $author$project$Editor$update = F2(
 	});
 var $elm$json$Json$Decode$decodeString = _Json_runOnString;
 var $author$project$Library$deleteSong = _Platform_outgoingPort('deleteSong', $elm$json$Json$Encode$string);
-var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $elm$json$Json$Decode$list = _Json_decodeList;
 var $elm$json$Json$Decode$map5 = _Json_map5;
@@ -8745,18 +9005,38 @@ var $author$project$PlayerPage$update = F2(
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
-var $author$project$DialogBox$DialogBox = F3(
-	function (title, body, actions) {
-		return {actions: actions, body: body, title: title};
+var $author$project$DialogBox$updateDb = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'SetBeatsPerBar':
+				var n = msg.a;
+				return _Utils_update(
+					model,
+					{beatsPerBar: n});
+			case 'SetNBars':
+				var n = msg.a;
+				return _Utils_update(
+					model,
+					{nBars: n});
+			case 'SetTitle':
+				var s = msg.a;
+				return _Utils_update(
+					model,
+					{title: s});
+			default:
+				var s = msg.a;
+				return _Utils_update(
+					model,
+					{composer: s});
+		}
 	});
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$DialogBox$yesNoDialog = F4(
 	function (title, subtext, yescmd, nocmd) {
 		return A3(
 			$author$project$DialogBox$DialogBox,
 			title,
-			$elm$html$Html$text(subtext),
+			$elm$core$Basics$always(
+				$elm$html$Html$text(subtext)),
 			_List_fromArray(
 				[
 					{cmd: yescmd, text: 'Yes'},
@@ -8875,7 +9155,10 @@ var $author$project$Main$update = F2(
 							A2(
 								$author$project$Main$asPlayerModIn,
 								model,
-								A2($author$project$PlayerPage$asSongIn, model.playerModel, newsong)));
+								A2(
+									$author$project$PlayerPage$setBpm,
+									model.editorModel.defTempo,
+									A2($author$project$PlayerPage$asSongIn, model.playerModel, newsong))));
 						return _Utils_Tuple2(
 							_Utils_update(
 								newmod,
@@ -8885,7 +9168,8 @@ var $author$project$Main$update = F2(
 									[
 										$author$project$Main$genSequence(newmod),
 										$author$project$Library$addSong2db(
-										$author$project$Library$song2json(newsong))
+										$author$project$Library$song2json(newsong)),
+										$author$project$Tune$setBpm(model.editorModel.defTempo)
 									])));
 					default:
 						var _v4 = A2($author$project$Editor$update, submsg, model.editorModel);
@@ -8936,9 +9220,13 @@ var $author$project$Main$update = F2(
 							$author$project$Main$genSequence(model));
 					case 'NewSong':
 						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{curPage: $author$project$Main$Editor, editorModel: $author$project$Editor$init}),
+							A2(
+								$author$project$Main$setDbModel,
+								$author$project$DialogBox$initDb,
+								A2(
+									$author$project$Main$asDialogBoxIn,
+									model,
+									A3($author$project$DialogBox$newSongDialog, $author$project$Main$DialogEvent, $author$project$Main$CreateSong, $author$project$Main$ResetDialog))),
 							$elm$core$Platform$Cmd$none);
 					default:
 						var mm = function () {
@@ -8971,104 +9259,90 @@ var $author$project$Main$update = F2(
 						model,
 						{curPage: newp}),
 					$elm$core$Platform$Cmd$none);
-			case 'ResetDialog':
+			case 'CreateSong':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							curPage: $author$project$Main$Editor,
+							dialogBox: $elm$core$Maybe$Nothing,
+							editorModel: A4($author$project$Editor$initwith, model.dialogBoxModel.beatsPerBar, model.dialogBoxModel.nBars, model.dialogBoxModel.title, model.dialogBoxModel.composer)
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'DialogEvent':
+				var msgdb = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							dialogBoxModel: A2($author$project$DialogBox$updateDb, msgdb, model.dialogBoxModel)
+						}),
+					$elm$core$Platform$Cmd$none);
+			default:
 				return _Utils_Tuple2(
 					$author$project$Main$resetDialog(model),
 					$elm$core$Platform$Cmd$none);
-			default:
-				var m = msg.a;
-				var c = msg.b;
-				return _Utils_Tuple2(m, c);
 		}
 	});
-var $elm$html$Html$button = _VirtualDom_node('button');
-var $elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			$elm$json$Json$Encode$string(string));
-	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
+var $author$project$DialogBox$displayDialog = F2(
+	function (mdldb, dialogBox) {
 		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('w3-modal'),
+					A2($elm$html$Html$Attributes$style, 'display', 'block')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('w3-modal-content')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('w3-container')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$h1,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text(dialogBox.title)
+										])),
+									dialogBox.body(mdldb),
+									A2(
+									$elm$html$Html$div,
+									_List_Nil,
+									A2(
+										$elm$core$List$map,
+										function (x) {
+											return A2(
+												$elm$html$Html$button,
+												_List_fromArray(
+													[
+														$elm$html$Html$Events$onClick(x.cmd)
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text(x.text)
+													]));
+										},
+										dialogBox.actions))
+								]))
+						]))
+				]));
 	});
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
-};
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $author$project$DialogBox$displayDialog = function (dialogBox) {
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('w3-modal'),
-				A2($elm$html$Html$Attributes$style, 'display', 'block')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('w3-modal-content')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('w3-container')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$h1,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text(dialogBox.title)
-									])),
-								dialogBox.body,
-								A2(
-								$elm$html$Html$div,
-								_List_Nil,
-								A2(
-									$elm$core$List$map,
-									function (x) {
-										return A2(
-											$elm$html$Html$button,
-											_List_fromArray(
-												[
-													$elm$html$Html$Events$onClick(x.cmd)
-												]),
-											_List_fromArray(
-												[
-													$elm$html$Html$text(x.text)
-												]));
-									},
-									dialogBox.actions))
-							]))
-					]))
-			]));
-};
-var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
-var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
 var $author$project$Editor$AppendBar = {$: 'AppendBar'};
 var $author$project$Editor$ComposerChanged = function (a) {
 	return {$: 'ComposerChanged', a: a};
@@ -9092,7 +9366,6 @@ var $author$project$Editor$SetBase = function (a) {
 var $author$project$Editor$SetChordType = function (a) {
 	return {$: 'SetChordType', a: a};
 };
-var $elm$core$Basics$neq = _Utils_notEqual;
 var $elm$html$Html$span = _VirtualDom_node('span');
 var $author$project$Editor$chordSelectBar = function (c) {
 	var buttonAttr = F3(
@@ -9413,40 +9686,7 @@ var $author$project$Editor$displayGrid = function (g) {
 			$elm$core$Array$toIndexedList(g)));
 };
 var $elm$core$String$fromFloat = _String_fromNumber;
-var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$html$Html$Attributes$max = $elm$html$Html$Attributes$stringProperty('max');
-var $elm$html$Html$Attributes$min = $elm$html$Html$Attributes$stringProperty('min');
-var $elm$html$Html$Events$alwaysStop = function (x) {
-	return _Utils_Tuple2(x, true);
-};
-var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
-	return {$: 'MayStopPropagation', a: a};
-};
-var $elm$html$Html$Events$stopPropagationOn = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
-	});
-var $elm$json$Json$Decode$at = F2(
-	function (fields, decoder) {
-		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
-	});
-var $elm$html$Html$Events$targetValue = A2(
-	$elm$json$Json$Decode$at,
-	_List_fromArray(
-		['target', 'value']),
-	$elm$json$Json$Decode$string);
-var $elm$html$Html$Events$onInput = function (tagger) {
-	return A2(
-		$elm$html$Html$Events$stopPropagationOn,
-		'input',
-		A2(
-			$elm$json$Json$Decode$map,
-			$elm$html$Html$Events$alwaysStop,
-			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
-};
 var $author$project$Editor$SetBeatsPerBar = function (a) {
 	return {$: 'SetBeatsPerBar', a: a};
 };
@@ -9569,8 +9809,6 @@ var $author$project$Editor$toolSelectBar = function (tool) {
 					]))
 			]));
 };
-var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
-var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
 var $author$project$Editor$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -10064,7 +10302,7 @@ var $author$project$Main$view = function (model) {
 					var db = _v0.a;
 					return _List_fromArray(
 						[
-							$author$project$DialogBox$displayDialog(db)
+							A2($author$project$DialogBox$displayDialog, model.dialogBoxModel, db)
 						]);
 				}
 			}(),
