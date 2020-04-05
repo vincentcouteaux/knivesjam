@@ -7170,32 +7170,67 @@ var $author$project$JazzDrums$sequenceGenerator = F2(
 				A2($author$project$JazzDrums$chabadaCrash, cp.end, beatsPerBar)));
 	});
 var $author$project$JazzPiano$possibleBars = function (signature) {
-	if (signature === 4) {
-		return _List_fromArray(
-			[
-				_List_fromArray(
+	switch (signature) {
+		case 4:
+			return _List_fromArray(
 				[
-					_Utils_Tuple2(0, 0.33),
-					_Utils_Tuple2(1.66, 1.33)
-				]),
-				_List_fromArray(
+					_List_fromArray(
+					[
+						_Utils_Tuple2(0, 0.33),
+						_Utils_Tuple2(1.66, 1.33)
+					]),
+					_List_fromArray(
+					[
+						_Utils_Tuple2(0.66, 0.33),
+						_Utils_Tuple2(2, 1.33)
+					]),
+					_List_fromArray(
+					[
+						_Utils_Tuple2(0.66, 0.33),
+						_Utils_Tuple2(2.66, 0.33)
+					]),
+					_List_fromArray(
+					[
+						_Utils_Tuple2(0, 2),
+						_Utils_Tuple2(2, 2)
+					])
+				]);
+		case 3:
+			return _List_fromArray(
 				[
-					_Utils_Tuple2(0.66, 0.33),
-					_Utils_Tuple2(2, 1.33)
-				]),
-				_List_fromArray(
+					_List_fromArray(
+					[
+						_Utils_Tuple2(0.66, 0.33),
+						_Utils_Tuple2(2, 1)
+					]),
+					_List_fromArray(
+					[
+						_Utils_Tuple2(0.66, 0.33),
+						_Utils_Tuple2(2, 1)
+					]),
+					_List_fromArray(
+					[
+						_Utils_Tuple2(1, 1)
+					]),
+					_List_fromArray(
+					[
+						_Utils_Tuple2(1, 0.33)
+					]),
+					_List_fromArray(
+					[
+						_Utils_Tuple2(2, 1)
+					])
+				]);
+		default:
+			return _List_fromArray(
 				[
-					_Utils_Tuple2(0.66, 0.33),
-					_Utils_Tuple2(2.66, 0.33)
-				]),
-				_List_fromArray(
-				[
-					_Utils_Tuple2(0, 2),
-					_Utils_Tuple2(2, 2)
-				])
-			]);
-	} else {
-		return _List_Nil;
+					_List_fromArray(
+					[
+						_Utils_Tuple2(0.66, 0.33),
+						_Utils_Tuple2(2, 1),
+						_Utils_Tuple2(4, 0.33)
+					])
+				]);
 	}
 };
 var $elm$random$Random$getByWeight = F3(
@@ -7291,7 +7326,7 @@ var $author$project$JazzPiano$genRhythm = F2(
 			A2(
 				$elm$core$List$range,
 				0,
-				($elm$core$Basics$floor(end) / 4) | 0));
+				($elm$core$Basics$floor(end) / signature) | 0));
 	});
 var $author$project$Generator$Dominant = {$: 'Dominant'};
 var $author$project$Generator$Major = {$: 'Major'};

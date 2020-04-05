@@ -1,5 +1,5 @@
-Piano pour mesure 3/4 et 5/4
-accord sus4/NA
+accord sus4
+accord NA
 
 long terme:
 Transposition affichage/playback

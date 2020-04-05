@@ -31,7 +31,13 @@ possibleBars signature =
             , [ (0.66, 0.33), (2,1.33) ]
             , [ (0.66, 0.33), (2.66, 0.33) ]
             , [ (0,2), (2,2) ] ]
-        _ -> []
+        3 -> [ [ (0.66, 0.33), (2,1) ]
+             , [ (0.66, 0.33), (2,1) ]
+             , [ (1,1) ]
+             , [ (1,0.33) ]
+             , [ (2,1) ]
+             ]
+        _ -> [ [ (0.66, 0.33), (2,1), (4, 0.33) ] ]
 
 genRhythm : Int -> Float -> R.Generator (List (Float, Float))
 genRhythm signature end =
@@ -45,7 +51,7 @@ genRhythm signature end =
                 R.map2 (\gl pbm -> gl ++ pbm) genlist pickbarmap
     in
         List.foldl
-            (\i out -> addbar out i) (R.constant []) (List.range 0 ((floor end)//4))
+            (\i out -> addbar out i) (R.constant []) (List.range 0 ((floor end)//signature))
             -- TODO filter onsets after the end
 
 getAbove : Int -> G.Note -> Int
