@@ -32,6 +32,7 @@ type Msg =
     SetBpm Float
     | SeqFinished
     | SequenceGenerated Tune.Sequence
+    | NextSeqGenerated Tune.Sequence
     | SetCursor Float
     | TogglePlay
     | SetVolume String Float
@@ -41,7 +42,8 @@ init _ = ({ bpm = 120
           , cursor = 0
           , playing = False
           , chordProg = G.blueBossa
-          , volPiano = 100, volBass = 100, volDrums=100}, genSequence)
+          , volPiano = 100, volBass = 100, volDrums=100}
+         , Cmd.batch [ genSequence, genNextSequence ] )
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -50,10 +52,11 @@ update msg model =
         TogglePlay -> ({ model | playing = not model.playing}
                       , if model.playing then Tune.pause () else Tune.play ()
                       )
-        SeqFinished -> ( model, Cmd.batch [ Tune.setCursor 0
-                                          , genSequence ]
-                       )
+        SeqFinished -> ( model, genNextSequence )
+
         SequenceGenerated b -> (model, Tune.setSequence b)
+        NextSeqGenerated b -> (model, Tune.setNextSequence b)
+
         SetCursor f -> ({ model | cursor = f }, Cmd.none)
         SetVolume inst vol -> 
             ( case inst of
@@ -65,14 +68,24 @@ update msg model =
 cp2seq : G.ChordProg -> R.Generator Tune.Sequence
 cp2seq cp =
     G.mergeSeqGenerators [ JazzBass.sequenceGenerator
-                         , JazzDrums.sequenceGenerator
+                         , JazzDrums.seqGenNoCrash
                          , JazzPiano.sequenceGenerator ] cp 4
 
-genSequence : Cmd Msg
+genSequence : Cmd Msg -- TODO le cas ou on n'a pas encore généré de séquence
 genSequence =
-    append_iiVI 4
-    |> R.andThen cp2seq
+    fullGenerator
     |> R.generate SequenceGenerated
+
+genNextSequence : Cmd Msg
+genNextSequence =
+    fullGenerator
+    |> R.generate NextSeqGenerated
+
+fullGenerator : R.Generator (Tune.Sequence)
+fullGenerator =
+    append_iiVI 1
+    |> R.andThen cp2seq
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =

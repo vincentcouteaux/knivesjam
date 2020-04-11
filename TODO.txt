@@ -1,6 +1,9 @@
+accords avec basse différente
+
 Transposition affichage/playback
 mesure à vide au début
-bossa nova
-bufferiser pour pas avoir de lag à chaque boucle ?
+bossa nova/Fusion
 exporter/importer le json de la base de données
-s'atteler au CSS
+en faire une progressive web app
+Pouvoir choisir la structure (intro, AABA...)
+

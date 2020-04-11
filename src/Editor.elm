@@ -5,6 +5,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Array exposing (Array)
+import Icons exposing (icon)
 
 type alias Grid = Array { len : Float, chord : Maybe G.Chord }
 type alias SubModel =
@@ -147,30 +148,35 @@ update msg model =
         _ -> (model, Cmd.none)
 
 view : SubModel -> Html SubMsg
-view model = div [] [ button [ onClick Quit ] [ text "quit editor" ]
-                    , button [ onClick SaveAndQuit ] [ text "save and quit" ]
-                    , button [ onClick AppendBar ] [ text "+1 bar" ]
-                    , chordSelectBar (model.curChord)
-                    , toolSelectBar (model.tool)
-                    , button [ onClick AppendBar ] [ text "+1 bar" ]
-                    , button [ onClick Undo ] [ text "Undo" ]
-                    , button [ onClick Redo ] [ text "Redo" ]
-                    , div [] [ text "Title: ", input [ type_ "text", value model.title, onInput TitleChanged ] [] ]
-                    , div [] [ text "Composer: ", input [ type_ "text", value model.composer, onInput ComposerChanged ] [] ]
-                    , signatureSelectBar model.beatsPerBar
-                    , div []
-                        [ text "Default tempo: "
-                        , input [ type_ "range"
-                                , onInput (\s -> (case String.toFloat s of
-                                                    Just f -> TempoChanged f
-                                                    _ -> TempoChanged model.defTempo))
-                                , Html.Attributes.min "30"
-                                , Html.Attributes.max "300"
-                                , value (String.fromFloat model.defTempo) 
-                                , step "1" ] []
-                        , text <| (String.fromFloat model.defTempo) ++ " BPM"
-                        ]
-                    , displayGrid model.grid ]
+view model = div [] 
+                [ div [] 
+                      [ span [ class "button", onClick Quit ] [ icon "close" ]
+                      , span [ class "button", onClick SaveAndQuit ] [ icon "save" ] ]
+                , div [] [ text "Title: ", input [ type_ "text", value model.title, onInput TitleChanged ] [] ]
+                , div [] [ text "Composer: ", input [ type_ "text", value model.composer, onInput ComposerChanged ] [] ]
+                , signatureSelectBar model.beatsPerBar
+                , div []
+                    [ text "Default tempo: "
+                    , input [ type_ "range"
+                            , onInput (\s -> (case String.toFloat s of
+                                                Just f -> TempoChanged f
+                                                _ -> TempoChanged model.defTempo))
+                            , Html.Attributes.min "30"
+                            , Html.Attributes.max "300"
+                            , value (String.fromFloat model.defTempo) 
+                            , step "1" ] []
+                    , text <| (String.fromFloat model.defTempo) ++ " BPM"
+                , chordSelectBar (model.curChord)
+                , toolSelectBar (model.tool)
+                , span [ class "button", onClick AppendBar ] [ icon "exposure_plus_1" ]
+                , span [ class "button"
+                       , onClick Undo
+                       , style "margin-left" "15px"
+                       , style "margin-right" "15px"
+                       ] [ icon "undo" ]
+                , span [ class "button", onClick Redo ] [ icon "redo" ]
+                    ]
+                , displayGrid model.grid model.beatsPerBar ]
 
 signatureSelectBar : Int -> Html SubMsg
 signatureSelectBar sig =
@@ -190,8 +196,8 @@ toolSelectBar tool =
         buttonAttr t = [ style "background-color" (if tool/=t then "#e7e7e7" else "#f44336")
                        , onClick (SetTool t) ]
     in
-    div [ style "color" "white" ]
-        [ button (buttonAttr SetChord) [ text "pen" ]
+    div [ style "margin-top" "5px", style "margin-bottom" "5px" ]
+        [ button (buttonAttr SetChord) [ icon "brush" ]
         , button (buttonAttr SplitCase) [ text "split" ]
         , button (buttonAttr MergeWithBefore) [ text "merge" ]
         , button (buttonAttr InsertBar) [ text "insert bar" ]
@@ -206,7 +212,7 @@ chordSelectBar c =
             [ style "background-color" (if var/=t then "#e7e7e7" else "#f44336")
             , onClick (cmd t) ]
     in
-    div [ style "color" "white" ]
+    div [ style "margin-top" "5px" ]
         [ span []
                [ button (buttonAttr c.note.name G.C SetBase) [ text "C" ]
                , button (buttonAttr c.note.name G.D SetBase) [ text "D" ]
@@ -215,22 +221,24 @@ chordSelectBar c =
                , button (buttonAttr c.note.name G.G SetBase) [ text "G" ]
                , button (buttonAttr c.note.name G.A SetBase) [ text "A" ]
                , button (buttonAttr c.note.name G.B SetBase) [ text "B" ] ]
-        , span [ style "padding" "20px" ]
-               [ button (buttonAttr c.note.alt G.Natural SetAlteration) [ text "natural" ]
-               , button (buttonAttr c.note.alt G.Sharp SetAlteration) [ text "#" ]
-               , button (buttonAttr c.note.alt G.Flat SetAlteration) [ text "b" ] ]
+        , span [ style "width" "20px", style "display" "inline-block"  ] []
+        , span []
+               [ button (buttonAttr c.note.alt G.Natural SetAlteration) [ text "♮" ]
+               , button (buttonAttr c.note.alt G.Sharp SetAlteration) [ text "♯" ]
+               , button (buttonAttr c.note.alt G.Flat SetAlteration) [ text "♭" ] ]
+        , br [] []
         , span []
                [ button (buttonAttr c.type_ G.Dom7 SetChordType) [ text "7" ]
                , button (buttonAttr c.type_ G.Min7 SetChordType) [ text "-7" ]
                , button (buttonAttr c.type_ G.Maj7 SetChordType) [ text "∆" ]
                , button (buttonAttr c.type_ G.Alt7 SetChordType) [ text "7alt" ]
                , button (buttonAttr c.type_ G.Sus4 SetChordType) [ text "sus4" ]
-               , button (buttonAttr c.type_ G.Dom7b9 SetChordType) [ text "7b9" ]
-               , button (buttonAttr c.type_ G.Dom7s5 SetChordType) [ text "7#5" ]
-               , button (buttonAttr c.type_ G.Min7b5 SetChordType) [ text "-7b5" ]
+               , button (buttonAttr c.type_ G.Dom7b9 SetChordType) [ text "7♭9" ]
+               , button (buttonAttr c.type_ G.Dom7s5 SetChordType) [ text "7♯5" ]
+               , button (buttonAttr c.type_ G.Min7b5 SetChordType) [ text "-7♭5" ]
                , button (buttonAttr c.type_ G.Dim SetChordType) [ text "o" ]
                , button (buttonAttr c.type_ G.MinMaj SetChordType) [ text "-∆" ]
-               , button (buttonAttr c.type_ G.Maj7s5 SetChordType) [ text "∆#5" ]
+               , button (buttonAttr c.type_ G.Maj7s5 SetChordType) [ text "∆♯5" ]
                , button (buttonAttr c.type_ G.NA SetChordType) [ text "NA" ]]]
 
                
@@ -242,14 +250,16 @@ chordprog2grid model = Array.fromList
                             (\x -> { len = x.len, chord = (Tuple.first x.chord) })
                             (Pp.chordprog2grid model))
 
-displayGrid : Grid -> Html SubMsg
-displayGrid g =
+displayGrid : Grid -> Int -> Html SubMsg
+displayGrid g beatsPerBar =
     div [ class "realbook" ]
         (List.map
             (\(i, c) -> div
-                [ style "width" <| (String.fromInt (floor (c.len*50)))++"px"
-                , style "height" "100px"
+                [ style "width" <|
+                    (String.fromFloat (100*c.len/(toFloat beatsPerBar)/4))++"%"
+                , style "height" "50px"
                 , style "display" "inline-block"
+                , class "boxeditor"
                 , onClick (CaseClicked i) ]
                 [ text  (Pp.chord2text c.chord) ])
             (Array.toIndexedList g)

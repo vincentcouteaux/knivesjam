@@ -9,6 +9,7 @@ import Dict exposing (Dict)
 import JazzDrums
 import JazzBass
 import JazzPiano
+import Icons exposing (icon)
 
 type alias Song = { chordProg : G.ChordProg
                   , title : String
@@ -58,6 +59,7 @@ type SubMsg =
     | SetCursor Float
     | SeqFinished
     | SequenceGenerated Tune.Sequence
+    | NextSeqGenerated Tune.Sequence
     | Edit
     | ToLibrary
     | SetVolume Instrument Float
@@ -87,10 +89,13 @@ update msg model =
         SetCursor f -> (model, Cmd.batch [ Tune.setCursor f
                                          , genSequence model ]
                        )
-        SeqFinished -> ( model, Cmd.batch [ Tune.setCursor 0
-                                          , genSequence model ]
+        SeqFinished -> ( model, genNextSeqOnly model
+                                --Cmd.batch [ Tune.setCursor 0
+                                --          , genSequence model ]
                        )
         SequenceGenerated b -> (model, Tune.setSequence b)
+
+        NextSeqGenerated b -> (model, Tune.setNextSequence b)
 
         SetVolume i vol ->
             let 
@@ -108,25 +113,40 @@ update msg model =
         DebugGenerated a -> let _ = Debug.log "debug" a in (model, Cmd.none)
         _ -> (model, Cmd.none)
 
+seqgen : SubModel -> R.Generator Tune.Sequence
+seqgen m =
+    G.mergeSeqGenerators 
+        [ JazzBass.sequenceGenerator
+        , JazzDrums.sequenceGenerator
+        , JazzPiano.sequenceGenerator ] 
+        m.song.chordProg 
+        m.song.beatsPerBar
+
 genSequence : SubModel -> Cmd SubMsg
 genSequence m =
-    G.mergeSeqGenerators [ JazzBass.sequenceGenerator
-                         , JazzDrums.sequenceGenerator
-                         , JazzPiano.sequenceGenerator ] m.song.chordProg m.song.beatsPerBar
-    |> R.generate SequenceGenerated
+    let sg = seqgen m in
+    Cmd.batch
+        [ R.generate SequenceGenerated <| sg
+        , R.generate NextSeqGenerated <| sg ]
+
+genNextSeqOnly : SubModel -> Cmd SubMsg
+genNextSeqOnly m = R.generate NextSeqGenerated <| seqgen m
+
 
 type alias Grid = List { len : Float, chord : (Maybe G.Chord, Float) }
 
 view : SubModel -> Html SubMsg
 view model =
-    div [ class "realbook" ]
-        [ p [] [ button [ onClick ToLibrary ] [ text "library" ] ]
-        , h1 [] [ text model.song.title ]
-        , h2 [] [ text model.song.composer ]
-        , button [ onClick TogglePlay ] 
-                 [ text (if model.playing then "pause" else "play") ]
-        , button [ onClick (SetCursor 0) ]
-                 [ text "Reset" ]
+    div [ class "realbook", class "content" ]
+        [ p [] [ span [ class "button", onClick ToLibrary ] [ icon "menu" ] ]
+        , h1 [ class "realbook", class "titleplayer" ] [ text model.song.title ]
+        , h2 [ class "realbook", class "composerplayer"  ] [ text model.song.composer ]
+        , span [ class "button", onClick TogglePlay ] 
+             [ icon (if model.playing 
+                     then "pause" 
+                     else "play_arrow") ]
+        , span [ class "button", onClick (SetCursor 0) ]
+                 [ icon "replay" ]
         , input [ Html.Attributes.type_ "range"
                 , onInput (\s -> (case String.toFloat s of
                                     Just f -> SetBpm f
@@ -135,15 +155,16 @@ view model =
                 , Html.Attributes.max "300"
                 , Html.Attributes.value (String.fromFloat model.bpm)
                 , Html.Attributes.step "1" ] []
-        , text ((String.fromFloat model.bpm) ++ " BPM")
-        , p [] [ text (String.left 4 (String.fromFloat model.cursor)) ]
-        , button [ onClick Edit ] [ text "edit song" ]
+        , text (" " ++ String.fromFloat model.bpm ++ " BPM")
+        --, p [] [ text (String.left 4 (String.fromFloat model.cursor)) ]
+        , p [ style "text-align" "right" ]
+            [ span [ class "button", onClick Edit ] [ icon "edit" ] ]
         , viewGrid model
         , div []
             [ rangeVolume Piano "piano" model.volPiano
             , rangeVolume Bass "bass" model.volBass
             , rangeVolume Drums "drums" model.volDrums ]
-        , button [ onClick Delete ] [ text "Delete song from library" ]
+        , span [ class "button", onClick Delete ] [ icon "delete" ]
         ]
 
 rangeVolume : Instrument -> String -> Float -> Html SubMsg
@@ -222,11 +243,11 @@ viewGrid model =
     in
         div []
             (List.map
-                (\line -> div [ style "height" "100px" ]
+                (\line -> div [ class "gridline" ]
                      (List.map 
                         (\box -> div 
                             [ style "width" <| 
-                                (String.fromInt (floor (box.len*50)))++"px"
+                                (String.fromFloat (100*box.len/(toFloat model.song.beatsPerBar)/(toFloat model.barsPerLine)))++"%"
                             --, style "text-align" "center"
                             , style "margin-top" "auto"
                             , style "display" "inline-block"
@@ -260,17 +281,17 @@ chord2text mc =
                     G.B -> "B"
                 alt = case c.note.alt of
                     G.Natural -> ""
-                    G.Flat -> "β"
+                    G.Flat -> "ь"
                     G.Sharp -> "#"
                 typ = case c.type_ of
                     G.Dom7 -> "7"
                     G.Min7 -> "-7"
                     G.Maj7 -> "∆"
                     G.Alt7 -> "7alt"
-                    G.Dom7b9 -> "7β9"
+                    G.Dom7b9 -> "7ь9"
                     G.Dom7s5 -> "7#5"
                     G.Sus4 -> "7sus4"
-                    G.Min7b5 -> "-7β5"
+                    G.Min7b5 -> "-7ь5"
                     G.Dim -> "°"
                     G.MinMaj -> "-∆"
                     G.Maj7s5 -> "∆#5"

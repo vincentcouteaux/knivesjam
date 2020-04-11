@@ -5,6 +5,7 @@ port module Tune exposing ( play
                           , setBpm
                           , sequenceFinished
                           , setSequence
+                          , setNextSequence
                           , setInstVolume
                           , auclairdelalune
                           , Sequence
@@ -19,6 +20,8 @@ port setCursor : Float -> Cmd msg
 port setBpm : Float -> Cmd msg
 
 port setSequence : Sequence -> Cmd msg
+
+port setNextSequence : Sequence -> Cmd msg
 
 port setInstVolume : (String, Float) -> Cmd msg
 

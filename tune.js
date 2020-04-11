@@ -16,30 +16,40 @@ const initTune = (ctx, instruments, app) => {
                    , [5.5, false, 52, "piano"]
                    , [6, true, 50, "piano", .3]
                    , [7.5, false, 50, "piano"]];
+    let nextsequence = []
 
     const play_recur = (seq, time) => {
         if (seq.length <= 0)
             return seq;
-        if (time <= seq[0][0])
+        if (time < seq[0][0]) //or <= ?
             return seq;
         if (seq[0][1])
             instruments[seq[0][3]].startNote(seq[0][2], seq[0][4]);
         else instruments[seq[0][3]].stopNote(seq[0][2]);
         return play_recur(seq.slice(1), time);
     };
-    const sched2 = sequence => prevtime => {
+    const sched2 = curseq => prevtime => {
         if (!inplay)
             return;
         const curtime = ctx.currentTime;
-        //const newcur = cursor + (curtime - prevtime)*BPM/60;
         cursor = cursor + (curtime - prevtime)*BPM/60;
         app.ports.cursorChanged.send(cursor);
-        const newseq = play_recur(sequence, cursor);
-        if (sequence.length > 0) {
-            timeoutid = window.setTimeout(() => sched2(newseq)(curtime), 20);
+        const newseq = play_recur(curseq, cursor);
+        //console.log(cursor, curtime, newseq.length);
+        if (newseq.length > 0) {
+            timeoutid = window.setTimeout(() => sched2(newseq)(curtime), 4);
         }
         else {
             app.ports.sequenceFinished.send(null);
+            //console.log("finished!", ctx.currentTime);
+            if (nextsequence.length > 0) {
+                sequence = nextsequence;
+                nextsequence = [];
+                cursor = cursor - Math.floor(cursor);
+                const newseq2 = play_recur(sequence, cursor);
+                timeoutid = window.setTimeout(() => sched2(newseq2)(curtime), 20);
+            }
+            //TODO populate nextsequence
         }
     };
 
@@ -72,21 +82,31 @@ const initTune = (ctx, instruments, app) => {
         stopAllInst();
         inplay = false;
     });
-    app.ports.setCursor.subscribe(c => {
-        cursor = c;
-        app.ports.cursorChanged.send(cursor);
-        if (inplay)
-            playFrom();
-    });
+    if (app.ports.setCursor) {
+        app.ports.setCursor.subscribe(c => {
+            //console.log("set cursor : ", c, ctx.currentTime);
+            cursor = c;
+            app.ports.cursorChanged.send(cursor);
+            if (inplay)
+                playFrom();
+        });
+    }
     app.ports.setBpm.subscribe(b => {
         BPM = b;
     });
-    app.ports.setSequence.subscribe(s => {
+    const receiveSeq = s => {
         let newseq = s.map(el => [el.time , el.onset, el.pitch
                                    , el.instrument, el.gain]);
         newseq.sort((x, y) => x[0] > y[0] ? 1:-1);
-        sequence = newseq;
+        return newseq;
+    };
+    app.ports.setSequence.subscribe(s => {
+        sequence = receiveSeq(s);
+        //nextSequence = newseq.slice();
         playFrom();
+    });
+    app.ports.setNextSequence.subscribe(s => {
+        nextsequence = receiveSeq(s);
     });
     app.ports.setInstVolume.subscribe(req => {
         inst = req[0];

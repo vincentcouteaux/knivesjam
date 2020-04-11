@@ -1,3 +1,54 @@
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Material Icons'),
+    local('MaterialIcons-Regular'),
+    url(MaterialIcons-Regular.woff) format('woff');
+}
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;  /* Preferred icon size */
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Support for IE. */
+  font-feature-settings: 'liga';
+}
+
+
+
+
+
+
+html {
+    height: 100%;
+}
+
+body {
+    background-color: #fbf5eb;
+    background-image: url("texture_papier2.jpg");
+    background-repeat: repeat;
+    background-size: 100%;
+    background-attachment: fixed;
+    padding: 0;
+    height: 100%;
+}
 
 @font-face {
     font-family: "RealBook";
@@ -6,4 +57,96 @@
 
 .realbook {
     font-family: "RealBook", sans-serif;
+}
+.content {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.songlist, .newsong {
+    font-family: courier;
+    font-variant: small-caps;
+    font-size: 1.3em;
+    padding: 15px;
+}
+
+.libsongcontainer {
+    overflow: hidden;
+    border-bottom: dashed 0.05em;
+    cursor: pointer;
+    line-height: 70px;
+}
+
+.libsongcontainer:hover {
+    background-color: #ffe0e2;
+}
+.libsongcontainer div {
+    height: 50px;
+}
+
+.newsong:hover {
+    cursor: pointer;
+    color: #7f5c52;
+}
+
+.left {
+    float: left;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+.right {
+    float: right;
+    overflow: hidden;
+}
+
+.xbutton {
+    margin: 20px;
+    cursor: pointer;
+    font-size: 1.8em;
+}
+
+.gridline {
+    height: 50px;
+    user-select: none;
+}
+
+.titleplayer {
+    text-align: center;
+    font-size: 4em;
+}
+.composerplayer {
+    text-align: right;
+}
+
+.fulldiv {
+    background-color: white;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 15px;
+    height: 100%;
+    overflow: scroll;
+}
+
+.coffee {
+    background-image: url("coffee-stain.jpeg");
+    background-repeat: no-repeat;
+    background-size: 350px;
+    background-attachment: local;
+}
+.button {
+    cursor: pointer;
+    user-select: none;
+}
+
+.button > .material-icons {
+    font-size: 26px;
+}
+
+.boxeditor {
+    border: 1px solid #999999;
+    padding: 5px;
+}
+
+.boxeditor:hover {
+    border-color: red;
 }

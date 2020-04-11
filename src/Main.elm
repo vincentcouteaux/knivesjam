@@ -116,8 +116,8 @@ update msg model =
                 E.Quit -> 
                     (
                         yesNoDialog 
-                            "Sure ?"
-                            "it will not be saved" 
+                            "Quit editor ?"
+                            "All unsaved modifications will be lost" 
                             (EditorEvent E.ConfirmQuit)
                             ResetDialog
                         |> asDialogBoxIn model
@@ -161,6 +161,7 @@ update msg model =
                               |> Pp.setBpm s.defaultTempo
                               |> Pp.setCursor 0
                               |> asPlayerModIn model
+                              |> setLibrary (L.setChosen model.libraryModel)
                     in
                         ( { newmod | curPage = Player }
                         , Cmd.batch
@@ -214,7 +215,7 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div [] <|
+    div [ Html.Attributes.classList [("fulldiv", True), ("coffee", model.curPage == Library) ] ] <|
         (
             case model.dialogBox of
                 Nothing -> []

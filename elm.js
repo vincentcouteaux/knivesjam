@@ -5331,7 +5331,7 @@ var $author$project$Editor$initwith = F4(
 var $author$project$Editor$init = A4($author$project$Editor$initwith, 4, 12, 'New song', 'Unknown');
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
-var $author$project$Library$init = $elm$core$Dict$empty;
+var $author$project$Library$init = {hasChosen: false, library: $elm$core$Dict$empty, searchBar: ''};
 var $author$project$PlayerPage$Song = F5(
 	function (chordProg, title, composer, beatsPerBar, defaultTempo) {
 		return {beatsPerBar: beatsPerBar, chordProg: chordProg, composer: composer, defaultTempo: defaultTempo, title: title};
@@ -5626,11 +5626,15 @@ var $elm$core$Dict$insert = F3(
 	});
 var $author$project$Library$addSong = F2(
 	function (m, s) {
-		return A3(
-			$elm$core$Dict$insert,
-			$author$project$Library$getKey(s),
-			s,
-			m);
+		return _Utils_update(
+			m,
+			{
+				library: A3(
+					$elm$core$Dict$insert,
+					$author$project$Library$getKey(s),
+					s,
+					m.library)
+			});
 	});
 var $author$project$Library$addSong2db = _Platform_outgoingPort('addSong2db', $elm$core$Basics$identity);
 var $author$project$PlayerPage$asChordProgIn = F2(
@@ -5801,6 +5805,9 @@ var $author$project$Editor$chordprog2grid = function (model) {
 				return {chord: x.chord.a, len: x.len};
 			},
 			$author$project$PlayerPage$chordprog2grid(model)));
+};
+var $author$project$PlayerPage$NextSeqGenerated = function (a) {
+	return {$: 'NextSeqGenerated', a: a};
 };
 var $author$project$PlayerPage$SequenceGenerated = function (a) {
 	return {$: 'SequenceGenerated', a: a};
@@ -7171,8 +7178,8 @@ var $author$project$JazzDrums$randomShots = F2(
 				},
 				A2($elm$random$Random$float, 0, 1)));
 	});
-var $author$project$JazzDrums$sequenceGenerator = F2(
-	function (cp, beatsPerBar) {
+var $author$project$JazzDrums$seqGenMeta = F3(
+	function (addcrash, cp, beatsPerBar) {
 		var n = $elm$core$Basics$floor(cp.end);
 		var shotGen = A2($author$project$JazzDrums$randomShots, 0.2, 2 * n);
 		var snare = A2(
@@ -7198,8 +7205,12 @@ var $author$project$JazzDrums$sequenceGenerator = F2(
 			snare,
 			kick,
 			$elm$random$Random$constant(
-				A2($author$project$JazzDrums$chabadaCrash, cp.end, beatsPerBar)));
+				A2(
+					addcrash ? $author$project$JazzDrums$chabadaCrash : $author$project$JazzDrums$chabada,
+					cp.end,
+					beatsPerBar)));
 	});
+var $author$project$JazzDrums$sequenceGenerator = $author$project$JazzDrums$seqGenMeta(true);
 var $author$project$JazzPiano$possibleBars = function (signature) {
 	switch (signature) {
 		case 4:
@@ -7533,16 +7544,22 @@ var $author$project$JazzPiano$sequenceGenerator = F2(
 				},
 				A2($author$project$JazzPiano$genRhythm, signature, cp.end)));
 	});
+var $author$project$PlayerPage$seqgen = function (m) {
+	return A3(
+		$author$project$Generator$mergeSeqGenerators,
+		_List_fromArray(
+			[$author$project$JazzBass$sequenceGenerator, $author$project$JazzDrums$sequenceGenerator, $author$project$JazzPiano$sequenceGenerator]),
+		m.song.chordProg,
+		m.song.beatsPerBar);
+};
 var $author$project$PlayerPage$genSequence = function (m) {
-	return A2(
-		$elm$random$Random$generate,
-		$author$project$PlayerPage$SequenceGenerated,
-		A3(
-			$author$project$Generator$mergeSeqGenerators,
-			_List_fromArray(
-				[$author$project$JazzBass$sequenceGenerator, $author$project$JazzDrums$sequenceGenerator, $author$project$JazzPiano$sequenceGenerator]),
-			m.song.chordProg,
-			m.song.beatsPerBar));
+	var sg = $author$project$PlayerPage$seqgen(m);
+	return $elm$core$Platform$Cmd$batch(
+		_List_fromArray(
+			[
+				A2($elm$random$Random$generate, $author$project$PlayerPage$SequenceGenerated, sg),
+				A2($elm$random$Random$generate, $author$project$PlayerPage$NextSeqGenerated, sg)
+			]));
 };
 var $author$project$Main$genSequence = function (m) {
 	return A2(
@@ -7832,6 +7849,11 @@ var $author$project$PlayerPage$setBpm = F2(
 	});
 var $elm$json$Json$Encode$float = _Json_wrap;
 var $author$project$Tune$setBpm = _Platform_outgoingPort('setBpm', $elm$json$Json$Encode$float);
+var $author$project$Library$setChosen = function (m) {
+	return _Utils_update(
+		m,
+		{hasChosen: true});
+};
 var $author$project$PlayerPage$setComposer = F2(
 	function (c, s) {
 		return _Utils_update(
@@ -8921,6 +8943,14 @@ var $author$project$Library$json2song = A6(
 	A2($elm$json$Json$Decode$field, 'beatsPerBar', $elm$json$Json$Decode$int),
 	A2($elm$json$Json$Decode$field, 'defaultTempo', $elm$json$Json$Decode$float));
 var $elm$core$Debug$log = _Debug_log;
+var $author$project$Library$remSong = F2(
+	function (m, k) {
+		return _Utils_update(
+			m,
+			{
+				library: A2($elm$core$Dict$remove, k, m.library)
+			});
+	});
 var $author$project$Library$update = F2(
 	function (msg, m) {
 		switch (msg.$) {
@@ -8944,12 +8974,25 @@ var $author$project$Library$update = F2(
 				var s = msg.a;
 				var key = $author$project$Library$getKey(s);
 				return _Utils_Tuple2(
-					A2($elm$core$Dict$remove, key, m),
+					A2($author$project$Library$remSong, m, key),
 					$author$project$Library$deleteSong(key));
+			case 'SearchBarChanged':
+				var s = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						m,
+						{searchBar: s}),
+					$elm$core$Platform$Cmd$none);
 			default:
 				return _Utils_Tuple2(m, $elm$core$Platform$Cmd$none);
 		}
 	});
+var $author$project$PlayerPage$genNextSeqOnly = function (m) {
+	return A2(
+		$elm$random$Random$generate,
+		$author$project$PlayerPage$NextSeqGenerated,
+		$author$project$PlayerPage$seqgen(m));
+};
 var $elm$core$Basics$not = _Basics_not;
 var $author$project$Tune$pause = _Platform_outgoingPort(
 	'pause',
@@ -8976,6 +9019,30 @@ var $author$project$Tune$setInstVolume = _Platform_outgoingPort(
 				]));
 	});
 var $elm$json$Json$Encode$bool = _Json_wrap;
+var $author$project$Tune$setNextSequence = _Platform_outgoingPort(
+	'setNextSequence',
+	$elm$json$Json$Encode$list(
+		function ($) {
+			return $elm$json$Json$Encode$object(
+				_List_fromArray(
+					[
+						_Utils_Tuple2(
+						'gain',
+						$elm$json$Json$Encode$float($.gain)),
+						_Utils_Tuple2(
+						'instrument',
+						$elm$json$Json$Encode$string($.instrument)),
+						_Utils_Tuple2(
+						'onset',
+						$elm$json$Json$Encode$bool($.onset)),
+						_Utils_Tuple2(
+						'pitch',
+						$elm$json$Json$Encode$int($.pitch)),
+						_Utils_Tuple2(
+						'time',
+						$elm$json$Json$Encode$float($.time))
+					]));
+		}));
 var $author$project$Tune$setSequence = _Platform_outgoingPort(
 	'setSequence',
 	$elm$json$Json$Encode$list(
@@ -9034,17 +9101,17 @@ var $author$project$PlayerPage$update = F2(
 			case 'SeqFinished':
 				return _Utils_Tuple2(
 					model,
-					$elm$core$Platform$Cmd$batch(
-						_List_fromArray(
-							[
-								$author$project$Tune$setCursor(0),
-								$author$project$PlayerPage$genSequence(model)
-							])));
+					$author$project$PlayerPage$genNextSeqOnly(model));
 			case 'SequenceGenerated':
 				var b = msg.a;
 				return _Utils_Tuple2(
 					model,
 					$author$project$Tune$setSequence(b));
+			case 'NextSeqGenerated':
+				var b = msg.a;
+				return _Utils_Tuple2(
+					model,
+					$author$project$Tune$setNextSequence(b));
 			case 'SetVolume':
 				var i = msg.a;
 				var vol = msg.b;
@@ -9201,8 +9268,8 @@ var $author$project$Main$update = F2(
 								model,
 								A4(
 									$author$project$DialogBox$yesNoDialog,
-									'Sure ?',
-									'it will not be saved',
+									'Quit editor ?',
+									'All unsaved modifications will be lost',
 									$author$project$Main$EditorEvent($author$project$Editor$ConfirmQuit),
 									$author$project$Main$ResetDialog)),
 							$elm$core$Platform$Cmd$none);
@@ -9272,15 +9339,18 @@ var $author$project$Main$update = F2(
 					case 'SongClicked':
 						var s = submsg.a;
 						var newmod = A2(
-							$author$project$Main$asPlayerModIn,
-							model,
+							$author$project$Main$setLibrary,
+							$author$project$Library$setChosen(model.libraryModel),
 							A2(
-								$author$project$PlayerPage$setCursor,
-								0,
+								$author$project$Main$asPlayerModIn,
+								model,
 								A2(
-									$author$project$PlayerPage$setBpm,
-									s.defaultTempo,
-									A2($author$project$PlayerPage$asSongIn, model.playerModel, s))));
+									$author$project$PlayerPage$setCursor,
+									0,
+									A2(
+										$author$project$PlayerPage$setBpm,
+										s.defaultTempo,
+										A2($author$project$PlayerPage$asSongIn, model.playerModel, s)))));
 						return _Utils_Tuple2(
 							_Utils_update(
 								newmod,
@@ -9365,6 +9435,16 @@ var $author$project$Main$update = F2(
 		}
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$html$Html$Attributes$classList = function (classes) {
+	return $elm$html$Html$Attributes$class(
+		A2(
+			$elm$core$String$join,
+			' ',
+			A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$first,
+				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
+};
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $author$project$DialogBox$displayDialog = F2(
 	function (mdldb, dialogBox) {
@@ -9446,6 +9526,7 @@ var $author$project$Editor$SetBase = function (a) {
 var $author$project$Editor$SetChordType = function (a) {
 	return {$: 'SetChordType', a: a};
 };
+var $elm$html$Html$br = _VirtualDom_node('br');
 var $elm$html$Html$span = _VirtualDom_node('span');
 var $author$project$Editor$chordSelectBar = function (c) {
 	var buttonAttr = F3(
@@ -9464,7 +9545,7 @@ var $author$project$Editor$chordSelectBar = function (c) {
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				A2($elm$html$Html$Attributes$style, 'color', 'white')
+				A2($elm$html$Html$Attributes$style, 'margin-top', '5px')
 			]),
 		_List_fromArray(
 			[
@@ -9527,8 +9608,13 @@ var $author$project$Editor$chordSelectBar = function (c) {
 				$elm$html$Html$span,
 				_List_fromArray(
 					[
-						A2($elm$html$Html$Attributes$style, 'padding', '20px')
+						A2($elm$html$Html$Attributes$style, 'width', '20px'),
+						A2($elm$html$Html$Attributes$style, 'display', 'inline-block')
 					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$span,
+				_List_Nil,
 				_List_fromArray(
 					[
 						A2(
@@ -9536,23 +9622,24 @@ var $author$project$Editor$chordSelectBar = function (c) {
 						A3(buttonAttr, c.note.alt, $author$project$Generator$Natural, $author$project$Editor$SetAlteration),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('natural')
+								$elm$html$Html$text('♮')
 							])),
 						A2(
 						$elm$html$Html$button,
 						A3(buttonAttr, c.note.alt, $author$project$Generator$Sharp, $author$project$Editor$SetAlteration),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('#')
+								$elm$html$Html$text('♯')
 							])),
 						A2(
 						$elm$html$Html$button,
 						A3(buttonAttr, c.note.alt, $author$project$Generator$Flat, $author$project$Editor$SetAlteration),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('b')
+								$elm$html$Html$text('♭')
 							]))
 					])),
+				A2($elm$html$Html$br, _List_Nil, _List_Nil),
 				A2(
 				$elm$html$Html$span,
 				_List_Nil,
@@ -9598,21 +9685,21 @@ var $author$project$Editor$chordSelectBar = function (c) {
 						A3(buttonAttr, c.type_, $author$project$Generator$Dom7b9, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('7b9')
+								$elm$html$Html$text('7♭9')
 							])),
 						A2(
 						$elm$html$Html$button,
 						A3(buttonAttr, c.type_, $author$project$Generator$Dom7s5, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('7#5')
+								$elm$html$Html$text('7♯5')
 							])),
 						A2(
 						$elm$html$Html$button,
 						A3(buttonAttr, c.type_, $author$project$Generator$Min7b5, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('-7b5')
+								$elm$html$Html$text('-7♭5')
 							])),
 						A2(
 						$elm$html$Html$button,
@@ -9633,7 +9720,7 @@ var $author$project$Editor$chordSelectBar = function (c) {
 						A3(buttonAttr, c.type_, $author$project$Generator$Maj7s5, $author$project$Editor$SetChordType),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('∆#5')
+								$elm$html$Html$text('∆♯5')
 							])),
 						A2(
 						$elm$html$Html$button,
@@ -9668,13 +9755,13 @@ var $author$project$PlayerPage$chord2text = function (mc) {
 					case 'Alt7':
 						return '7alt';
 					case 'Dom7b9':
-						return '7β9';
+						return '7ь9';
 					case 'Dom7s5':
 						return '7#5';
 					case 'Sus4':
 						return '7sus4';
 					case 'Min7b5':
-						return '-7β5';
+						return '-7ь5';
 					case 'Dim':
 						return '°';
 					case 'MinMaj':
@@ -9710,7 +9797,7 @@ var $author$project$PlayerPage$chord2text = function (mc) {
 					case 'Natural':
 						return '';
 					case 'Flat':
-						return 'β';
+						return 'ь';
 					default:
 						return '#';
 				}
@@ -9721,6 +9808,7 @@ var $author$project$PlayerPage$chord2text = function (mc) {
 		}
 	}
 };
+var $elm$core$String$fromFloat = _String_fromNumber;
 var $elm$core$Array$toIndexedList = function (array) {
 	var len = array.a;
 	var helper = F2(
@@ -9740,41 +9828,54 @@ var $elm$core$Array$toIndexedList = function (array) {
 		_Utils_Tuple2(len - 1, _List_Nil),
 		array).b;
 };
-var $author$project$Editor$displayGrid = function (g) {
+var $author$project$Editor$displayGrid = F2(
+	function (g, beatsPerBar) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('realbook')
+				]),
+			A2(
+				$elm$core$List$map,
+				function (_v0) {
+					var i = _v0.a;
+					var c = _v0.b;
+					return A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$Attributes$style,
+								'width',
+								$elm$core$String$fromFloat(((100 * c.len) / beatsPerBar) / 4) + '%'),
+								A2($elm$html$Html$Attributes$style, 'height', '50px'),
+								A2($elm$html$Html$Attributes$style, 'display', 'inline-block'),
+								$elm$html$Html$Attributes$class('boxeditor'),
+								$elm$html$Html$Events$onClick(
+								$author$project$Editor$CaseClicked(i))
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								$author$project$PlayerPage$chord2text(c.chord))
+							]));
+				},
+				$elm$core$Array$toIndexedList(g)));
+	});
+var $elm$html$Html$i = _VirtualDom_node('i');
+var $author$project$Icons$icon = function (s) {
 	return A2(
-		$elm$html$Html$div,
+		$elm$html$Html$i,
 		_List_fromArray(
 			[
-				$elm$html$Html$Attributes$class('realbook')
+				$elm$html$Html$Attributes$class('material-icons')
 			]),
-		A2(
-			$elm$core$List$map,
-			function (_v0) {
-				var i = _v0.a;
-				var c = _v0.b;
-				return A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$Attributes$style,
-							'width',
-							$elm$core$String$fromInt(
-								$elm$core$Basics$floor(c.len * 50)) + 'px'),
-							A2($elm$html$Html$Attributes$style, 'height', '100px'),
-							A2($elm$html$Html$Attributes$style, 'display', 'inline-block'),
-							$elm$html$Html$Events$onClick(
-							$author$project$Editor$CaseClicked(i))
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text(
-							$author$project$PlayerPage$chord2text(c.chord))
-						]));
-			},
-			$elm$core$Array$toIndexedList(g)));
+		_List_fromArray(
+			[
+				$elm$html$Html$text(s)
+			]));
 };
-var $elm$core$String$fromFloat = _String_fromNumber;
 var $elm$html$Html$Attributes$max = $elm$html$Html$Attributes$stringProperty('max');
 var $author$project$Editor$SetBeatsPerBar = function (a) {
 	return {$: 'SetBeatsPerBar', a: a};
@@ -9850,7 +9951,8 @@ var $author$project$Editor$toolSelectBar = function (tool) {
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				A2($elm$html$Html$Attributes$style, 'color', 'white')
+				A2($elm$html$Html$Attributes$style, 'margin-top', '5px'),
+				A2($elm$html$Html$Attributes$style, 'margin-bottom', '5px')
 			]),
 		_List_fromArray(
 			[
@@ -9859,7 +9961,7 @@ var $author$project$Editor$toolSelectBar = function (tool) {
 				buttonAttr($author$project$Editor$SetChord),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('pen')
+						$author$project$Icons$icon('brush')
 					])),
 				A2(
 				$elm$html$Html$button,
@@ -9905,66 +10007,32 @@ var $author$project$Editor$view = function (model) {
 		_List_fromArray(
 			[
 				A2(
-				$elm$html$Html$button,
+				$elm$html$Html$div,
+				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$Events$onClick($author$project$Editor$Quit)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('quit editor')
-					])),
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick($author$project$Editor$SaveAndQuit)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('save and quit')
-					])),
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick($author$project$Editor$AppendBar)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('+1 bar')
-					])),
-				$author$project$Editor$chordSelectBar(model.curChord),
-				$author$project$Editor$toolSelectBar(model.tool),
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick($author$project$Editor$AppendBar)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('+1 bar')
-					])),
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick($author$project$Editor$Undo)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Undo')
-					])),
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick($author$project$Editor$Redo)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Redo')
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('button'),
+								$elm$html$Html$Events$onClick($author$project$Editor$Quit)
+							]),
+						_List_fromArray(
+							[
+								$author$project$Icons$icon('close')
+							])),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('button'),
+								$elm$html$Html$Events$onClick($author$project$Editor$SaveAndQuit)
+							]),
+						_List_fromArray(
+							[
+								$author$project$Icons$icon('save')
+							]))
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -10028,17 +10096,73 @@ var $author$project$Editor$view = function (model) {
 							]),
 						_List_Nil),
 						$elm$html$Html$text(
-						$elm$core$String$fromFloat(model.defTempo) + ' BPM')
+						$elm$core$String$fromFloat(model.defTempo) + ' BPM'),
+						$author$project$Editor$chordSelectBar(model.curChord),
+						$author$project$Editor$toolSelectBar(model.tool),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('button'),
+								$elm$html$Html$Events$onClick($author$project$Editor$AppendBar)
+							]),
+						_List_fromArray(
+							[
+								$author$project$Icons$icon('exposure_plus_1')
+							])),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('button'),
+								$elm$html$Html$Events$onClick($author$project$Editor$Undo),
+								A2($elm$html$Html$Attributes$style, 'margin-left', '15px'),
+								A2($elm$html$Html$Attributes$style, 'margin-right', '15px')
+							]),
+						_List_fromArray(
+							[
+								$author$project$Icons$icon('undo')
+							])),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('button'),
+								$elm$html$Html$Events$onClick($author$project$Editor$Redo)
+							]),
+						_List_fromArray(
+							[
+								$author$project$Icons$icon('redo')
+							]))
 					])),
-				$author$project$Editor$displayGrid(model.grid)
+				A2($author$project$Editor$displayGrid, model.grid, model.beatsPerBar)
 			]));
 };
 var $author$project$Library$Close = {$: 'Close'};
 var $author$project$Library$NewSong = {$: 'NewSong'};
+var $author$project$Library$SearchBarChanged = function (a) {
+	return {$: 'SearchBarChanged', a: a};
+};
 var $author$project$Library$SongClicked = function (a) {
 	return {$: 'SongClicked', a: a};
 };
-var $elm$html$Html$a = _VirtualDom_node('a');
+var $elm$html$Html$Attributes$alt = $elm$html$Html$Attributes$stringProperty('alt');
+var $elm$core$String$toLower = _String_toLower;
+var $author$project$Library$contains = F2(
+	function (s1, s2) {
+		return A2(
+			$elm$core$String$contains,
+			$elm$core$String$toLower(s1),
+			$elm$core$String$toLower(s2));
+	});
+var $elm$html$Html$img = _VirtualDom_node('img');
+var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
+var $elm$html$Html$Attributes$src = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'src',
+		_VirtualDom_noJavaScriptOrHtmlUri(url));
+};
 var $elm$core$Dict$values = function (dict) {
 	return A3(
 		$elm$core$Dict$foldr,
@@ -10049,58 +10173,129 @@ var $elm$core$Dict$values = function (dict) {
 		_List_Nil,
 		dict);
 };
+var $elm$html$Html$Attributes$width = function (n) {
+	return A2(
+		_VirtualDom_attribute,
+		'width',
+		$elm$core$String$fromInt(n));
+};
 var $author$project$Library$view = function (m) {
 	return A2(
 		$elm$html$Html$div,
 		_List_Nil,
 		A2(
 			$elm$core$List$cons,
-			A2(
-				$elm$html$Html$button,
+			m.hasChosen ? A2(
+				$elm$html$Html$div,
 				_List_fromArray(
 					[
+						$elm$html$Html$Attributes$class('xbutton'),
 						$elm$html$Html$Events$onClick($author$project$Library$Close)
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Close')
-					])),
-			_Utils_ap(
-				A2(
-					$elm$core$List$map,
-					function (s) {
-						return A2(
-							$elm$html$Html$div,
+						$author$project$Icons$icon('close')
+					])) : $elm$html$Html$text(''),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'text-align', 'center'),
+							A2($elm$html$Html$Attributes$style, 'margin-bottom', '15px'),
+							A2($elm$html$Html$Attributes$style, 'margin-top', '15px')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$img,
 							_List_fromArray(
 								[
-									$elm$html$Html$Events$onClick(
-									$author$project$Library$SongClicked(s))
+									$elm$html$Html$Attributes$src('knivesjam_logo.svg'),
+									$elm$html$Html$Attributes$alt('logo'),
+									$elm$html$Html$Attributes$width(200)
 								]),
+							_List_Nil)
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'text-align', 'center')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$input,
 							_List_fromArray(
 								[
-									$elm$html$Html$text(s.title + (' - ' + s.composer))
-								]));
-					},
-					$elm$core$Dict$values(m)),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Events$onClick($author$project$Library$NewSong)
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$a,
-								_List_Nil,
+									$elm$html$Html$Attributes$type_('text'),
+									$elm$html$Html$Attributes$placeholder('search'),
+									$elm$html$Html$Attributes$value(m.searchBar),
+									$elm$html$Html$Events$onInput($author$project$Library$SearchBarChanged)
+								]),
+							_List_Nil)
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('newsong'),
+							$elm$html$Html$Events$onClick($author$project$Library$NewSong)
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Add new song')
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('songlist')
+						]),
+					A2(
+						$elm$core$List$map,
+						function (s) {
+							return A2(
+								$elm$html$Html$div,
 								_List_fromArray(
 									[
-										$elm$html$Html$text('New Song')
-									]))
-							]))
-					]))));
+										$elm$html$Html$Attributes$class('libsongcontainer'),
+										$elm$html$Html$Events$onClick(
+										$author$project$Library$SongClicked(s))
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('left')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(s.title)
+											])),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('right')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(s.composer)
+											]))
+									]));
+						},
+						A2(
+							$elm$core$List$filter,
+							function (s) {
+								return A2($author$project$Library$contains, m.searchBar, s.title) || A2($author$project$Library$contains, m.searchBar, s.composer);
+							},
+							$elm$core$Dict$values(m.library))))
+				])));
 };
 var $author$project$PlayerPage$Bass = {$: 'Bass'};
 var $author$project$PlayerPage$Delete = {$: 'Delete'};
@@ -10217,7 +10412,7 @@ var $author$project$PlayerPage$viewGrid = function (model) {
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							A2($elm$html$Html$Attributes$style, 'height', '100px')
+							$elm$html$Html$Attributes$class('gridline')
 						]),
 					A2(
 						$elm$core$List$map,
@@ -10229,8 +10424,7 @@ var $author$project$PlayerPage$viewGrid = function (model) {
 										A2(
 										$elm$html$Html$Attributes$style,
 										'width',
-										$elm$core$String$fromInt(
-											$elm$core$Basics$floor(box.len * 50)) + 'px'),
+										$elm$core$String$fromFloat(((100 * box.len) / model.song.beatsPerBar) / model.barsPerLine) + '%'),
 										A2($elm$html$Html$Attributes$style, 'margin-top', 'auto'),
 										A2($elm$html$Html$Attributes$style, 'display', 'inline-block'),
 										A2(
@@ -10255,7 +10449,8 @@ var $author$project$PlayerPage$view = function (model) {
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				$elm$html$Html$Attributes$class('realbook')
+				$elm$html$Html$Attributes$class('realbook'),
+				$elm$html$Html$Attributes$class('content')
 			]),
 		_List_fromArray(
 			[
@@ -10265,51 +10460,62 @@ var $author$project$PlayerPage$view = function (model) {
 				_List_fromArray(
 					[
 						A2(
-						$elm$html$Html$button,
+						$elm$html$Html$span,
 						_List_fromArray(
 							[
+								$elm$html$Html$Attributes$class('button'),
 								$elm$html$Html$Events$onClick($author$project$PlayerPage$ToLibrary)
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('library')
+								$author$project$Icons$icon('menu')
 							]))
 					])),
 				A2(
 				$elm$html$Html$h1,
-				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('realbook'),
+						$elm$html$Html$Attributes$class('titleplayer')
+					]),
 				_List_fromArray(
 					[
 						$elm$html$Html$text(model.song.title)
 					])),
 				A2(
 				$elm$html$Html$h2,
-				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('realbook'),
+						$elm$html$Html$Attributes$class('composerplayer')
+					]),
 				_List_fromArray(
 					[
 						$elm$html$Html$text(model.song.composer)
 					])),
 				A2(
-				$elm$html$Html$button,
+				$elm$html$Html$span,
 				_List_fromArray(
 					[
+						$elm$html$Html$Attributes$class('button'),
 						$elm$html$Html$Events$onClick($author$project$PlayerPage$TogglePlay)
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text(
-						model.playing ? 'pause' : 'play')
+						$author$project$Icons$icon(
+						model.playing ? 'pause' : 'play_arrow')
 					])),
 				A2(
-				$elm$html$Html$button,
+				$elm$html$Html$span,
 				_List_fromArray(
 					[
+						$elm$html$Html$Attributes$class('button'),
 						$elm$html$Html$Events$onClick(
 						$author$project$PlayerPage$SetCursor(0))
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Reset')
+						$author$project$Icons$icon('replay')
 					])),
 				A2(
 				$elm$html$Html$input,
@@ -10334,27 +10540,26 @@ var $author$project$PlayerPage$view = function (model) {
 					]),
 				_List_Nil),
 				$elm$html$Html$text(
-				$elm$core$String$fromFloat(model.bpm) + ' BPM'),
+				' ' + ($elm$core$String$fromFloat(model.bpm) + ' BPM')),
 				A2(
 				$elm$html$Html$p,
-				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$text(
-						A2(
-							$elm$core$String$left,
-							4,
-							$elm$core$String$fromFloat(model.cursor)))
-					])),
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick($author$project$PlayerPage$Edit)
+						A2($elm$html$Html$Attributes$style, 'text-align', 'right')
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('edit song')
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('button'),
+								$elm$html$Html$Events$onClick($author$project$PlayerPage$Edit)
+							]),
+						_List_fromArray(
+							[
+								$author$project$Icons$icon('edit')
+							]))
 					])),
 				$author$project$PlayerPage$viewGrid(model),
 				A2(
@@ -10367,21 +10572,32 @@ var $author$project$PlayerPage$view = function (model) {
 						A3($author$project$PlayerPage$rangeVolume, $author$project$PlayerPage$Drums, 'drums', model.volDrums)
 					])),
 				A2(
-				$elm$html$Html$button,
+				$elm$html$Html$span,
 				_List_fromArray(
 					[
+						$elm$html$Html$Attributes$class('button'),
 						$elm$html$Html$Events$onClick($author$project$PlayerPage$Delete)
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Delete song from library')
+						$author$project$Icons$icon('delete')
 					]))
 			]));
 };
 var $author$project$Main$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
-		_List_Nil,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$classList(
+				_List_fromArray(
+					[
+						_Utils_Tuple2('fulldiv', true),
+						_Utils_Tuple2(
+						'coffee',
+						_Utils_eq(model.curPage, $author$project$Main$Library))
+					]))
+			]),
 		_Utils_ap(
 			function () {
 				var _v0 = model.dialogBox;

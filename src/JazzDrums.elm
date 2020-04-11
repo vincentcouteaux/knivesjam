@@ -56,12 +56,19 @@ listShots2seq l pitch =
 chabadaCrash : Float -> Int -> Tune.Sequence
 chabadaCrash end beatsPerBar = (Tune.Event 0 True 5 "drums" 1)::(chabada end beatsPerBar)
 
-sequenceGenerator : G.ChordProg -> Int -> R.Generator (Tune.Sequence)
-sequenceGenerator cp beatsPerBar =
+seqGenMeta : Bool -> G.ChordProg -> Int -> R.Generator (Tune.Sequence)
+seqGenMeta addcrash cp beatsPerBar =
     let n = floor (cp.end)
         shotGen = randomShots 0.2 (2*n)
         snare = R.map (\l -> listShots2seq l 1) shotGen
         kick = R.map (\l -> listShots2seq l 0) shotGen
     in
-        R.map3 (\s1 s2 s3 -> s1++s2++s3) snare kick (R.constant (chabadaCrash cp.end beatsPerBar))
+        R.map3 
+            (\s1 s2 s3 -> s1++s2++s3)
+            snare
+            kick
+            (R.constant ((if addcrash then chabadaCrash else chabada) cp.end beatsPerBar))
+
+sequenceGenerator = seqGenMeta True
+seqGenNoCrash = seqGenMeta False
 

@@ -8,9 +8,11 @@ import Html.Events exposing (..)
 import Dict exposing (Dict)
 import Json.Encode as Je
 import Json.Decode as Jd
+import Icons exposing (icon)
 
-type alias SubModel = Dict String Pp.Song
--- todo library ne stocke que le titre et compositeur ? et fetch la progression chaque fois ?
+type alias SubModel = { library: Dict String Pp.Song
+                      , searchBar: String
+                      , hasChosen: Bool }
 
 type SubMsg = 
     SongClicked Pp.Song 
@@ -18,23 +20,15 @@ type SubMsg =
     | Close
     | GotASong String
     | Delete Pp.Song
+    | SearchBarChanged String
 
 init : SubModel
-init = Dict.empty --Dict.fromList [("Blue Bossa--Dexter Gordon", Pp.Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4)]
+init = { library=Dict.empty
+       , searchBar=""
+       , hasChosen=False }--Dict.fromList [("Blue Bossa--Dexter Gordon", Pp.Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4)]
 
 initCmd : Cmd msg
 initCmd = queryAllSongs ()
---initCmd = Cmd.none
---initCmd = Cmd.batch
---            [ addSong2db (song2json (Pp.Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4))
---            , queryAllSongs () ]
---addSong2db { key = "Blue Bossa--D. Gordon"
---                     , title = "Blue Bossa"
---                     , composer = "D. Gordon"
---                     , beatsPerBar = 4
---                     , defaultTempo = 170
---                     , style = Bossa
---                     , chordProg = G.blueBossa }
 
 update : SubMsg -> SubModel -> (SubModel, Cmd SubMsg)
 update msg m = 
@@ -47,32 +41,57 @@ update msg m =
                     Ok song -> (addSong m song, Cmd.none)
                     Err e -> let _ = Debug.log "decding: " (Jd.errorToString e) in (m, Cmd.none)
 
-        Delete s -> let key = getKey s in (Dict.remove key m, deleteSong key)
+        Delete s -> let key = getKey s in (remSong m key, deleteSong key)
+
+        SearchBarChanged s -> ({ m | searchBar = s }, Cmd.none)
             
         _ ->(m, Cmd.none)
 
 view : SubModel -> Html SubMsg
 view m =
-    div [] <|
-        (button [ onClick Close ] [ text "Close" ])::(
-            List.map 
-                 (\s -> div [ onClick (SongClicked s) ]
-                            [ text <| s.title ++ " - " ++ s.composer ])
-                 (Dict.values m)
-        ) ++ [div [ onClick NewSong ] [ a [] [ text "New Song" ] ]]
+    div []
+        ((if m.hasChosen then div [ class "xbutton", onClick Close ] [ icon "close" ] else text "")::
+        [ div [ style "text-align" "center"
+              , style "margin-bottom" "15px"
+              , style "margin-top" "15px" ]
+            [ img [ src "knivesjam_logo.svg", alt "logo", Html.Attributes.width 200 ] [] ]
+        , div [ style "text-align" "center" ] [ input [ type_ "text"
+                                                      , placeholder "search"
+                                                      , value m.searchBar
+                                                      , onInput SearchBarChanged ] [] ]
+        , div [ class "newsong", onClick NewSong ] [ text "Add new song" ]
+        , div [ class "songlist" ]
+            (Dict.values m.library
+            |> List.filter
+                (\s -> contains m.searchBar s.title || contains m.searchBar s.composer)
+            |> List.map 
+                 (\s -> div [ class "libsongcontainer", onClick (SongClicked s) ]
+                            [ div [ class "left" ] [ text s.title ], div [ class "right" ] [ text s.composer ] ])
+            )
+        ])
 
 getKey : Pp.Song -> String
 getKey s = (escape s.title) ++ "--" ++ (escape s.composer)
 
 addSong : SubModel -> Pp.Song -> SubModel
 addSong m s =
-    Dict.insert (getKey s) s m
+    { m | library=Dict.insert (getKey s) s m.library }
+remSong : SubModel -> String -> SubModel
+remSong m k =
+    { m | library=Dict.remove k m.library }
+
+setChosen : SubModel -> SubModel
+setChosen m = { m | hasChosen = True }
 
 escape : String -> String
 escape s = String.foldr 
             (\c t -> if c == '-' then "\\-"++t else (String.cons c t))
             ""
             s
+
+contains : String -> String -> Bool
+contains s1 s2 =
+    String.contains (String.toLower s1) (String.toLower s2)
     
 type Style = Bop | Bossa
 
