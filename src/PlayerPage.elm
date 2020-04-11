@@ -264,6 +264,24 @@ viewGrid model =
                 gridlist
             )
 
+note2str : G.Note -> String
+note2str n =
+    let 
+        name = case n.name of
+            G.C -> "C"
+            G.D -> "D"
+            G.E -> "E"
+            G.F -> "F"
+            G.G -> "G"
+            G.A -> "A"
+            G.B -> "B"
+        alt = case n.alt of
+            G.Natural -> ""
+            G.Flat -> "ь"
+            G.Sharp -> "#"
+    in
+        name++alt
+
 chord2text : Maybe G.Chord -> String
 chord2text mc =
     case mc of
@@ -271,18 +289,7 @@ chord2text mc =
         Just c ->
             if c.type_ == G.NA then "NA" else
             let 
-                name = case c.note.name of
-                    G.C -> "C"
-                    G.D -> "D"
-                    G.E -> "E"
-                    G.F -> "F"
-                    G.G -> "G"
-                    G.A -> "A"
-                    G.B -> "B"
-                alt = case c.note.alt of
-                    G.Natural -> ""
-                    G.Flat -> "ь"
-                    G.Sharp -> "#"
+                root = note2str c.note
                 typ = case c.type_ of
                     G.Dom7 -> "7"
                     G.Min7 -> "-7"
@@ -296,5 +303,8 @@ chord2text mc =
                     G.MinMaj -> "-∆"
                     G.Maj7s5 -> "∆#5"
                     G.NA -> "NA"
+                bass = case c.bass of
+                    Nothing -> ""
+                    Just n -> if n == c.note then "" else "/"++note2str n
             in
-                name++alt++typ
+                root++typ++bass

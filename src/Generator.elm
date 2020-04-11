@@ -11,7 +11,7 @@ type alias Note =  { name: NoteName, alt: Alteration }
 type ChordType = Dom7 | Min7 | Maj7
                  | Alt7 | Dom7b9 | Dom7s5 | Sus4
                  | Min7b5 | Dim | MinMaj | Maj7s5 | NA
-type alias Chord = { note: Note, type_ : ChordType }
+type alias Chord = { note: Note, type_ : ChordType, bass: Maybe Note }
 
 type alias ChordProg = { chords: List { time: Float, chord: Chord },
                          end: Float }
@@ -31,7 +31,7 @@ chordClass c = case c of
     _ -> Major
 
 chord : NoteName -> Alteration -> ChordType -> Chord
-chord n a t = Chord (Note n a) t
+chord n a t = Chord (Note n a) t Nothing
 
 getChordAt : ChordProg -> Float -> Chord
 getChordAt cp time =
@@ -122,6 +122,11 @@ getThirteenthOf c = case c.type_ of
     Alt7 -> getSemitonesOf 8 c
     Min7b5 -> getSemitonesOf 8 c
     _ -> getSemitonesOf 9 c
+
+getBass : Chord -> Note
+getBass c = case c.bass of
+    Nothing -> c.note
+    Just b -> b
 
 blueBossa = ChordProg
                 [ { time=0, chord=chord C Natural Min7 }

@@ -131,6 +131,12 @@ str2note s =
     in
         G.Note name alt
 
+str2mnote : String -> Maybe G.Note
+str2mnote s =
+    case s of
+        "-" -> Nothing
+        _ -> Just (str2note s)
+
 
 type2str : G.ChordType -> String
 type2str ct =
@@ -182,13 +188,23 @@ song2json song =
                                 , ("chord",
                                     Je.object
                                         [ ("note", Je.string (note2str chord.note))
-                                        , ("type_", Je.string (type2str chord.type_))]
-                                        ) ]
+                                        , ("type_", Je.string (type2str chord.type_))
+                                        , ("bass", Je.string <|
+                                            case chord.bass of
+                                                Nothing -> "-"
+                                                Just s -> note2str s
+                                          )
+                                        ]
+                                  )
+                                  ]
                         )
                         song.chordProg.chords
                     )
                   , ("end", Je.float song.chordProg.end) ]
             ) ]
+
+flatten : Maybe (Maybe a) -> Maybe a
+flatten = Maybe.andThen identity
 
 json2song : Jd.Decoder Pp.Song
 json2song =
@@ -200,12 +216,19 @@ json2song =
                         (Jd.map2 (\t c -> { time=t, chord=c })
                             (Jd.field "time" Jd.float)
                             (Jd.field "chord"
-                                (Jd.map2 G.Chord
+                                (Jd.map3 G.Chord
                                     (Jd.field "note" 
                                         (Jd.map str2note Jd.string)
                                     )
                                     (Jd.field "type_"
                                         (Jd.map str2type Jd.string)
+                                    )
+                                    (Jd.map flatten 
+                                        (Jd.maybe
+                                            (Jd.field "bass"
+                                                (Jd.map str2mnote Jd.string)
+                                            )
+                                        )
                                     )
                                 )
                             )

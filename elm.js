@@ -5239,9 +5239,9 @@ var $author$project$Editor$ModelList = function (a) {
 };
 var $author$project$Generator$Natural = {$: 'Natural'};
 var $author$project$Editor$SetChord = {$: 'SetChord'};
-var $author$project$Generator$Chord = F2(
-	function (note, type_) {
-		return {note: note, type_: type_};
+var $author$project$Generator$Chord = F3(
+	function (note, type_, bass) {
+		return {bass: bass, note: note, type_: type_};
 	});
 var $author$project$Generator$Note = F2(
 	function (name, alt) {
@@ -5249,10 +5249,11 @@ var $author$project$Generator$Note = F2(
 	});
 var $author$project$Generator$chord = F3(
 	function (n, a, t) {
-		return A2(
+		return A3(
 			$author$project$Generator$Chord,
 			A2($author$project$Generator$Note, n, a),
-			t);
+			t,
+			$elm$core$Maybe$Nothing);
 	});
 var $elm$core$Array$fromListHelp = F3(
 	function (list, nodeList, nodeListSize) {
@@ -6495,6 +6496,15 @@ var $elm$core$Dict$filter = F2(
 			$elm$core$Dict$empty,
 			dict);
 	});
+var $author$project$Generator$getBass = function (c) {
+	var _v0 = c.bass;
+	if (_v0.$ === 'Nothing') {
+		return c.note;
+	} else {
+		var b = _v0.a;
+		return b;
+	}
+};
 var $author$project$JazzBass$fondaOnChange = function (cp) {
 	return A3(
 		$elm$core$List$foldl,
@@ -6503,7 +6513,8 @@ var $author$project$JazzBass$fondaOnChange = function (cp) {
 				return A3(
 					$elm$core$Dict$insert,
 					$elm$core$Basics$floor(evt.time),
-					$elm$random$Random$constant(evt.chord.note),
+					$elm$random$Random$constant(
+						$author$project$Generator$getBass(evt.chord)),
 					bassline);
 			}),
 		$elm$core$Dict$empty,
@@ -8032,7 +8043,19 @@ var $author$project$Library$song2json = function (song) {
 															_Utils_Tuple2(
 															'type_',
 															$elm$json$Json$Encode$string(
-																$author$project$Library$type2str(chord.type_)))
+																$author$project$Library$type2str(chord.type_))),
+															_Utils_Tuple2(
+															'bass',
+															$elm$json$Json$Encode$string(
+																function () {
+																	var _v1 = chord.bass;
+																	if (_v1.$ === 'Nothing') {
+																		return '-';
+																	} else {
+																		var s = _v1.a;
+																		return $author$project$Library$note2str(s);
+																	}
+																}()))
 														])))
 											]));
 								},
@@ -8746,6 +8769,32 @@ var $author$project$Editor$update = F2(
 							tool: $author$project$Editor$SetChord
 						}),
 					$elm$core$Platform$Cmd$none);
+			case 'SetBassBase':
+				var n = msg.a;
+				var prevchord = model.curChord;
+				var prevbass = prevchord.bass;
+				var newbass = function () {
+					if (prevbass.$ === 'Just') {
+						var b = prevbass.a;
+						return _Utils_update(
+							b,
+							{name: n});
+					} else {
+						return A2($author$project$Generator$Note, n, prevchord.note.alt);
+					}
+				}();
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							curChord: _Utils_update(
+								prevchord,
+								{
+									bass: $elm$core$Maybe$Just(newbass)
+								}),
+							tool: $author$project$Editor$SetChord
+						}),
+					$elm$core$Platform$Cmd$none);
 			case 'SetAlteration':
 				var n = msg.a;
 				var prevchord = model.curChord;
@@ -8761,6 +8810,44 @@ var $author$project$Editor$update = F2(
 										prevnote,
 										{alt: n})
 								}),
+							tool: $author$project$Editor$SetChord
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'SetBassAlteration':
+				var a = msg.a;
+				var prevchord = model.curChord;
+				var prevbass = prevchord.bass;
+				var newbass = function () {
+					if (prevbass.$ === 'Just') {
+						var b = prevbass.a;
+						return _Utils_update(
+							b,
+							{alt: a});
+					} else {
+						return A2($author$project$Generator$Note, prevchord.note.name, a);
+					}
+				}();
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							curChord: _Utils_update(
+								prevchord,
+								{
+									bass: $elm$core$Maybe$Just(newbass)
+								}),
+							tool: $author$project$Editor$SetChord
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'SetBass2Nothing':
+				var prevchord = model.curChord;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							curChord: _Utils_update(
+								prevchord,
+								{bass: $elm$core$Maybe$Nothing}),
 							tool: $author$project$Editor$SetChord
 						}),
 					$elm$core$Platform$Cmd$none);
@@ -8825,9 +8912,29 @@ var $author$project$Editor$update = F2(
 	});
 var $elm$json$Json$Decode$decodeString = _Json_runOnString;
 var $author$project$Library$deleteSong = _Platform_outgoingPort('deleteSong', $elm$json$Json$Encode$string);
+var $elm$core$Maybe$andThen = F2(
+	function (callback, maybeValue) {
+		if (maybeValue.$ === 'Just') {
+			var value = maybeValue.a;
+			return callback(value);
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $author$project$Library$flatten = $elm$core$Maybe$andThen($elm$core$Basics$identity);
 var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $elm$json$Json$Decode$list = _Json_decodeList;
+var $elm$json$Json$Decode$map3 = _Json_map3;
 var $elm$json$Json$Decode$map5 = _Json_map5;
+var $elm$json$Json$Decode$oneOf = _Json_oneOf;
+var $elm$json$Json$Decode$maybe = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder),
+				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
+			]));
+};
 var $elm$core$String$right = F2(
 	function (n, string) {
 		return (n < 1) ? '' : A3(
@@ -8868,6 +8975,14 @@ var $author$project$Library$str2note = function (s) {
 		}
 	}();
 	return A2($author$project$Generator$Note, name, alt);
+};
+var $author$project$Library$str2mnote = function (s) {
+	if (s === '-') {
+		return $elm$core$Maybe$Nothing;
+	} else {
+		return $elm$core$Maybe$Just(
+			$author$project$Library$str2note(s));
+	}
 };
 var $author$project$Generator$Dim = {$: 'Dim'};
 var $author$project$Generator$Dom7b9 = {$: 'Dom7b9'};
@@ -8926,8 +9041,8 @@ var $author$project$Library$json2song = A6(
 						A2(
 							$elm$json$Json$Decode$field,
 							'chord',
-							A3(
-								$elm$json$Json$Decode$map2,
+							A4(
+								$elm$json$Json$Decode$map3,
 								$author$project$Generator$Chord,
 								A2(
 									$elm$json$Json$Decode$field,
@@ -8936,7 +9051,15 @@ var $author$project$Library$json2song = A6(
 								A2(
 									$elm$json$Json$Decode$field,
 									'type_',
-									A2($elm$json$Json$Decode$map, $author$project$Library$str2type, $elm$json$Json$Decode$string))))))),
+									A2($elm$json$Json$Decode$map, $author$project$Library$str2type, $elm$json$Json$Decode$string)),
+								A2(
+									$elm$json$Json$Decode$map,
+									$author$project$Library$flatten,
+									$elm$json$Json$Decode$maybe(
+										A2(
+											$elm$json$Json$Decode$field,
+											'bass',
+											A2($elm$json$Json$Decode$map, $author$project$Library$str2mnote, $elm$json$Json$Decode$string))))))))),
 			A2($elm$json$Json$Decode$field, 'end', $elm$json$Json$Decode$float))),
 	A2($elm$json$Json$Decode$field, 'title', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'composer', $elm$json$Json$Decode$string),
@@ -9523,24 +9646,42 @@ var $author$project$Editor$SetAlteration = function (a) {
 var $author$project$Editor$SetBase = function (a) {
 	return {$: 'SetBase', a: a};
 };
+var $author$project$Editor$SetBass2Nothing = {$: 'SetBass2Nothing'};
+var $author$project$Editor$SetBassAlteration = function (a) {
+	return {$: 'SetBassAlteration', a: a};
+};
+var $author$project$Editor$SetBassBase = function (a) {
+	return {$: 'SetBassBase', a: a};
+};
 var $author$project$Editor$SetChordType = function (a) {
 	return {$: 'SetChordType', a: a};
 };
 var $elm$html$Html$br = _VirtualDom_node('br');
 var $elm$html$Html$span = _VirtualDom_node('span');
 var $author$project$Editor$chordSelectBar = function (c) {
-	var buttonAttr = F3(
+	var maybeButtonAttr = F3(
 		function (_var, t, cmd) {
 			return _List_fromArray(
 				[
 					A2(
 					$elm$html$Html$Attributes$style,
 					'background-color',
-					(!_Utils_eq(_var, t)) ? '#e7e7e7' : '#f44336'),
+					function () {
+						if (_var.$ === 'Just') {
+							var s = _var.a;
+							return _Utils_eq(s, t) ? '#f44336' : '#e7e7e7';
+						} else {
+							return '#e7e7e7';
+						}
+					}()),
 					$elm$html$Html$Events$onClick(
 					cmd(t))
 				]);
 		});
+	var buttonAttr = function (_var) {
+		return maybeButtonAttr(
+			$elm$core$Maybe$Just(_var));
+	};
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -9729,11 +9870,255 @@ var $author$project$Editor$chordSelectBar = function (c) {
 							[
 								$elm$html$Html$text('NA')
 							]))
+					])),
+				A2($elm$html$Html$br, _List_Nil, _List_Nil),
+				$elm$html$Html$text('Bass : '),
+				A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$Attributes$style,
+						'background-color',
+						function () {
+							var _v0 = c.bass;
+							if (_v0.$ === 'Nothing') {
+								return '#f44336';
+							} else {
+								return '#e7e7e7';
+							}
+						}()),
+						$elm$html$Html$Events$onClick($author$project$Editor$SetBass2Nothing)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Root')
+					])),
+				A2(
+				$elm$html$Html$span,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'width', '20px'),
+						A2($elm$html$Html$Attributes$style, 'display', 'inline-block')
+					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$span,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$button,
+						A3(
+							maybeButtonAttr,
+							A2(
+								$elm$core$Maybe$map,
+								function ($) {
+									return $.name;
+								},
+								c.bass),
+							$author$project$Generator$C,
+							$author$project$Editor$SetBassBase),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('C')
+							])),
+						A2(
+						$elm$html$Html$button,
+						A3(
+							maybeButtonAttr,
+							A2(
+								$elm$core$Maybe$map,
+								function ($) {
+									return $.name;
+								},
+								c.bass),
+							$author$project$Generator$D,
+							$author$project$Editor$SetBassBase),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('D')
+							])),
+						A2(
+						$elm$html$Html$button,
+						A3(
+							maybeButtonAttr,
+							A2(
+								$elm$core$Maybe$map,
+								function ($) {
+									return $.name;
+								},
+								c.bass),
+							$author$project$Generator$E,
+							$author$project$Editor$SetBassBase),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('E')
+							])),
+						A2(
+						$elm$html$Html$button,
+						A3(
+							maybeButtonAttr,
+							A2(
+								$elm$core$Maybe$map,
+								function ($) {
+									return $.name;
+								},
+								c.bass),
+							$author$project$Generator$F,
+							$author$project$Editor$SetBassBase),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('F')
+							])),
+						A2(
+						$elm$html$Html$button,
+						A3(
+							maybeButtonAttr,
+							A2(
+								$elm$core$Maybe$map,
+								function ($) {
+									return $.name;
+								},
+								c.bass),
+							$author$project$Generator$G,
+							$author$project$Editor$SetBassBase),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('G')
+							])),
+						A2(
+						$elm$html$Html$button,
+						A3(
+							maybeButtonAttr,
+							A2(
+								$elm$core$Maybe$map,
+								function ($) {
+									return $.name;
+								},
+								c.bass),
+							$author$project$Generator$A,
+							$author$project$Editor$SetBassBase),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('A')
+							])),
+						A2(
+						$elm$html$Html$button,
+						A3(
+							maybeButtonAttr,
+							A2(
+								$elm$core$Maybe$map,
+								function ($) {
+									return $.name;
+								},
+								c.bass),
+							$author$project$Generator$B,
+							$author$project$Editor$SetBassBase),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('B')
+							]))
+					])),
+				A2(
+				$elm$html$Html$span,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'width', '20px'),
+						A2($elm$html$Html$Attributes$style, 'display', 'inline-block')
+					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$span,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$button,
+						A3(
+							maybeButtonAttr,
+							A2(
+								$elm$core$Maybe$map,
+								function ($) {
+									return $.alt;
+								},
+								c.bass),
+							$author$project$Generator$Natural,
+							$author$project$Editor$SetBassAlteration),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('♮')
+							])),
+						A2(
+						$elm$html$Html$button,
+						A3(
+							maybeButtonAttr,
+							A2(
+								$elm$core$Maybe$map,
+								function ($) {
+									return $.alt;
+								},
+								c.bass),
+							$author$project$Generator$Sharp,
+							$author$project$Editor$SetBassAlteration),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('♯')
+							])),
+						A2(
+						$elm$html$Html$button,
+						A3(
+							maybeButtonAttr,
+							A2(
+								$elm$core$Maybe$map,
+								function ($) {
+									return $.alt;
+								},
+								c.bass),
+							$author$project$Generator$Flat,
+							$author$project$Editor$SetBassAlteration),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('♭')
+							]))
 					]))
 			]));
 };
 var $author$project$Editor$CaseClicked = function (a) {
 	return {$: 'CaseClicked', a: a};
+};
+var $author$project$PlayerPage$note2str = function (n) {
+	var name = function () {
+		var _v1 = n.name;
+		switch (_v1.$) {
+			case 'C':
+				return 'C';
+			case 'D':
+				return 'D';
+			case 'E':
+				return 'E';
+			case 'F':
+				return 'F';
+			case 'G':
+				return 'G';
+			case 'A':
+				return 'A';
+			default:
+				return 'B';
+		}
+	}();
+	var alt = function () {
+		var _v0 = n.alt;
+		switch (_v0.$) {
+			case 'Natural':
+				return '';
+			case 'Flat':
+				return 'ь';
+			default:
+				return '#';
+		}
+	}();
+	return _Utils_ap(name, alt);
 };
 var $author$project$PlayerPage$chord2text = function (mc) {
 	if (mc.$ === 'Nothing') {
@@ -9744,8 +10129,8 @@ var $author$project$PlayerPage$chord2text = function (mc) {
 			return 'NA';
 		} else {
 			var typ = function () {
-				var _v3 = c.type_;
-				switch (_v3.$) {
+				var _v2 = c.type_;
+				switch (_v2.$) {
 					case 'Dom7':
 						return '7';
 					case 'Min7':
@@ -9772,39 +10157,19 @@ var $author$project$PlayerPage$chord2text = function (mc) {
 						return 'NA';
 				}
 			}();
-			var name = function () {
-				var _v2 = c.note.name;
-				switch (_v2.$) {
-					case 'C':
-						return 'C';
-					case 'D':
-						return 'D';
-					case 'E':
-						return 'E';
-					case 'F':
-						return 'F';
-					case 'G':
-						return 'G';
-					case 'A':
-						return 'A';
-					default:
-						return 'B';
-				}
-			}();
-			var alt = function () {
-				var _v1 = c.note.alt;
-				switch (_v1.$) {
-					case 'Natural':
-						return '';
-					case 'Flat':
-						return 'ь';
-					default:
-						return '#';
+			var root = $author$project$PlayerPage$note2str(c.note);
+			var bass = function () {
+				var _v1 = c.bass;
+				if (_v1.$ === 'Nothing') {
+					return '';
+				} else {
+					var n = _v1.a;
+					return _Utils_eq(n, c.note) ? '' : ('/' + $author$project$PlayerPage$note2str(n));
 				}
 			}();
 			return _Utils_ap(
-				name,
-				_Utils_ap(alt, typ));
+				root,
+				_Utils_ap(typ, bass));
 		}
 	}
 };

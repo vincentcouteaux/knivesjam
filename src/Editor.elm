@@ -42,7 +42,10 @@ type SubMsg =
     | SaveAndQuit
     | SetTool Tool
     | SetBase G.NoteName
+    | SetBassBase G.NoteName
     | SetAlteration G.Alteration
+    | SetBassAlteration G.Alteration
+    | SetBass2Nothing
     | SetChordType G.ChordType
     | Undo
     | Redo
@@ -118,12 +121,35 @@ update msg model =
                 prevnote = prevchord.note
             in
                 ({ model | tool=SetChord, curChord={prevchord | note={prevnote | name=n}}}, Cmd.none)
+        SetBassBase n ->
+            let
+                prevchord = model.curChord
+                prevbass = prevchord.bass
+                newbass =
+                    case prevbass of
+                        Just b -> {b | name=n}
+                        Nothing -> G.Note n prevchord.note.alt
+            in
+                ({ model | tool=SetChord, curChord={prevchord | bass=Just newbass}}, Cmd.none)
         SetAlteration n ->
             let
                 prevchord = model.curChord
                 prevnote = prevchord.note
             in
                 ({ model | tool=SetChord, curChord={prevchord | note={prevnote | alt=n}}}, Cmd.none)
+        SetBassAlteration a ->
+            let
+                prevchord = model.curChord
+                prevbass = prevchord.bass
+                newbass =
+                    case prevbass of
+                        Just b -> {b | alt=a}
+                        Nothing -> G.Note prevchord.note.name a
+            in
+                ({ model | tool=SetChord, curChord={prevchord | bass=Just newbass}}, Cmd.none)
+        SetBass2Nothing ->
+            let prevchord = model.curChord in
+            ({ model | tool=SetChord, curChord={prevchord | bass=Nothing}}, Cmd.none)
         SetChordType t ->
             let
                 prevchord = model.curChord
@@ -208,9 +234,13 @@ toolSelectBar tool =
 chordSelectBar : G.Chord -> Html SubMsg
 chordSelectBar c =
     let 
-        buttonAttr var t cmd =
-            [ style "background-color" (if var/=t then "#e7e7e7" else "#f44336")
+        maybeButtonAttr var t cmd =
+            [ style "background-color" 
+                (case var of
+                    Just s -> if s==t then "#f44336" else "#e7e7e7"
+                    _ -> "#e7e7e7")
             , onClick (cmd t) ]
+        buttonAttr var = maybeButtonAttr (Just var)
     in
     div [ style "margin-top" "5px" ]
         [ span []
@@ -239,7 +269,30 @@ chordSelectBar c =
                , button (buttonAttr c.type_ G.Dim SetChordType) [ text "o" ]
                , button (buttonAttr c.type_ G.MinMaj SetChordType) [ text "-∆" ]
                , button (buttonAttr c.type_ G.Maj7s5 SetChordType) [ text "∆♯5" ]
-               , button (buttonAttr c.type_ G.NA SetChordType) [ text "NA" ]]]
+               , button (buttonAttr c.type_ G.NA SetChordType) [ text "NA" ]]
+        , br [] []
+        , text "Bass : "
+        , button 
+            [ style "background-color" 
+                (case c.bass of
+                    Nothing -> "#f44336"
+                    _ -> "#e7e7e7")
+            , onClick SetBass2Nothing ] [ text "Root" ]
+        , span [ style "width" "20px", style "display" "inline-block"  ] []
+        , span []
+               [ button (maybeButtonAttr (Maybe.map .name c.bass) G.C SetBassBase) [ text "C" ]
+               , button (maybeButtonAttr (Maybe.map .name c.bass) G.D SetBassBase) [ text "D" ]
+               , button (maybeButtonAttr (Maybe.map .name c.bass) G.E SetBassBase) [ text "E" ]
+               , button (maybeButtonAttr (Maybe.map .name c.bass) G.F SetBassBase) [ text "F" ]
+               , button (maybeButtonAttr (Maybe.map .name c.bass) G.G SetBassBase) [ text "G" ]
+               , button (maybeButtonAttr (Maybe.map .name c.bass) G.A SetBassBase) [ text "A" ]
+               , button (maybeButtonAttr (Maybe.map .name c.bass) G.B SetBassBase) [ text "B" ] ]
+        , span [ style "width" "20px", style "display" "inline-block"  ] []
+        , span []
+               [ button (maybeButtonAttr (Maybe.map .alt c.bass) G.Natural SetBassAlteration) [ text "♮" ]
+               , button (maybeButtonAttr (Maybe.map .alt c.bass) G.Sharp SetBassAlteration) [ text "♯" ]
+               , button (maybeButtonAttr (Maybe.map .alt c.bass) G.Flat SetBassAlteration) [ text "♭" ] ]
+        ]
 
                
 

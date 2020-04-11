@@ -55,7 +55,7 @@ fondaOnChange : ChordProg -> BassLine
 fondaOnChange cp =
     List.foldl
         (\evt bassline ->
-            Dict.insert (floor evt.time) (R.constant (evt.chord.note)) bassline
+            Dict.insert (floor evt.time) (R.constant (getBass evt.chord)) bassline
         )
         Dict.empty
         cp.chords
