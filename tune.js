@@ -33,7 +33,8 @@ const initTune = (ctx, instruments, app) => {
             return;
         const curtime = ctx.currentTime;
         cursor = cursor + (curtime - prevtime)*BPM/60;
-        app.ports.cursorChanged.send(cursor);
+        if (app.ports.cursorChanged)
+            app.ports.cursorChanged.send(cursor);
         const newseq = play_recur(curseq, cursor);
         //console.log(cursor, curtime, newseq.length);
         if (newseq.length > 0) {
@@ -86,7 +87,8 @@ const initTune = (ctx, instruments, app) => {
         app.ports.setCursor.subscribe(c => {
             //console.log("set cursor : ", c, ctx.currentTime);
             cursor = c;
-            app.ports.cursorChanged.send(cursor);
+            if (app.ports.cursorChanged)
+                app.ports.cursorChanged.send(cursor);
             if (inplay)
                 playFrom();
         });
@@ -105,12 +107,16 @@ const initTune = (ctx, instruments, app) => {
         //nextSequence = newseq.slice();
         playFrom();
     });
-    app.ports.setNextSequence.subscribe(s => {
-        nextsequence = receiveSeq(s);
-    });
-    app.ports.setInstVolume.subscribe(req => {
-        inst = req[0];
-        vol = req[1];
-        instruments[inst].volume = vol/100;
-    });
+    if (app.ports.setNextSequence) {
+        app.ports.setNextSequence.subscribe(s => {
+            nextsequence = receiveSeq(s);
+        });
+    }
+    if (app.ports.setInstVolume) {
+        app.ports.setInstVolume.subscribe(req => {
+            inst = req[0];
+            vol = req[1];
+            instruments[inst].volume = vol/100;
+        });
+    }
 };

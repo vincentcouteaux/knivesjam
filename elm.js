@@ -4438,6 +4438,184 @@ function _Time_getZoneName()
 		callback(_Scheduler_succeed(name));
 	});
 }
+
+
+
+// DECODER
+
+var _File_decoder = _Json_decodePrim(function(value) {
+	// NOTE: checks if `File` exists in case this is run on node
+	return (typeof File !== 'undefined' && value instanceof File)
+		? $elm$core$Result$Ok(value)
+		: _Json_expecting('a FILE', value);
+});
+
+
+// METADATA
+
+function _File_name(file) { return file.name; }
+function _File_mime(file) { return file.type; }
+function _File_size(file) { return file.size; }
+
+function _File_lastModified(file)
+{
+	return $elm$time$Time$millisToPosix(file.lastModified);
+}
+
+
+// DOWNLOAD
+
+var _File_downloadNode;
+
+function _File_getDownloadNode()
+{
+	return _File_downloadNode || (_File_downloadNode = document.createElement('a'));
+}
+
+var _File_download = F3(function(name, mime, content)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var blob = new Blob([content], {type: mime});
+
+		// for IE10+
+		if (navigator.msSaveOrOpenBlob)
+		{
+			navigator.msSaveOrOpenBlob(blob, name);
+			return;
+		}
+
+		// for HTML5
+		var node = _File_getDownloadNode();
+		var objectUrl = URL.createObjectURL(blob);
+		node.href = objectUrl;
+		node.download = name;
+		_File_click(node);
+		URL.revokeObjectURL(objectUrl);
+	});
+});
+
+function _File_downloadUrl(href)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var node = _File_getDownloadNode();
+		node.href = href;
+		node.download = '';
+		node.origin === location.origin || (node.target = '_blank');
+		_File_click(node);
+	});
+}
+
+
+// IE COMPATIBILITY
+
+function _File_makeBytesSafeForInternetExplorer(bytes)
+{
+	// only needed by IE10 and IE11 to fix https://github.com/elm/file/issues/10
+	// all other browsers can just run `new Blob([bytes])` directly with no problem
+	//
+	return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+}
+
+function _File_click(node)
+{
+	// only needed by IE10 and IE11 to fix https://github.com/elm/file/issues/11
+	// all other browsers have MouseEvent and do not need this conditional stuff
+	//
+	if (typeof MouseEvent === 'function')
+	{
+		node.dispatchEvent(new MouseEvent('click'));
+	}
+	else
+	{
+		var event = document.createEvent('MouseEvents');
+		event.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+		document.body.appendChild(node);
+		node.dispatchEvent(event);
+		document.body.removeChild(node);
+	}
+}
+
+
+// UPLOAD
+
+var _File_node;
+
+function _File_uploadOne(mimes)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		_File_node = document.createElement('input');
+		_File_node.type = 'file';
+		_File_node.accept = A2($elm$core$String$join, ',', mimes);
+		_File_node.addEventListener('change', function(event)
+		{
+			callback(_Scheduler_succeed(event.target.files[0]));
+		});
+		_File_click(_File_node);
+	});
+}
+
+function _File_uploadOneOrMore(mimes)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		_File_node = document.createElement('input');
+		_File_node.type = 'file';
+		_File_node.multiple = true;
+		_File_node.accept = A2($elm$core$String$join, ',', mimes);
+		_File_node.addEventListener('change', function(event)
+		{
+			var elmFiles = _List_fromArray(event.target.files);
+			callback(_Scheduler_succeed(_Utils_Tuple2(elmFiles.a, elmFiles.b)));
+		});
+		_File_click(_File_node);
+	});
+}
+
+
+// CONTENT
+
+function _File_toString(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(reader.result));
+		});
+		reader.readAsText(blob);
+		return function() { reader.abort(); };
+	});
+}
+
+function _File_toBytes(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(new DataView(reader.result)));
+		});
+		reader.readAsArrayBuffer(blob);
+		return function() { reader.abort(); };
+	});
+}
+
+function _File_toUrl(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(reader.result));
+		});
+		reader.readAsDataURL(blob);
+		return function() { reader.abort(); };
+	});
+}
+
 var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
@@ -5232,6 +5410,7 @@ var $author$project$Main$PpEvent = function (a) {
 	return {$: 'PpEvent', a: a};
 };
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $author$project$Styles$Bop = {$: 'Bop'};
 var $author$project$Generator$C = {$: 'C'};
 var $author$project$Generator$Dom7 = {$: 'Dom7'};
 var $author$project$Editor$ModelList = function (a) {
@@ -5324,6 +5503,7 @@ var $author$project$Editor$initwith = F4(
 					nBars,
 					{chord: $elm$core$Maybe$Nothing, len: beatsPerBar})),
 			redoList: $author$project$Editor$ModelList(_List_Nil),
+			style: $author$project$Styles$Bop,
 			title: title,
 			tool: $author$project$Editor$SetChord,
 			undoList: $author$project$Editor$ModelList(_List_Nil)
@@ -5332,10 +5512,11 @@ var $author$project$Editor$initwith = F4(
 var $author$project$Editor$init = A4($author$project$Editor$initwith, 4, 12, 'New song', 'Unknown');
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
-var $author$project$Library$init = {hasChosen: false, library: $elm$core$Dict$empty, searchBar: ''};
-var $author$project$PlayerPage$Song = F5(
-	function (chordProg, title, composer, beatsPerBar, defaultTempo) {
-		return {beatsPerBar: beatsPerBar, chordProg: chordProg, composer: composer, defaultTempo: defaultTempo, title: title};
+var $author$project$Library$init = {dialogBox: $elm$core$Maybe$Nothing, hasChosen: false, library: $elm$core$Dict$empty, searchBar: ''};
+var $author$project$Styles$Bossa = {$: 'Bossa'};
+var $author$project$PlayerPage$Song = F6(
+	function (chordProg, title, composer, beatsPerBar, defaultTempo, style) {
+		return {beatsPerBar: beatsPerBar, chordProg: chordProg, composer: composer, defaultTempo: defaultTempo, style: style, title: title};
 	});
 var $author$project$Generator$A = {$: 'A'};
 var $author$project$Generator$Alt7 = {$: 'Alt7'};
@@ -5413,8 +5594,10 @@ var $author$project$PlayerPage$init = {
 	barsPerLine: 4,
 	bpm: 120,
 	cursor: 0,
+	displayKey: 0,
+	playbackKey: 0,
 	playing: false,
-	song: A5($author$project$PlayerPage$Song, $author$project$Generator$blueBossa, 'Blue Bossa', 'Dexter Gordon', 4, 160),
+	song: A6($author$project$PlayerPage$Song, $author$project$Generator$blueBossa, 'Blue Bossa', 'Dexter Gordon', 4, 160, $author$project$Styles$Bossa),
 	volBass: 100,
 	volDrums: 100,
 	volPiano: 100
@@ -5717,8 +5900,117 @@ var $author$project$PlayerPage$substract2to2 = function (l) {
 		}
 	}
 };
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $author$project$Generator$note2pitch = F2(
+	function (oct, n) {
+		var base = function () {
+			var _v1 = n.name;
+			switch (_v1.$) {
+				case 'C':
+					return 0;
+				case 'D':
+					return 2;
+				case 'E':
+					return 4;
+				case 'F':
+					return 5;
+				case 'G':
+					return 7;
+				case 'A':
+					return 9;
+				default:
+					return 11;
+			}
+		}();
+		var alt = function () {
+			var _v0 = n.alt;
+			switch (_v0.$) {
+				case 'Natural':
+					return 0;
+				case 'Flat':
+					return -1;
+				default:
+					return 1;
+			}
+		}();
+		return ((12 * (oct + 1)) + base) + alt;
+	});
+var $author$project$Generator$B = {$: 'B'};
+var $author$project$Generator$Sharp = {$: 'Sharp'};
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $author$project$Generator$pitch2note = function (n) {
+	var _v0 = A2($elm$core$Basics$modBy, 12, n);
+	switch (_v0) {
+		case 0:
+			return A2($author$project$Generator$Note, $author$project$Generator$C, $author$project$Generator$Natural);
+		case 1:
+			return A2($author$project$Generator$Note, $author$project$Generator$D, $author$project$Generator$Flat);
+		case 2:
+			return A2($author$project$Generator$Note, $author$project$Generator$D, $author$project$Generator$Natural);
+		case 3:
+			return A2($author$project$Generator$Note, $author$project$Generator$E, $author$project$Generator$Flat);
+		case 4:
+			return A2($author$project$Generator$Note, $author$project$Generator$E, $author$project$Generator$Natural);
+		case 5:
+			return A2($author$project$Generator$Note, $author$project$Generator$F, $author$project$Generator$Natural);
+		case 6:
+			return A2($author$project$Generator$Note, $author$project$Generator$F, $author$project$Generator$Sharp);
+		case 7:
+			return A2($author$project$Generator$Note, $author$project$Generator$G, $author$project$Generator$Natural);
+		case 8:
+			return A2($author$project$Generator$Note, $author$project$Generator$A, $author$project$Generator$Flat);
+		case 9:
+			return A2($author$project$Generator$Note, $author$project$Generator$A, $author$project$Generator$Natural);
+		case 10:
+			return A2($author$project$Generator$Note, $author$project$Generator$B, $author$project$Generator$Flat);
+		default:
+			return A2($author$project$Generator$Note, $author$project$Generator$B, $author$project$Generator$Natural);
+	}
+};
+var $author$project$PlayerPage$transposeChordProg = F2(
+	function (cp, n) {
+		if (!n) {
+			return cp;
+		} else {
+			var transnote = function (nt) {
+				return $author$project$Generator$pitch2note(
+					n + A2($author$project$Generator$note2pitch, 0, nt));
+			};
+			return _Utils_update(
+				cp,
+				{
+					chords: A2(
+						$elm$core$List$map,
+						function (_v1) {
+							var time = _v1.time;
+							var chord = _v1.chord;
+							return {
+								chord: A3(
+									$author$project$Generator$Chord,
+									transnote(chord.note),
+									chord.type_,
+									A2($elm$core$Maybe$map, transnote, chord.bass)),
+								time: time
+							};
+						},
+						cp.chords)
+				});
+		}
+	});
 var $author$project$PlayerPage$chordprog2grid = function (model) {
-	var cp = model.song.chordProg;
+	var cp = A2($author$project$PlayerPage$transposeChordProg, model.song.chordProg, model.displayKey + model.playbackKey);
 	return A2(
 		$elm$core$List$concatMap,
 		function (i) {
@@ -5967,317 +6259,6 @@ var $author$project$Tune$Event = F5(
 		return {gain: gain, instrument: instrument, onset: onset, pitch: pitch, time: time};
 	});
 var $author$project$Generator$NA = {$: 'NA'};
-var $elm$random$Random$andThen = F2(
-	function (callback, _v0) {
-		var genA = _v0.a;
-		return $elm$random$Random$Generator(
-			function (seed) {
-				var _v1 = genA(seed);
-				var result = _v1.a;
-				var newSeed = _v1.b;
-				var _v2 = callback(result);
-				var genB = _v2.a;
-				return genB(newSeed);
-			});
-	});
-var $elm$core$Bitwise$and = _Bitwise_and;
-var $elm$core$Basics$negate = function (n) {
-	return -n;
-};
-var $elm$core$Bitwise$xor = _Bitwise_xor;
-var $elm$random$Random$peel = function (_v0) {
-	var state = _v0.a;
-	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
-	return ((word >>> 22) ^ word) >>> 0;
-};
-var $elm$random$Random$int = F2(
-	function (a, b) {
-		return $elm$random$Random$Generator(
-			function (seed0) {
-				var _v0 = (_Utils_cmp(a, b) < 0) ? _Utils_Tuple2(a, b) : _Utils_Tuple2(b, a);
-				var lo = _v0.a;
-				var hi = _v0.b;
-				var range = (hi - lo) + 1;
-				if (!((range - 1) & range)) {
-					return _Utils_Tuple2(
-						(((range - 1) & $elm$random$Random$peel(seed0)) >>> 0) + lo,
-						$elm$random$Random$next(seed0));
-				} else {
-					var threshhold = (((-range) >>> 0) % range) >>> 0;
-					var accountForBias = function (seed) {
-						accountForBias:
-						while (true) {
-							var x = $elm$random$Random$peel(seed);
-							var seedN = $elm$random$Random$next(seed);
-							if (_Utils_cmp(x, threshhold) < 0) {
-								var $temp$seed = seedN;
-								seed = $temp$seed;
-								continue accountForBias;
-							} else {
-								return _Utils_Tuple2((x % range) + lo, seedN);
-							}
-						}
-					};
-					return accountForBias(seed0);
-				}
-			});
-	});
-var $author$project$Generator$note2pitch = F2(
-	function (oct, n) {
-		var base = function () {
-			var _v1 = n.name;
-			switch (_v1.$) {
-				case 'C':
-					return 0;
-				case 'D':
-					return 2;
-				case 'E':
-					return 4;
-				case 'F':
-					return 5;
-				case 'G':
-					return 7;
-				case 'A':
-					return 9;
-				default:
-					return 11;
-			}
-		}();
-		var alt = function () {
-			var _v0 = n.alt;
-			switch (_v0.$) {
-				case 'Natural':
-					return 0;
-				case 'Flat':
-					return -1;
-				default:
-					return 1;
-			}
-		}();
-		return ((12 * (oct + 1)) + base) + alt;
-	});
-var $author$project$Generator$B = {$: 'B'};
-var $author$project$Generator$Sharp = {$: 'Sharp'};
-var $elm$core$Basics$modBy = _Basics_modBy;
-var $author$project$Generator$pitch2note = function (n) {
-	var _v0 = A2($elm$core$Basics$modBy, 12, n);
-	switch (_v0) {
-		case 0:
-			return A2($author$project$Generator$Note, $author$project$Generator$C, $author$project$Generator$Natural);
-		case 1:
-			return A2($author$project$Generator$Note, $author$project$Generator$D, $author$project$Generator$Flat);
-		case 2:
-			return A2($author$project$Generator$Note, $author$project$Generator$D, $author$project$Generator$Natural);
-		case 3:
-			return A2($author$project$Generator$Note, $author$project$Generator$E, $author$project$Generator$Flat);
-		case 4:
-			return A2($author$project$Generator$Note, $author$project$Generator$E, $author$project$Generator$Natural);
-		case 5:
-			return A2($author$project$Generator$Note, $author$project$Generator$F, $author$project$Generator$Natural);
-		case 6:
-			return A2($author$project$Generator$Note, $author$project$Generator$F, $author$project$Generator$Sharp);
-		case 7:
-			return A2($author$project$Generator$Note, $author$project$Generator$G, $author$project$Generator$Natural);
-		case 8:
-			return A2($author$project$Generator$Note, $author$project$Generator$A, $author$project$Generator$Flat);
-		case 9:
-			return A2($author$project$Generator$Note, $author$project$Generator$A, $author$project$Generator$Natural);
-		case 10:
-			return A2($author$project$Generator$Note, $author$project$Generator$B, $author$project$Generator$Flat);
-		default:
-			return A2($author$project$Generator$Note, $author$project$Generator$B, $author$project$Generator$Natural);
-	}
-};
-var $author$project$JazzBass$chromatism = function (n) {
-	var below = $author$project$Generator$pitch2note(
-		A2($author$project$Generator$note2pitch, 0, n) - 1);
-	var above = $author$project$Generator$pitch2note(
-		A2($author$project$Generator$note2pitch, 0, n) + 1);
-	return A2(
-		$elm$random$Random$map,
-		function (flip) {
-			return (!flip) ? above : below;
-		},
-		A2($elm$random$Random$int, 0, 1));
-};
-var $elm$core$Dict$foldl = F3(
-	function (func, acc, dict) {
-		foldl:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return acc;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var $temp$func = func,
-					$temp$acc = A3(
-					func,
-					key,
-					value,
-					A3($elm$core$Dict$foldl, func, acc, left)),
-					$temp$dict = right;
-				func = $temp$func;
-				acc = $temp$acc;
-				dict = $temp$dict;
-				continue foldl;
-			}
-		}
-	});
-var $elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
-				switch (_v1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return $elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
-	});
-var $elm$core$Dict$member = F2(
-	function (key, dict) {
-		var _v0 = A2($elm$core$Dict$get, key, dict);
-		if (_v0.$ === 'Just') {
-			return true;
-		} else {
-			return false;
-		}
-	});
-var $author$project$Generator$insertNoReplace = F3(
-	function (k, v, d) {
-		return A2($elm$core$Dict$member, k, d) ? d : A3($elm$core$Dict$insert, k, v, d);
-	});
-var $author$project$JazzBass$addApproach = F2(
-	function (bl, cplen) {
-		var addbefore = F3(
-			function (k, v, newdic) {
-				return A3(
-					$author$project$Generator$insertNoReplace,
-					A2($elm$core$Basics$modBy, cplen, k - 1),
-					A2(
-						$elm$random$Random$andThen,
-						function (n) {
-							return $author$project$JazzBass$chromatism(n);
-						},
-						v),
-					newdic);
-			});
-		return A3($elm$core$Dict$foldl, addbefore, bl, bl);
-	});
-var $TSFoster$elm_tuple_extra$Tuple3$first = function (_v0) {
-	var a = _v0.a;
-	return a;
-};
-var $elm$core$Dict$fromList = function (assocs) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (_v0, dict) {
-				var key = _v0.a;
-				var value = _v0.b;
-				return A3($elm$core$Dict$insert, key, value, dict);
-			}),
-		$elm$core$Dict$empty,
-		assocs);
-};
-var $author$project$JazzBass$listGen2GenList = function (l) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (gen, list) {
-				return A3(
-					$elm$random$Random$map2,
-					F2(
-						function (g, l_) {
-							return A2($elm$core$List$cons, g, l_);
-						}),
-					gen,
-					list);
-			}),
-		$elm$random$Random$constant(_List_Nil),
-		l);
-};
-var $elm$random$Random$pair = F2(
-	function (genA, genB) {
-		return A3(
-			$elm$random$Random$map2,
-			F2(
-				function (a, b) {
-					return _Utils_Tuple2(a, b);
-				}),
-			genA,
-			genB);
-	});
-var $TSFoster$elm_tuple_extra$Tuple3$second = function (_v0) {
-	var b = _v0.b;
-	return b;
-};
-var $TSFoster$elm_tuple_extra$Tuple3$third = function (_v0) {
-	var c = _v0.c;
-	return c;
-};
-var $author$project$JazzBass$addFill = F2(
-	function (bl, listgen) {
-		var l = A2(
-			$elm$core$List$map,
-			function (_v0) {
-				var k = _v0.a;
-				var v = _v0.b;
-				return A2(
-					$elm$random$Random$pair,
-					$elm$random$Random$constant(k),
-					v);
-			},
-			$elm$core$Dict$toList(bl));
-		var f1 = $author$project$JazzBass$listGen2GenList(l);
-		var f2 = A3(
-			$elm$core$List$foldl,
-			F2(
-				function (gen, list) {
-					return A3(
-						$elm$random$Random$map2,
-						F2(
-							function (g3, l_) {
-								return A2(
-									$elm$core$List$cons,
-									$TSFoster$elm_tuple_extra$Tuple3$first(g3),
-									A2(
-										$elm$core$List$cons,
-										$TSFoster$elm_tuple_extra$Tuple3$second(g3),
-										A2(
-											$elm$core$List$cons,
-											$TSFoster$elm_tuple_extra$Tuple3$third(g3),
-											l_)));
-							}),
-						gen,
-						list);
-				}),
-			f1,
-			listgen);
-		return A2($elm$random$Random$map, $elm$core$Dict$fromList, f2);
-	});
 var $author$project$Generator$getChordAt = F2(
 	function (cp, time) {
 		var sortedChords = A2(
@@ -6337,6 +6318,50 @@ var $author$project$Generator$getFifthOf = function (c) {
 			return A2($author$project$Generator$getSemitonesOf, 7, c);
 	}
 };
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
+		}
+	});
+var $elm$core$Dict$member = F2(
+	function (key, dict) {
+		var _v0 = A2($elm$core$Dict$get, key, dict);
+		if (_v0.$ === 'Just') {
+			return true;
+		} else {
+			return false;
+		}
+	});
+var $author$project$Generator$insertNoReplace = F3(
+	function (k, v, d) {
+		return A2($elm$core$Dict$member, k, d) ? d : A3($elm$core$Dict$insert, k, v, d);
+	});
 var $author$project$JazzBass$addPump = F3(
 	function (bl, cp, signature) {
 		var do2bars = F2(
@@ -6371,6 +6396,426 @@ var $author$project$JazzBass$addPump = F3(
 			});
 		return A2(doRec, bl, 0);
 	});
+var $author$project$BossaBass$bass2Seq = function (dic) {
+	return A2(
+		$elm$core$List$concatMap,
+		function (_v0) {
+			var k = _v0.a;
+			var v = _v0.b;
+			return _List_fromArray(
+				[
+					A5(
+					$author$project$Tune$Event,
+					k,
+					true,
+					A2($author$project$Generator$note2pitch, 1, v),
+					'bass',
+					1),
+					A5(
+					$author$project$Tune$Event,
+					k + 2,
+					false,
+					A2($author$project$Generator$note2pitch, 1, v),
+					'bass',
+					1)
+				]);
+		},
+		$elm$core$Dict$toList(dic));
+};
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
+};
+var $author$project$JazzBass$listGen2GenList = function (l) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (gen, list) {
+				return A3(
+					$elm$random$Random$map2,
+					F2(
+						function (g, l_) {
+							return A2($elm$core$List$cons, g, l_);
+						}),
+					gen,
+					list);
+			}),
+		$elm$random$Random$constant(_List_Nil),
+		l);
+};
+var $elm$random$Random$pair = F2(
+	function (genA, genB) {
+		return A3(
+			$elm$random$Random$map2,
+			F2(
+				function (a, b) {
+					return _Utils_Tuple2(a, b);
+				}),
+			genA,
+			genB);
+	});
+var $author$project$JazzBass$dictGen2GenDict = function (d) {
+	var l = A2(
+		$elm$core$List$map,
+		function (_v0) {
+			var k = _v0.a;
+			var v = _v0.b;
+			return A2(
+				$elm$random$Random$pair,
+				$elm$random$Random$constant(k),
+				v);
+		},
+		$elm$core$Dict$toList(d));
+	return A2(
+		$elm$random$Random$map,
+		$elm$core$Dict$fromList,
+		$author$project$JazzBass$listGen2GenList(l));
+};
+var $author$project$Generator$getBass = function (c) {
+	var _v0 = c.bass;
+	if (_v0.$ === 'Nothing') {
+		return c.note;
+	} else {
+		var b = _v0.a;
+		return b;
+	}
+};
+var $author$project$JazzBass$fondaOnChange = function (cp) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (evt, bassline) {
+				return A3(
+					$elm$core$Dict$insert,
+					$elm$core$Basics$floor(evt.time),
+					$elm$random$Random$constant(
+						$author$project$Generator$getBass(evt.chord)),
+					bassline);
+			}),
+		$elm$core$Dict$empty,
+		cp.chords);
+};
+var $author$project$BossaBass$sequenceGenerator = F2(
+	function (cp, _v0) {
+		return A2(
+			$elm$random$Random$map,
+			function (l) {
+				return A2(
+					$elm$core$List$cons,
+					A5($author$project$Tune$Event, cp.end, false, 40, 'bass', 1),
+					l);
+			},
+			A2(
+				$elm$random$Random$map,
+				$author$project$BossaBass$bass2Seq,
+				$author$project$JazzBass$dictGen2GenDict(
+					A3(
+						$author$project$JazzBass$addPump,
+						$author$project$JazzBass$fondaOnChange(cp),
+						cp,
+						2))));
+	});
+var $author$project$BossaDrums$bossagroove = function (end) {
+	return A2(
+		$elm$core$List$cons,
+		A5($author$project$Tune$Event, end, false, 2, 'drums', 1),
+		A2(
+			$elm$core$List$filter,
+			function (e) {
+				return _Utils_cmp(e.time, end) < 1;
+			},
+			A2(
+				$elm$core$List$concatMap,
+				function (i) {
+					var fb = i;
+					return _List_fromArray(
+						[
+							A5($author$project$Tune$Event, fb, true, 1, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 1.5, true, 1, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 3, true, 1, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 5, true, 1, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 6.5, true, 1, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 1, true, 3, 'drums', 1),
+							A5($author$project$Tune$Event, fb + 3, true, 3, 'drums', 1),
+							A5($author$project$Tune$Event, fb + 5, true, 3, 'drums', 1),
+							A5($author$project$Tune$Event, fb + 7, true, 3, 'drums', 1),
+							A5($author$project$Tune$Event, fb + 0, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 1, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 2, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 3, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 4, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 5, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 6, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 7, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 0.5, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 1.5, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 2.5, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 3.5, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 4.5, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 5.5, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 6.5, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 7.5, true, 2, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb, true, 0, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 7.5, true, 0, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb, true, 4, 'drums', 0.5),
+							A5($author$project$Tune$Event, fb + 3.5, true, 0, 'drums', 0.5)
+						]);
+				},
+				A2(
+					$elm$core$List$map,
+					$elm$core$Basics$mul(8),
+					A2(
+						$elm$core$List$range,
+						0,
+						$elm$core$Basics$floor((end - 1) / 8))))));
+};
+var $author$project$BossaDrums$bossagrooveCrash = function (end) {
+	return A2(
+		$elm$core$List$cons,
+		A5($author$project$Tune$Event, 0, true, 5, 'drums', 1),
+		$author$project$BossaDrums$bossagroove(end));
+};
+var $author$project$BossaDrums$sequenceGenerator = F2(
+	function (cp, _v0) {
+		return $elm$random$Random$constant(
+			$author$project$BossaDrums$bossagrooveCrash(cp.end));
+	});
+var $elm$random$Random$andThen = F2(
+	function (callback, _v0) {
+		var genA = _v0.a;
+		return $elm$random$Random$Generator(
+			function (seed) {
+				var _v1 = genA(seed);
+				var result = _v1.a;
+				var newSeed = _v1.b;
+				var _v2 = callback(result);
+				var genB = _v2.a;
+				return genB(newSeed);
+			});
+	});
+var $author$project$JazzPiano$possibleBarsMeta = F2(
+	function (swing, signature) {
+		var s = swing ? 0.66 : 0.5;
+		switch (signature) {
+			case 4:
+				return _List_fromArray(
+					[
+						_List_fromArray(
+						[
+							_Utils_Tuple2(0, 0.33),
+							_Utils_Tuple2(1 + s, 1.33)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(s, 0.33),
+							_Utils_Tuple2(2, 1.33)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(s, 0.33),
+							_Utils_Tuple2(2 + s, 0.33)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(0, 2),
+							_Utils_Tuple2(2, 2)
+						])
+					]);
+			case 3:
+				return _List_fromArray(
+					[
+						_List_fromArray(
+						[
+							_Utils_Tuple2(s, 0.33),
+							_Utils_Tuple2(2, 1)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(s, 0.33),
+							_Utils_Tuple2(2, 1)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(1, 1)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(1, 0.33)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(2, 1)
+						])
+					]);
+			default:
+				return _List_fromArray(
+					[
+						_List_fromArray(
+						[
+							_Utils_Tuple2(s, 0.33),
+							_Utils_Tuple2(2, 1),
+							_Utils_Tuple2(4, 0.33)
+						])
+					]);
+		}
+	});
+var $elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
+};
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Bitwise$xor = _Bitwise_xor;
+var $elm$random$Random$peel = function (_v0) {
+	var state = _v0.a;
+	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
+	return ((word >>> 22) ^ word) >>> 0;
+};
+var $elm$random$Random$float = F2(
+	function (a, b) {
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var seed1 = $elm$random$Random$next(seed0);
+				var range = $elm$core$Basics$abs(b - a);
+				var n1 = $elm$random$Random$peel(seed1);
+				var n0 = $elm$random$Random$peel(seed0);
+				var lo = (134217727 & n1) * 1.0;
+				var hi = (67108863 & n0) * 1.0;
+				var val = ((hi * 134217728.0) + lo) / 9007199254740992.0;
+				var scaled = (val * range) + a;
+				return _Utils_Tuple2(
+					scaled,
+					$elm$random$Random$next(seed1));
+			});
+	});
+var $elm$random$Random$getByWeight = F3(
+	function (_v0, others, countdown) {
+		getByWeight:
+		while (true) {
+			var weight = _v0.a;
+			var value = _v0.b;
+			if (!others.b) {
+				return value;
+			} else {
+				var second = others.a;
+				var otherOthers = others.b;
+				if (_Utils_cmp(
+					countdown,
+					$elm$core$Basics$abs(weight)) < 1) {
+					return value;
+				} else {
+					var $temp$_v0 = second,
+						$temp$others = otherOthers,
+						$temp$countdown = countdown - $elm$core$Basics$abs(weight);
+					_v0 = $temp$_v0;
+					others = $temp$others;
+					countdown = $temp$countdown;
+					continue getByWeight;
+				}
+			}
+		}
+	});
+var $elm$core$List$sum = function (numbers) {
+	return A3($elm$core$List$foldl, $elm$core$Basics$add, 0, numbers);
+};
+var $elm$random$Random$weighted = F2(
+	function (first, others) {
+		var normalize = function (_v0) {
+			var weight = _v0.a;
+			return $elm$core$Basics$abs(weight);
+		};
+		var total = normalize(first) + $elm$core$List$sum(
+			A2($elm$core$List$map, normalize, others));
+		return A2(
+			$elm$random$Random$map,
+			A2($elm$random$Random$getByWeight, first, others),
+			A2($elm$random$Random$float, 0, total));
+	});
+var $author$project$JazzPiano$unif2 = F2(
+	function (a, la) {
+		return A2(
+			$elm$random$Random$weighted,
+			_Utils_Tuple2(0, a),
+			A2(
+				$elm$core$List$map,
+				function (x) {
+					return _Utils_Tuple2(1, x);
+				},
+				la));
+	});
+var $author$project$JazzPiano$genRhythmMeta = F3(
+	function (swing, signature, end) {
+		var barsTemplates = A2($author$project$JazzPiano$possibleBarsMeta, swing, signature);
+		var pickbar = A2($author$project$JazzPiano$unif2, _List_Nil, barsTemplates);
+		var addbar = F2(
+			function (genlist, idbar) {
+				var pickbarmap = A2(
+					$elm$random$Random$map,
+					function (l) {
+						return A2(
+							$elm$core$List$map,
+							function (_v0) {
+								var o = _v0.a;
+								var d = _v0.b;
+								return _Utils_Tuple2(o + (idbar * signature), d);
+							},
+							l);
+					},
+					pickbar);
+				return A3(
+					$elm$random$Random$map2,
+					F2(
+						function (gl, pbm) {
+							return _Utils_ap(gl, pbm);
+						}),
+					genlist,
+					pickbarmap);
+			});
+		return A3(
+			$elm$core$List$foldl,
+			F2(
+				function (i, out) {
+					return A2(addbar, out, i);
+				}),
+			$elm$random$Random$constant(_List_Nil),
+			A2(
+				$elm$core$List$range,
+				0,
+				($elm$core$Basics$floor(end) / signature) | 0));
+	});
+var $author$project$Generator$Dominant = {$: 'Dominant'};
+var $author$project$Generator$Major = {$: 'Major'};
+var $author$project$Generator$Minor = {$: 'Minor'};
+var $author$project$Generator$chordClass = function (c) {
+	switch (c.$) {
+		case 'Dom7':
+			return $author$project$Generator$Dominant;
+		case 'Alt7':
+			return $author$project$Generator$Dominant;
+		case 'Dom7b9':
+			return $author$project$Generator$Dominant;
+		case 'Dom7s5':
+			return $author$project$Generator$Dominant;
+		case 'Sus4':
+			return $author$project$Generator$Dominant;
+		case 'Min7':
+			return $author$project$Generator$Minor;
+		case 'Min7b5':
+			return $author$project$Generator$Minor;
+		case 'Dim':
+			return $author$project$Generator$Minor;
+		case 'MinMaj':
+			return $author$project$Generator$Minor;
+		default:
+			return $author$project$Generator$Major;
+	}
+};
 var $author$project$Generator$getNinethOf = function (c) {
 	var _v0 = c.type_;
 	switch (_v0.$) {
@@ -6414,6 +6859,293 @@ var $author$project$Generator$getThirdOf = function (c) {
 			return A2($author$project$Generator$getSemitonesOf, 4, c);
 	}
 };
+var $author$project$JazzPiano$compact = _Utils_Tuple2(
+	53,
+	_List_fromArray(
+		[$author$project$Generator$getThirdOf, $author$project$Generator$getFifthOf, $author$project$Generator$getSeventhOf, $author$project$Generator$getNinethOf]));
+var $author$project$Generator$getThirteenthOf = function (c) {
+	var _v0 = c.type_;
+	switch (_v0.$) {
+		case 'Alt7':
+			return A2($author$project$Generator$getSemitonesOf, 8, c);
+		case 'Min7b5':
+			return A2($author$project$Generator$getSemitonesOf, 8, c);
+		default:
+			return A2($author$project$Generator$getSemitonesOf, 9, c);
+	}
+};
+var $author$project$JazzPiano$compact13 = _Utils_Tuple2(
+	53,
+	_List_fromArray(
+		[$author$project$Generator$getThirdOf, $author$project$Generator$getThirteenthOf, $author$project$Generator$getSeventhOf, $author$project$Generator$getNinethOf]));
+var $author$project$JazzPiano$all_compact = function (c) {
+	return _Utils_eq(
+		$author$project$Generator$chordClass(c),
+		$author$project$Generator$Dominant) ? _List_fromArray(
+		[$author$project$JazzPiano$compact13]) : _List_fromArray(
+		[$author$project$JazzPiano$compact]);
+};
+var $author$project$JazzPiano$getAbove = F2(
+	function (l, n) {
+		var n0 = A2($author$project$Generator$note2pitch, 0, n);
+		return (12 * $elm$core$Basics$ceiling((l - n0) / 12)) + n0;
+	});
+var $author$project$Generator$listGen2GenList = function (l) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (gen, list) {
+				return A3(
+					$elm$random$Random$map2,
+					F2(
+						function (g, l_) {
+							return A2($elm$core$List$cons, g, l_);
+						}),
+					gen,
+					list);
+			}),
+		$elm$random$Random$constant(_List_Nil),
+		l);
+};
+var $elm$core$Basics$neq = _Utils_notEqual;
+var $author$project$JazzPiano$populateRhythm = F2(
+	function (l, cp) {
+		return $author$project$Generator$listGen2GenList(
+			A2(
+				$elm$core$List$map,
+				function (_v4) {
+					var onset = _v4.onset;
+					var duration = _v4.duration;
+					var chord = _v4.chord;
+					var volume = _v4.volume;
+					return A3(
+						$elm$random$Random$map2,
+						F2(
+							function (c, v) {
+								return {chord: c, duration: duration, onset: onset, volume: v};
+							}),
+						chord,
+						volume);
+				},
+				A2(
+					$elm$core$List$filter,
+					function (_v3) {
+						var onset = _v3.onset;
+						var duration = _v3.duration;
+						return _Utils_cmp(onset + duration, cp.end) < 1;
+					},
+					A2(
+						$elm$core$List$map,
+						function (_v1) {
+							var onset = _v1.a;
+							var duration = _v1.b;
+							var volume = A2($elm$random$Random$float, 0.05, 0.2);
+							var chord = A2($author$project$Generator$getChordAt, cp, onset + 0.4);
+							var voicing = A2(
+								$author$project$JazzPiano$unif2,
+								_Utils_Tuple2(0, _List_Nil),
+								$author$project$JazzPiano$all_compact(chord.type_));
+							var notes = A2(
+								$elm$random$Random$map,
+								function (_v2) {
+									var lowest = _v2.a;
+									var funcs = _v2.b;
+									return A2(
+										$elm$core$List$map,
+										function (n) {
+											return A2($author$project$JazzPiano$getAbove, lowest, n);
+										},
+										A2(
+											$elm$core$List$map,
+											function (f) {
+												return f(chord);
+											},
+											funcs));
+								},
+								voicing);
+							return {chord: notes, duration: duration, onset: onset, volume: volume};
+						},
+						A2(
+							$elm$core$List$filter,
+							function (_v0) {
+								var onset = _v0.a;
+								return !_Utils_eq(
+									A2($author$project$Generator$getChordAt, cp, onset + 0.4).type_,
+									$author$project$Generator$NA);
+							},
+							l)))));
+	});
+var $author$project$JazzPiano$sequenceGeneratorMeta = F3(
+	function (swing, cp, signature) {
+		return A2(
+			$elm$random$Random$map,
+			function (l) {
+				return A2(
+					$elm$core$List$concatMap,
+					function (_v0) {
+						var onset = _v0.onset;
+						var duration = _v0.duration;
+						var chord = _v0.chord;
+						var volume = _v0.volume;
+						return A2(
+							$elm$core$List$concatMap,
+							function (p) {
+								return _List_fromArray(
+									[
+										A5($author$project$Tune$Event, onset, true, p, 'piano', volume),
+										A5($author$project$Tune$Event, onset + duration, false, p, 'piano', 0.1)
+									]);
+							},
+							chord);
+					},
+					l);
+			},
+			A2(
+				$elm$random$Random$andThen,
+				function (lff) {
+					return A2($author$project$JazzPiano$populateRhythm, lff, cp);
+				},
+				A3($author$project$JazzPiano$genRhythmMeta, swing, signature, cp.end)));
+	});
+var $author$project$BossaPiano$sequenceGenerator = $author$project$JazzPiano$sequenceGeneratorMeta(false);
+var $elm$random$Random$int = F2(
+	function (a, b) {
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v0 = (_Utils_cmp(a, b) < 0) ? _Utils_Tuple2(a, b) : _Utils_Tuple2(b, a);
+				var lo = _v0.a;
+				var hi = _v0.b;
+				var range = (hi - lo) + 1;
+				if (!((range - 1) & range)) {
+					return _Utils_Tuple2(
+						(((range - 1) & $elm$random$Random$peel(seed0)) >>> 0) + lo,
+						$elm$random$Random$next(seed0));
+				} else {
+					var threshhold = (((-range) >>> 0) % range) >>> 0;
+					var accountForBias = function (seed) {
+						accountForBias:
+						while (true) {
+							var x = $elm$random$Random$peel(seed);
+							var seedN = $elm$random$Random$next(seed);
+							if (_Utils_cmp(x, threshhold) < 0) {
+								var $temp$seed = seedN;
+								seed = $temp$seed;
+								continue accountForBias;
+							} else {
+								return _Utils_Tuple2((x % range) + lo, seedN);
+							}
+						}
+					};
+					return accountForBias(seed0);
+				}
+			});
+	});
+var $author$project$JazzBass$chromatism = function (n) {
+	var below = $author$project$Generator$pitch2note(
+		A2($author$project$Generator$note2pitch, 0, n) - 1);
+	var above = $author$project$Generator$pitch2note(
+		A2($author$project$Generator$note2pitch, 0, n) + 1);
+	return A2(
+		$elm$random$Random$map,
+		function (flip) {
+			return (!flip) ? above : below;
+		},
+		A2($elm$random$Random$int, 0, 1));
+};
+var $elm$core$Dict$foldl = F3(
+	function (func, acc, dict) {
+		foldl:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return acc;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var $temp$func = func,
+					$temp$acc = A3(
+					func,
+					key,
+					value,
+					A3($elm$core$Dict$foldl, func, acc, left)),
+					$temp$dict = right;
+				func = $temp$func;
+				acc = $temp$acc;
+				dict = $temp$dict;
+				continue foldl;
+			}
+		}
+	});
+var $author$project$JazzBass$addApproach = F2(
+	function (bl, cplen) {
+		var addbefore = F3(
+			function (k, v, newdic) {
+				return A3(
+					$author$project$Generator$insertNoReplace,
+					A2($elm$core$Basics$modBy, cplen, k - 1),
+					A2(
+						$elm$random$Random$andThen,
+						function (n) {
+							return $author$project$JazzBass$chromatism(n);
+						},
+						v),
+					newdic);
+			});
+		return A3($elm$core$Dict$foldl, addbefore, bl, bl);
+	});
+var $TSFoster$elm_tuple_extra$Tuple3$first = function (_v0) {
+	var a = _v0.a;
+	return a;
+};
+var $TSFoster$elm_tuple_extra$Tuple3$second = function (_v0) {
+	var b = _v0.b;
+	return b;
+};
+var $TSFoster$elm_tuple_extra$Tuple3$third = function (_v0) {
+	var c = _v0.c;
+	return c;
+};
+var $author$project$JazzBass$addFill = F2(
+	function (bl, listgen) {
+		var l = A2(
+			$elm$core$List$map,
+			function (_v0) {
+				var k = _v0.a;
+				var v = _v0.b;
+				return A2(
+					$elm$random$Random$pair,
+					$elm$random$Random$constant(k),
+					v);
+			},
+			$elm$core$Dict$toList(bl));
+		var f1 = $author$project$JazzBass$listGen2GenList(l);
+		var f2 = A3(
+			$elm$core$List$foldl,
+			F2(
+				function (gen, list) {
+					return A3(
+						$elm$random$Random$map2,
+						F2(
+							function (g3, l_) {
+								return A2(
+									$elm$core$List$cons,
+									$TSFoster$elm_tuple_extra$Tuple3$first(g3),
+									A2(
+										$elm$core$List$cons,
+										$TSFoster$elm_tuple_extra$Tuple3$second(g3),
+										A2(
+											$elm$core$List$cons,
+											$TSFoster$elm_tuple_extra$Tuple3$third(g3),
+											l_)));
+							}),
+						gen,
+						list);
+				}),
+			f1,
+			listgen);
+		return A2($elm$random$Random$map, $elm$core$Dict$fromList, f2);
+	});
 var $author$project$JazzBass$barFillArray = function (n) {
 	switch (n) {
 		case 0:
@@ -6496,31 +7228,6 @@ var $elm$core$Dict$filter = F2(
 			$elm$core$Dict$empty,
 			dict);
 	});
-var $author$project$Generator$getBass = function (c) {
-	var _v0 = c.bass;
-	if (_v0.$ === 'Nothing') {
-		return c.note;
-	} else {
-		var b = _v0.a;
-		return b;
-	}
-};
-var $author$project$JazzBass$fondaOnChange = function (cp) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (evt, bassline) {
-				return A3(
-					$elm$core$Dict$insert,
-					$elm$core$Basics$floor(evt.time),
-					$elm$random$Random$constant(
-						$author$project$Generator$getBass(evt.chord)),
-					bassline);
-			}),
-		$elm$core$Dict$empty,
-		cp.chords);
-};
-var $elm$core$Basics$neq = _Utils_notEqual;
 var $elm$core$Dict$getMin = function (dict) {
 	getMin:
 	while (true) {
@@ -6911,9 +7618,6 @@ var $author$project$JazzBass$bassLineGenerator = F2(
 					basslineNoFill,
 					A2($author$project$JazzBass$fillBarsRec, cp, signature))));
 	});
-var $elm$core$Basics$abs = function (n) {
-	return (n < 0) ? (-n) : n;
-};
 var $elm$core$Basics$min = F2(
 	function (x, y) {
 		return (_Utils_cmp(x, y) < 0) ? x : y;
@@ -7052,16 +7756,6 @@ var $elm$core$List$filterMap = F2(
 			_List_Nil,
 			xs);
 	});
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
 var $elm$core$Tuple$pair = F2(
 	function (a, b) {
 		return _Utils_Tuple2(a, b);
@@ -7123,23 +7817,6 @@ var $elm$random$Random$map3 = F4(
 				return _Utils_Tuple2(
 					A3(func, a, b, c),
 					seed3);
-			});
-	});
-var $elm$random$Random$float = F2(
-	function (a, b) {
-		return $elm$random$Random$Generator(
-			function (seed0) {
-				var seed1 = $elm$random$Random$next(seed0);
-				var range = $elm$core$Basics$abs(b - a);
-				var n1 = $elm$random$Random$peel(seed1);
-				var n0 = $elm$random$Random$peel(seed0);
-				var lo = (134217727 & n1) * 1.0;
-				var hi = (67108863 & n0) * 1.0;
-				var val = ((hi * 134217728.0) + lo) / 9007199254740992.0;
-				var scaled = (val * range) + a;
-				return _Utils_Tuple2(
-					scaled,
-					$elm$random$Random$next(seed1));
 			});
 	});
 var $elm$random$Random$listHelp = F4(
@@ -7222,345 +7899,24 @@ var $author$project$JazzDrums$seqGenMeta = F3(
 					beatsPerBar)));
 	});
 var $author$project$JazzDrums$sequenceGenerator = $author$project$JazzDrums$seqGenMeta(true);
-var $author$project$JazzPiano$possibleBars = function (signature) {
-	switch (signature) {
-		case 4:
-			return _List_fromArray(
-				[
-					_List_fromArray(
-					[
-						_Utils_Tuple2(0, 0.33),
-						_Utils_Tuple2(1.66, 1.33)
-					]),
-					_List_fromArray(
-					[
-						_Utils_Tuple2(0.66, 0.33),
-						_Utils_Tuple2(2, 1.33)
-					]),
-					_List_fromArray(
-					[
-						_Utils_Tuple2(0.66, 0.33),
-						_Utils_Tuple2(2.66, 0.33)
-					]),
-					_List_fromArray(
-					[
-						_Utils_Tuple2(0, 2),
-						_Utils_Tuple2(2, 2)
-					])
-				]);
-		case 3:
-			return _List_fromArray(
-				[
-					_List_fromArray(
-					[
-						_Utils_Tuple2(0.66, 0.33),
-						_Utils_Tuple2(2, 1)
-					]),
-					_List_fromArray(
-					[
-						_Utils_Tuple2(0.66, 0.33),
-						_Utils_Tuple2(2, 1)
-					]),
-					_List_fromArray(
-					[
-						_Utils_Tuple2(1, 1)
-					]),
-					_List_fromArray(
-					[
-						_Utils_Tuple2(1, 0.33)
-					]),
-					_List_fromArray(
-					[
-						_Utils_Tuple2(2, 1)
-					])
-				]);
-		default:
-			return _List_fromArray(
-				[
-					_List_fromArray(
-					[
-						_Utils_Tuple2(0.66, 0.33),
-						_Utils_Tuple2(2, 1),
-						_Utils_Tuple2(4, 0.33)
-					])
-				]);
-	}
-};
-var $elm$random$Random$getByWeight = F3(
-	function (_v0, others, countdown) {
-		getByWeight:
-		while (true) {
-			var weight = _v0.a;
-			var value = _v0.b;
-			if (!others.b) {
-				return value;
+var $author$project$JazzPiano$sequenceGenerator = $author$project$JazzPiano$sequenceGeneratorMeta(true);
+var $author$project$Styles$getSeqGenerator = function (s) {
+	return $author$project$Generator$mergeSeqGenerators(
+		function () {
+			if (s.$ === 'Bossa') {
+				return _List_fromArray(
+					[$author$project$BossaDrums$sequenceGenerator, $author$project$BossaBass$sequenceGenerator, $author$project$BossaPiano$sequenceGenerator]);
 			} else {
-				var second = others.a;
-				var otherOthers = others.b;
-				if (_Utils_cmp(
-					countdown,
-					$elm$core$Basics$abs(weight)) < 1) {
-					return value;
-				} else {
-					var $temp$_v0 = second,
-						$temp$others = otherOthers,
-						$temp$countdown = countdown - $elm$core$Basics$abs(weight);
-					_v0 = $temp$_v0;
-					others = $temp$others;
-					countdown = $temp$countdown;
-					continue getByWeight;
-				}
+				return _List_fromArray(
+					[$author$project$JazzBass$sequenceGenerator, $author$project$JazzDrums$sequenceGenerator, $author$project$JazzPiano$sequenceGenerator]);
 			}
-		}
-	});
-var $elm$core$List$sum = function (numbers) {
-	return A3($elm$core$List$foldl, $elm$core$Basics$add, 0, numbers);
+		}());
 };
-var $elm$random$Random$weighted = F2(
-	function (first, others) {
-		var normalize = function (_v0) {
-			var weight = _v0.a;
-			return $elm$core$Basics$abs(weight);
-		};
-		var total = normalize(first) + $elm$core$List$sum(
-			A2($elm$core$List$map, normalize, others));
-		return A2(
-			$elm$random$Random$map,
-			A2($elm$random$Random$getByWeight, first, others),
-			A2($elm$random$Random$float, 0, total));
-	});
-var $author$project$JazzPiano$unif2 = F2(
-	function (a, la) {
-		return A2(
-			$elm$random$Random$weighted,
-			_Utils_Tuple2(0, a),
-			A2(
-				$elm$core$List$map,
-				function (x) {
-					return _Utils_Tuple2(1, x);
-				},
-				la));
-	});
-var $author$project$JazzPiano$genRhythm = F2(
-	function (signature, end) {
-		var barsTemplates = $author$project$JazzPiano$possibleBars(signature);
-		var pickbar = A2($author$project$JazzPiano$unif2, _List_Nil, barsTemplates);
-		var addbar = F2(
-			function (genlist, idbar) {
-				var pickbarmap = A2(
-					$elm$random$Random$map,
-					function (l) {
-						return A2(
-							$elm$core$List$map,
-							function (_v0) {
-								var o = _v0.a;
-								var d = _v0.b;
-								return _Utils_Tuple2(o + (idbar * signature), d);
-							},
-							l);
-					},
-					pickbar);
-				return A3(
-					$elm$random$Random$map2,
-					F2(
-						function (gl, pbm) {
-							return _Utils_ap(gl, pbm);
-						}),
-					genlist,
-					pickbarmap);
-			});
-		return A3(
-			$elm$core$List$foldl,
-			F2(
-				function (i, out) {
-					return A2(addbar, out, i);
-				}),
-			$elm$random$Random$constant(_List_Nil),
-			A2(
-				$elm$core$List$range,
-				0,
-				($elm$core$Basics$floor(end) / signature) | 0));
-	});
-var $author$project$Generator$Dominant = {$: 'Dominant'};
-var $author$project$Generator$Major = {$: 'Major'};
-var $author$project$Generator$Minor = {$: 'Minor'};
-var $author$project$Generator$chordClass = function (c) {
-	switch (c.$) {
-		case 'Dom7':
-			return $author$project$Generator$Dominant;
-		case 'Alt7':
-			return $author$project$Generator$Dominant;
-		case 'Dom7b9':
-			return $author$project$Generator$Dominant;
-		case 'Dom7s5':
-			return $author$project$Generator$Dominant;
-		case 'Sus4':
-			return $author$project$Generator$Dominant;
-		case 'Min7':
-			return $author$project$Generator$Minor;
-		case 'Min7b5':
-			return $author$project$Generator$Minor;
-		case 'Dim':
-			return $author$project$Generator$Minor;
-		case 'MinMaj':
-			return $author$project$Generator$Minor;
-		default:
-			return $author$project$Generator$Major;
-	}
-};
-var $author$project$JazzPiano$compact = _Utils_Tuple2(
-	53,
-	_List_fromArray(
-		[$author$project$Generator$getThirdOf, $author$project$Generator$getFifthOf, $author$project$Generator$getSeventhOf, $author$project$Generator$getNinethOf]));
-var $author$project$Generator$getThirteenthOf = function (c) {
-	var _v0 = c.type_;
-	switch (_v0.$) {
-		case 'Alt7':
-			return A2($author$project$Generator$getSemitonesOf, 8, c);
-		case 'Min7b5':
-			return A2($author$project$Generator$getSemitonesOf, 8, c);
-		default:
-			return A2($author$project$Generator$getSemitonesOf, 9, c);
-	}
-};
-var $author$project$JazzPiano$compact13 = _Utils_Tuple2(
-	53,
-	_List_fromArray(
-		[$author$project$Generator$getThirdOf, $author$project$Generator$getThirteenthOf, $author$project$Generator$getSeventhOf, $author$project$Generator$getNinethOf]));
-var $author$project$JazzPiano$all_compact = function (c) {
-	return _Utils_eq(
-		$author$project$Generator$chordClass(c),
-		$author$project$Generator$Dominant) ? _List_fromArray(
-		[$author$project$JazzPiano$compact13]) : _List_fromArray(
-		[$author$project$JazzPiano$compact]);
-};
-var $author$project$JazzPiano$getAbove = F2(
-	function (l, n) {
-		var n0 = A2($author$project$Generator$note2pitch, 0, n);
-		return (12 * $elm$core$Basics$ceiling((l - n0) / 12)) + n0;
-	});
-var $author$project$Generator$listGen2GenList = function (l) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (gen, list) {
-				return A3(
-					$elm$random$Random$map2,
-					F2(
-						function (g, l_) {
-							return A2($elm$core$List$cons, g, l_);
-						}),
-					gen,
-					list);
-			}),
-		$elm$random$Random$constant(_List_Nil),
-		l);
-};
-var $author$project$JazzPiano$populateRhythm = F2(
-	function (l, cp) {
-		return $author$project$Generator$listGen2GenList(
-			A2(
-				$elm$core$List$map,
-				function (_v4) {
-					var onset = _v4.onset;
-					var duration = _v4.duration;
-					var chord = _v4.chord;
-					var volume = _v4.volume;
-					return A3(
-						$elm$random$Random$map2,
-						F2(
-							function (c, v) {
-								return {chord: c, duration: duration, onset: onset, volume: v};
-							}),
-						chord,
-						volume);
-				},
-				A2(
-					$elm$core$List$filter,
-					function (_v3) {
-						var onset = _v3.onset;
-						var duration = _v3.duration;
-						return _Utils_cmp(onset + duration, cp.end) < 1;
-					},
-					A2(
-						$elm$core$List$map,
-						function (_v1) {
-							var onset = _v1.a;
-							var duration = _v1.b;
-							var volume = A2($elm$random$Random$float, 0.05, 0.2);
-							var chord = A2($author$project$Generator$getChordAt, cp, onset + 0.4);
-							var voicing = A2(
-								$author$project$JazzPiano$unif2,
-								_Utils_Tuple2(0, _List_Nil),
-								$author$project$JazzPiano$all_compact(chord.type_));
-							var notes = A2(
-								$elm$random$Random$map,
-								function (_v2) {
-									var lowest = _v2.a;
-									var funcs = _v2.b;
-									return A2(
-										$elm$core$List$map,
-										function (n) {
-											return A2($author$project$JazzPiano$getAbove, lowest, n);
-										},
-										A2(
-											$elm$core$List$map,
-											function (f) {
-												return f(chord);
-											},
-											funcs));
-								},
-								voicing);
-							return {chord: notes, duration: duration, onset: onset, volume: volume};
-						},
-						A2(
-							$elm$core$List$filter,
-							function (_v0) {
-								var onset = _v0.a;
-								return !_Utils_eq(
-									A2($author$project$Generator$getChordAt, cp, onset + 0.4).type_,
-									$author$project$Generator$NA);
-							},
-							l)))));
-	});
-var $author$project$JazzPiano$sequenceGenerator = F2(
-	function (cp, signature) {
-		return A2(
-			$elm$random$Random$map,
-			function (l) {
-				return A2(
-					$elm$core$List$concatMap,
-					function (_v0) {
-						var onset = _v0.onset;
-						var duration = _v0.duration;
-						var chord = _v0.chord;
-						var volume = _v0.volume;
-						return A2(
-							$elm$core$List$concatMap,
-							function (p) {
-								return _List_fromArray(
-									[
-										A5($author$project$Tune$Event, onset, true, p, 'piano', volume),
-										A5($author$project$Tune$Event, onset + duration, false, p, 'piano', 0.1)
-									]);
-							},
-							chord);
-					},
-					l);
-			},
-			A2(
-				$elm$random$Random$andThen,
-				function (lff) {
-					return A2($author$project$JazzPiano$populateRhythm, lff, cp);
-				},
-				A2($author$project$JazzPiano$genRhythm, signature, cp.end)));
-	});
 var $author$project$PlayerPage$seqgen = function (m) {
 	return A3(
-		$author$project$Generator$mergeSeqGenerators,
-		_List_fromArray(
-			[$author$project$JazzBass$sequenceGenerator, $author$project$JazzDrums$sequenceGenerator, $author$project$JazzPiano$sequenceGenerator]),
-		m.song.chordProg,
+		$author$project$Styles$getSeqGenerator,
+		m.song.style,
+		A2($author$project$PlayerPage$transposeChordProg, m.song.chordProg, m.playbackKey),
 		m.song.beatsPerBar);
 };
 var $author$project$PlayerPage$genSequence = function (m) {
@@ -7896,6 +8252,12 @@ var $author$project$Main$setLibrary = F2(
 			m,
 			{libraryModel: l});
 	});
+var $author$project$PlayerPage$setStyle = F2(
+	function (st, s) {
+		return _Utils_update(
+			s,
+			{style: st});
+	});
 var $author$project$PlayerPage$asTitleIn = F2(
 	function (s, t) {
 		return _Utils_update(
@@ -7962,6 +8324,18 @@ var $elm$json$Json$Encode$object = function (pairs) {
 			_Json_emptyObject(_Utils_Tuple0),
 			pairs));
 };
+var $author$project$Styles$style2str = function (s) {
+	switch (s.$) {
+		case 'Swing':
+			return 'Swing';
+		case 'Bop':
+			return 'Bop';
+		case 'Bossa':
+			return 'Bossa';
+		default:
+			return 'Fusion';
+	}
+};
 var $author$project$Library$type2str = function (ct) {
 	switch (ct.$) {
 		case 'Dom7':
@@ -8012,7 +8386,8 @@ var $author$project$Library$song2json = function (song) {
 				$elm$json$Json$Encode$float(song.defaultTempo)),
 				_Utils_Tuple2(
 				'style',
-				$elm$json$Json$Encode$string('Bop')),
+				$elm$json$Json$Encode$string(
+					$author$project$Styles$style2str(song.style))),
 				_Utils_Tuple2(
 				'chordProg',
 				$elm$json$Json$Encode$object(
@@ -8673,6 +9048,20 @@ var $author$project$Editor$splitCell = F2(
 				newg);
 		}
 	});
+var $author$project$Styles$Fusion = {$: 'Fusion'};
+var $author$project$Styles$Swing = {$: 'Swing'};
+var $author$project$Styles$str2style = function (s) {
+	switch (s) {
+		case 'Bossa':
+			return $author$project$Styles$Bossa;
+		case 'Fusion':
+			return $author$project$Styles$Fusion;
+		case 'Bop':
+			return $author$project$Styles$Bop;
+		default:
+			return $author$project$Styles$Swing;
+	}
+};
 var $author$project$Editor$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -8892,6 +9281,15 @@ var $author$project$Editor$update = F2(
 						model,
 						{composer: c}),
 					$elm$core$Platform$Cmd$none);
+			case 'StyleChanged':
+				var s = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							style: $author$project$Styles$str2style(s)
+						}),
+					$elm$core$Platform$Cmd$none);
 			case 'TempoChanged':
 				var f = msg.a;
 				return _Utils_Tuple2(
@@ -8910,8 +9308,25 @@ var $author$project$Editor$update = F2(
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
+var $author$project$Library$AddFile2LocalDb = function (a) {
+	return {$: 'AddFile2LocalDb', a: a};
+};
+var $author$project$Library$CancelDb = {$: 'CancelDb'};
+var $author$project$Library$JsonLoaded = function (a) {
+	return {$: 'JsonLoaded', a: a};
+};
+var $author$project$Library$JsonSelected = function (a) {
+	return {$: 'JsonSelected', a: a};
+};
 var $elm$json$Json$Decode$decodeString = _Json_runOnString;
 var $author$project$Library$deleteSong = _Platform_outgoingPort('deleteSong', $elm$json$Json$Encode$string);
+var $elm$file$File$Select$file = F2(
+	function (mimes, toMsg) {
+		return A2(
+			$elm$core$Task$perform,
+			toMsg,
+			_File_uploadOne(mimes));
+	});
 var $elm$core$Maybe$andThen = F2(
 	function (callback, maybeValue) {
 		if (maybeValue.$ === 'Just') {
@@ -8925,7 +9340,7 @@ var $author$project$Library$flatten = $elm$core$Maybe$andThen($elm$core$Basics$i
 var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $elm$json$Json$Decode$list = _Json_decodeList;
 var $elm$json$Json$Decode$map3 = _Json_map3;
-var $elm$json$Json$Decode$map5 = _Json_map5;
+var $elm$json$Json$Decode$map6 = _Json_map6;
 var $elm$json$Json$Decode$oneOf = _Json_oneOf;
 var $elm$json$Json$Decode$maybe = function (decoder) {
 	return $elm$json$Json$Decode$oneOf(
@@ -9018,8 +9433,8 @@ var $author$project$Library$str2type = function (ct) {
 			return $author$project$Generator$NA;
 	}
 };
-var $author$project$Library$json2song = A6(
-	$elm$json$Json$Decode$map5,
+var $author$project$Library$json2song = A7(
+	$elm$json$Json$Decode$map6,
 	$author$project$PlayerPage$Song,
 	A2(
 		$elm$json$Json$Decode$field,
@@ -9064,7 +9479,11 @@ var $author$project$Library$json2song = A6(
 	A2($elm$json$Json$Decode$field, 'title', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'composer', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'beatsPerBar', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'defaultTempo', $elm$json$Json$Decode$float));
+	A2($elm$json$Json$Decode$field, 'defaultTempo', $elm$json$Json$Decode$float),
+	A2(
+		$elm$json$Json$Decode$field,
+		'style',
+		A2($elm$json$Json$Decode$map, $author$project$Styles$str2style, $elm$json$Json$Decode$string)));
 var $elm$core$Debug$log = _Debug_log;
 var $author$project$Library$remSong = F2(
 	function (m, k) {
@@ -9074,6 +9493,24 @@ var $author$project$Library$remSong = F2(
 				library: A2($elm$core$Dict$remove, k, m.library)
 			});
 	});
+var $elm$file$File$Download$string = F3(
+	function (name, mime, content) {
+		return A2(
+			$elm$core$Task$perform,
+			$elm$core$Basics$never,
+			A3(_File_download, name, mime, content));
+	});
+var $elm$file$File$toString = _File_toString;
+var $elm$core$Dict$values = function (dict) {
+	return A3(
+		$elm$core$Dict$foldr,
+		F3(
+			function (key, value, valueList) {
+				return A2($elm$core$List$cons, value, valueList);
+			}),
+		_List_Nil,
+		dict);
+};
 var $author$project$Library$update = F2(
 	function (msg, m) {
 		switch (msg.$) {
@@ -9106,6 +9543,113 @@ var $author$project$Library$update = F2(
 						m,
 						{searchBar: s}),
 					$elm$core$Platform$Cmd$none);
+			case 'DownloadJson':
+				return _Utils_Tuple2(
+					m,
+					A3(
+						$elm$file$File$Download$string,
+						'knivesjam_library.json',
+						'text/json',
+						A2(
+							$elm$json$Json$Encode$encode,
+							2,
+							A2(
+								$elm$json$Json$Encode$list,
+								$author$project$Library$song2json,
+								$elm$core$Dict$values(m.library)))));
+			case 'JsonRequested':
+				return _Utils_Tuple2(
+					m,
+					A2(
+						$elm$file$File$Select$file,
+						_List_fromArray(
+							['text/json']),
+						$author$project$Library$JsonSelected));
+			case 'JsonSelected':
+				var file = msg.a;
+				return _Utils_Tuple2(
+					m,
+					A2(
+						$elm$core$Task$perform,
+						$author$project$Library$JsonLoaded,
+						$elm$file$File$toString(file)));
+			case 'JsonLoaded':
+				var str = msg.a;
+				var _v3 = A2(
+					$elm$json$Json$Decode$decodeString,
+					$elm$json$Json$Decode$list($author$project$Library$json2song),
+					str);
+				if (_v3.$ === 'Err') {
+					return _Utils_Tuple2(
+						_Utils_update(
+							m,
+							{
+								dialogBox: $elm$core$Maybe$Just(
+									A3(
+										$author$project$DialogBox$DialogBox,
+										'Error',
+										$elm$core$Basics$always(
+											$elm$html$Html$text('Cannot read file')),
+										_List_fromArray(
+											[
+												{cmd: $author$project$Library$CancelDb, text: 'OK'}
+											])))
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var res = _v3.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							m,
+							{
+								dialogBox: $elm$core$Maybe$Just(
+									A3(
+										$author$project$DialogBox$DialogBox,
+										'Load database',
+										$elm$core$Basics$always(
+											$elm$html$Html$text(
+												'Do you want to add ' + ($elm$core$String$fromInt(
+													$elm$core$List$length(res)) + ' songs to your Database ?'))),
+										_List_fromArray(
+											[
+												{
+												cmd: $author$project$Library$AddFile2LocalDb(res),
+												text: 'Yes'
+											},
+												{cmd: $author$project$Library$CancelDb, text: 'No'}
+											])))
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 'CancelDb':
+				return _Utils_Tuple2(
+					_Utils_update(
+						m,
+						{dialogBox: $elm$core$Maybe$Nothing}),
+					$elm$core$Platform$Cmd$none);
+			case 'AddFile2LocalDb':
+				var res = msg.a;
+				var library = A3(
+					$elm$core$List$foldl,
+					F2(
+						function (s, dic) {
+							return A3(
+								$elm$core$Dict$insert,
+								$author$project$Library$getKey(s),
+								s,
+								dic);
+						}),
+					m.library,
+					res);
+				return _Utils_Tuple2(
+					_Utils_update(
+						m,
+						{dialogBox: $elm$core$Maybe$Nothing, library: library}),
+					$elm$core$Platform$Cmd$batch(
+						A2(
+							$elm$core$List$map,
+							$author$project$Library$addSong2db,
+							A2($elm$core$List$map, $author$project$Library$song2json, res))));
 			default:
 				return _Utils_Tuple2(m, $elm$core$Platform$Cmd$none);
 		}
@@ -9271,6 +9815,25 @@ var $author$project$PlayerPage$update = F2(
 				var a = msg.a;
 				var _v3 = A2($elm$core$Debug$log, 'debug', a);
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			case 'TransposePlayback':
+				var isplus = msg.a;
+				var newmod = _Utils_update(
+					model,
+					{
+						playbackKey: model.playbackKey + (isplus ? 1 : (-1))
+					});
+				return _Utils_Tuple2(
+					newmod,
+					$author$project$PlayerPage$genSequence(newmod));
+			case 'TransposeDisplay':
+				var isplus = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							displayKey: model.displayKey + (isplus ? 1 : (-1))
+						}),
+					$elm$core$Platform$Cmd$none);
 			default:
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
@@ -9340,6 +9903,7 @@ var $author$project$Main$update = F2(
 								composer: model.playerModel.song.composer,
 								defTempo: model.playerModel.song.defaultTempo,
 								grid: $author$project$Editor$chordprog2grid(model.playerModel),
+								style: model.playerModel.song.style,
 								title: model.playerModel.song.title
 							});
 						return _Utils_Tuple2(
@@ -9404,21 +9968,24 @@ var $author$project$Main$update = F2(
 							$elm$core$Platform$Cmd$none);
 					case 'SaveAndQuit':
 						var newsong = A2(
-							$author$project$PlayerPage$setDefTempo,
-							model.editorModel.defTempo,
+							$author$project$PlayerPage$setStyle,
+							model.editorModel.style,
 							A2(
-								$author$project$PlayerPage$setBeatsPerBar,
-								model.editorModel.beatsPerBar,
+								$author$project$PlayerPage$setDefTempo,
+								model.editorModel.defTempo,
 								A2(
-									$author$project$PlayerPage$setComposer,
-									model.editorModel.composer,
+									$author$project$PlayerPage$setBeatsPerBar,
+									model.editorModel.beatsPerBar,
 									A2(
-										$author$project$PlayerPage$setTitle,
-										model.editorModel.title,
+										$author$project$PlayerPage$setComposer,
+										model.editorModel.composer,
 										A2(
-											$author$project$PlayerPage$asChordProgIn,
-											model.playerModel.song,
-											$author$project$Editor$grid2chordprog(model.editorModel.grid))))));
+											$author$project$PlayerPage$setTitle,
+											model.editorModel.title,
+											A2(
+												$author$project$PlayerPage$asChordProgIn,
+												model.playerModel.song,
+												$author$project$Editor$grid2chordprog(model.editorModel.grid)))))));
 						var newmod = A2(
 							$author$project$Main$setLibrary,
 							A2($author$project$Library$addSong, model.libraryModel, newsong),
@@ -9592,7 +10159,8 @@ var $author$project$DialogBox$displayDialog = F2(
 							$elm$html$Html$div,
 							_List_fromArray(
 								[
-									$elm$html$Html$Attributes$class('w3-container')
+									$elm$html$Html$Attributes$class('w3-container'),
+									A2($elm$html$Html$Attributes$style, 'padding-bottom', '15px')
 								]),
 							_List_fromArray(
 								[
@@ -9633,6 +10201,9 @@ var $author$project$Editor$ComposerChanged = function (a) {
 var $author$project$Editor$Quit = {$: 'Quit'};
 var $author$project$Editor$Redo = {$: 'Redo'};
 var $author$project$Editor$SaveAndQuit = {$: 'SaveAndQuit'};
+var $author$project$Editor$StyleChanged = function (a) {
+	return {$: 'StyleChanged', a: a};
+};
 var $author$project$Editor$TempoChanged = function (a) {
 	return {$: 'TempoChanged', a: a};
 };
@@ -10229,19 +10800,24 @@ var $author$project$Editor$displayGrid = F2(
 				$elm$core$Array$toIndexedList(g)));
 	});
 var $elm$html$Html$i = _VirtualDom_node('i');
-var $author$project$Icons$icon = function (s) {
-	return A2(
-		$elm$html$Html$i,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('material-icons')
-			]),
-		_List_fromArray(
-			[
-				$elm$html$Html$text(s)
-			]));
-};
+var $elm$html$Html$Attributes$title = $elm$html$Html$Attributes$stringProperty('title');
+var $author$project$Icons$icon = F2(
+	function (s, hover) {
+		return A2(
+			$elm$html$Html$i,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('material-icons'),
+					$elm$html$Html$Attributes$title(hover)
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text(s)
+				]));
+	});
 var $elm$html$Html$Attributes$max = $elm$html$Html$Attributes$stringProperty('max');
+var $elm$html$Html$option = _VirtualDom_node('option');
+var $elm$html$Html$select = _VirtualDom_node('select');
 var $author$project$Editor$SetBeatsPerBar = function (a) {
 	return {$: 'SetBeatsPerBar', a: a};
 };
@@ -10326,7 +10902,7 @@ var $author$project$Editor$toolSelectBar = function (tool) {
 				buttonAttr($author$project$Editor$SetChord),
 				_List_fromArray(
 					[
-						$author$project$Icons$icon('brush')
+						A2($author$project$Icons$icon, 'brush', 'Set chord')
 					])),
 				A2(
 				$elm$html$Html$button,
@@ -10385,7 +10961,7 @@ var $author$project$Editor$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$author$project$Icons$icon('close')
+								A2($author$project$Icons$icon, 'close', 'Close editor without saving')
 							])),
 						A2(
 						$elm$html$Html$span,
@@ -10396,7 +10972,7 @@ var $author$project$Editor$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$author$project$Icons$icon('save')
+								A2($author$project$Icons$icon, 'save', 'Save changes and quit')
 							]))
 					])),
 				A2(
@@ -10430,6 +11006,62 @@ var $author$project$Editor$view = function (model) {
 								$elm$html$Html$Events$onInput($author$project$Editor$ComposerChanged)
 							]),
 						_List_Nil)
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Style: '),
+						A2(
+						$elm$html$Html$select,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onInput($author$project$Editor$StyleChanged)
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$value('Bop')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Bop')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$value('Swing')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Swing')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$value('Bossa')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Bossa')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$value('Fusion')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Fusion')
+									]))
+							]))
 					])),
 				$author$project$Editor$signatureSelectBar(model.beatsPerBar),
 				A2(
@@ -10473,7 +11105,7 @@ var $author$project$Editor$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$author$project$Icons$icon('exposure_plus_1')
+								A2($author$project$Icons$icon, 'exposure_plus_1', 'append 1 bar')
 							])),
 						A2(
 						$elm$html$Html$span,
@@ -10486,7 +11118,7 @@ var $author$project$Editor$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$author$project$Icons$icon('undo')
+								A2($author$project$Icons$icon, 'undo', 'Undo')
 							])),
 						A2(
 						$elm$html$Html$span,
@@ -10497,13 +11129,15 @@ var $author$project$Editor$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$author$project$Icons$icon('redo')
+								A2($author$project$Icons$icon, 'redo', 'Redo')
 							]))
 					])),
 				A2($author$project$Editor$displayGrid, model.grid, model.beatsPerBar)
 			]));
 };
 var $author$project$Library$Close = {$: 'Close'};
+var $author$project$Library$DownloadJson = {$: 'DownloadJson'};
+var $author$project$Library$JsonRequested = {$: 'JsonRequested'};
 var $author$project$Library$NewSong = {$: 'NewSong'};
 var $author$project$Library$SearchBarChanged = function (a) {
 	return {$: 'SearchBarChanged', a: a};
@@ -10528,16 +11162,6 @@ var $elm$html$Html$Attributes$src = function (url) {
 		'src',
 		_VirtualDom_noJavaScriptOrHtmlUri(url));
 };
-var $elm$core$Dict$values = function (dict) {
-	return A3(
-		$elm$core$Dict$foldr,
-		F3(
-			function (key, value, valueList) {
-				return A2($elm$core$List$cons, value, valueList);
-			}),
-		_List_Nil,
-		dict);
-};
 var $elm$html$Html$Attributes$width = function (n) {
 	return A2(
 		_VirtualDom_attribute,
@@ -10559,108 +11183,166 @@ var $author$project$Library$view = function (m) {
 					]),
 				_List_fromArray(
 					[
-						$author$project$Icons$icon('close')
+						A2($author$project$Icons$icon, 'close', 'Close')
 					])) : $elm$html$Html$text(''),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'text-align', 'center'),
-							A2($elm$html$Html$Attributes$style, 'margin-bottom', '15px'),
-							A2($elm$html$Html$Attributes$style, 'margin-top', '15px')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$img,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$src('knivesjam_logo.svg'),
-									$elm$html$Html$Attributes$alt('logo'),
-									$elm$html$Html$Attributes$width(200)
-								]),
-							_List_Nil)
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'text-align', 'center')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$input,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$type_('text'),
-									$elm$html$Html$Attributes$placeholder('search'),
-									$elm$html$Html$Attributes$value(m.searchBar),
-									$elm$html$Html$Events$onInput($author$project$Library$SearchBarChanged)
-								]),
-							_List_Nil)
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('newsong'),
-							$elm$html$Html$Events$onClick($author$project$Library$NewSong)
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Add new song')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('songlist')
-						]),
-					A2(
-						$elm$core$List$map,
-						function (s) {
-							return A2(
+			_Utils_ap(
+				function () {
+					var _v0 = m.dialogBox;
+					if (_v0.$ === 'Nothing') {
+						return _List_Nil;
+					} else {
+						var db = _v0.a;
+						return _List_fromArray(
+							[
+								A2($author$project$DialogBox$displayDialog, _Utils_Tuple0, db)
+							]);
+					}
+				}(),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'text-align', 'center'),
+								A2($elm$html$Html$Attributes$style, 'margin-bottom', '15px'),
+								A2($elm$html$Html$Attributes$style, 'margin-top', '15px')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$img,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$src('knivesjam_logo.svg'),
+										$elm$html$Html$Attributes$alt('logo'),
+										$elm$html$Html$Attributes$width(200)
+									]),
+								_List_Nil)
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'text-align', 'center')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$input,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$type_('text'),
+										$elm$html$Html$Attributes$placeholder('search'),
+										$elm$html$Html$Attributes$value(m.searchBar),
+										$elm$html$Html$Events$onInput($author$project$Library$SearchBarChanged)
+									]),
+								_List_Nil)
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('toprow'),
+								A2($elm$html$Html$Attributes$style, 'height', '50px')
+							]),
+						_List_fromArray(
+							[
+								A2(
 								$elm$html$Html$div,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$class('libsongcontainer'),
-										$elm$html$Html$Events$onClick(
-										$author$project$Library$SongClicked(s))
+										$elm$html$Html$Attributes$class('left'),
+										$elm$html$Html$Attributes$class('newsong'),
+										$elm$html$Html$Events$onClick($author$project$Library$NewSong)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Add new song')
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('right'),
+										A2($elm$html$Html$Attributes$style, 'padding', '15px')
 									]),
 								_List_fromArray(
 									[
 										A2(
-										$elm$html$Html$div,
+										$elm$html$Html$span,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$class('left')
+												$elm$html$Html$Events$onClick($author$project$Library$DownloadJson),
+												A2($elm$html$Html$Attributes$style, 'margin', '5px'),
+												A2($elm$html$Html$Attributes$style, 'cursor', 'pointer')
 											]),
 										_List_fromArray(
 											[
-												$elm$html$Html$text(s.title)
+												A2($author$project$Icons$icon, 'cloud_download', 'Save library')
 											])),
 										A2(
-										$elm$html$Html$div,
+										$elm$html$Html$span,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$class('right')
+												$elm$html$Html$Events$onClick($author$project$Library$JsonRequested),
+												A2($elm$html$Html$Attributes$style, 'marging', '5px'),
+												A2($elm$html$Html$Attributes$style, 'cursor', 'pointer')
 											]),
 										_List_fromArray(
 											[
-												$elm$html$Html$text(s.composer)
+												A2($author$project$Icons$icon, 'cloud_upload', 'Load a library file')
 											]))
-									]));
-						},
+									]))
+							])),
 						A2(
-							$elm$core$List$filter,
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('songlist')
+							]),
+						A2(
+							$elm$core$List$map,
 							function (s) {
-								return A2($author$project$Library$contains, m.searchBar, s.title) || A2($author$project$Library$contains, m.searchBar, s.composer);
+								return A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('libsongcontainer'),
+											$elm$html$Html$Events$onClick(
+											$author$project$Library$SongClicked(s))
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$div,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('left')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(s.title)
+												])),
+											A2(
+											$elm$html$Html$div,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('right')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(s.composer)
+												]))
+										]));
 							},
-							$elm$core$Dict$values(m.library))))
-				])));
+							A2(
+								$elm$core$List$filter,
+								function (s) {
+									return A2($author$project$Library$contains, m.searchBar, s.title) || A2($author$project$Library$contains, m.searchBar, s.composer);
+								},
+								$elm$core$Dict$values(m.library))))
+					]))));
 };
 var $author$project$PlayerPage$Bass = {$: 'Bass'};
 var $author$project$PlayerPage$Delete = {$: 'Delete'};
@@ -10675,7 +11357,14 @@ var $author$project$PlayerPage$SetCursor = function (a) {
 };
 var $author$project$PlayerPage$ToLibrary = {$: 'ToLibrary'};
 var $author$project$PlayerPage$TogglePlay = {$: 'TogglePlay'};
+var $author$project$PlayerPage$TransposeDisplay = function (a) {
+	return {$: 'TransposeDisplay', a: a};
+};
+var $author$project$PlayerPage$TransposePlayback = function (a) {
+	return {$: 'TransposePlayback', a: a};
+};
 var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $elm$html$Html$h3 = _VirtualDom_node('h3');
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $author$project$PlayerPage$SetVolume = F2(
 	function (a, b) {
@@ -10833,7 +11522,7 @@ var $author$project$PlayerPage$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$author$project$Icons$icon('menu')
+								A2($author$project$Icons$icon, 'menu', 'Library')
 							]))
 					])),
 				A2(
@@ -10848,15 +11537,112 @@ var $author$project$PlayerPage$view = function (model) {
 						$elm$html$Html$text(model.song.title)
 					])),
 				A2(
-				$elm$html$Html$h2,
+				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('realbook'),
-						$elm$html$Html$Attributes$class('composerplayer')
+						$elm$html$Html$Attributes$class('metaplayer')
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text(model.song.composer)
+						A2(
+						$elm$html$Html$h3,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('realbook'),
+								$elm$html$Html$Attributes$class('styleplayer')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								$author$project$Styles$style2str(model.song.style))
+							])),
+						A2(
+						$elm$html$Html$h2,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('realbook'),
+								$elm$html$Html$Attributes$class('composerplayer')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(model.song.composer)
+							]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'line-height', '1')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$p,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('transposition')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								'Playback key: ' + (((model.playbackKey >= 0) ? '+' : '') + ($elm$core$String$fromInt(model.playbackKey) + ' semitones,'))),
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick(
+										$author$project$PlayerPage$TransposePlayback(true))
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('+')
+									])),
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick(
+										$author$project$PlayerPage$TransposePlayback(false))
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('-')
+									]))
+							])),
+						A2(
+						$elm$html$Html$p,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('transposition')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								'Display key: ' + (((model.displayKey >= 0) ? '+' : '') + ($elm$core$String$fromInt(model.displayKey) + (' semitones (' + ($author$project$PlayerPage$note2str(
+									$author$project$Generator$pitch2note(-model.displayKey)) + ' instruments)'))))),
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick(
+										$author$project$PlayerPage$TransposeDisplay(true))
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('+')
+									])),
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick(
+										$author$project$PlayerPage$TransposeDisplay(false))
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('-')
+									]))
+							]))
 					])),
 				A2(
 				$elm$html$Html$span,
@@ -10867,8 +11653,7 @@ var $author$project$PlayerPage$view = function (model) {
 					]),
 				_List_fromArray(
 					[
-						$author$project$Icons$icon(
-						model.playing ? 'pause' : 'play_arrow')
+						model.playing ? A2($author$project$Icons$icon, 'pause', 'Pause') : A2($author$project$Icons$icon, 'play_arrow', 'Play')
 					])),
 				A2(
 				$elm$html$Html$span,
@@ -10880,7 +11665,7 @@ var $author$project$PlayerPage$view = function (model) {
 					]),
 				_List_fromArray(
 					[
-						$author$project$Icons$icon('replay')
+						A2($author$project$Icons$icon, 'replay', 'Start over')
 					])),
 				A2(
 				$elm$html$Html$input,
@@ -10923,7 +11708,7 @@ var $author$project$PlayerPage$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$author$project$Icons$icon('edit')
+								A2($author$project$Icons$icon, 'edit', 'Edit song')
 							]))
 					])),
 				$author$project$PlayerPage$viewGrid(model),
@@ -10945,7 +11730,7 @@ var $author$project$PlayerPage$view = function (model) {
 					]),
 				_List_fromArray(
 					[
-						$author$project$Icons$icon('delete')
+						A2($author$project$Icons$icon, 'delete', 'Delete song from local library')
 					]))
 			]));
 };

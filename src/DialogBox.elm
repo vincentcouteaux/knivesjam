@@ -26,7 +26,7 @@ displayDialog : mdl -> DialogBox mdl msg -> Html msg
 displayDialog mdldb dialogBox =
     div [ class "w3-modal" , style "display" "block" ]
         [ div [ class "w3-modal-content" ]
-            [ div [ class "w3-container" ]
+            [ div [ class "w3-container", style "padding-bottom" "15px" ]
                 [ h1 [] [ text dialogBox.title ]
                 , dialogBox.body mdldb
                 , div []

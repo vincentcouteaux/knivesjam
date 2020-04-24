@@ -87,7 +87,8 @@ update msg model =
                             , title=model.playerModel.song.title
                             , composer=model.playerModel.song.composer
                             , beatsPerBar=model.playerModel.song.beatsPerBar
-                            , defTempo=model.playerModel.song.defaultTempo }
+                            , defTempo=model.playerModel.song.defaultTempo
+                            , style=model.playerModel.song.style }
                     in
                     ({ model | curPage = Editor, editorModel = newEditorModel }
                      , Cmd.none) 
@@ -132,6 +133,7 @@ update msg model =
                                 |> Pp.setComposer model.editorModel.composer
                                 |> Pp.setBeatsPerBar model.editorModel.beatsPerBar
                                 |> Pp.setDefTempo model.editorModel.defTempo
+                                |> Pp.setStyle model.editorModel.style
                         newmod =
                             newsong
                                 |> Pp.asSongIn model.playerModel

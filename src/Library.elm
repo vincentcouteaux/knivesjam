@@ -9,10 +9,17 @@ import Dict exposing (Dict)
 import Json.Encode as Je
 import Json.Decode as Jd
 import Icons exposing (icon)
+import Styles exposing (..)
+import File.Download as Dl
+import File.Select as Select
+import File exposing (File)
+import Task
+import DialogBox exposing (..)
 
 type alias SubModel = { library: Dict String Pp.Song
                       , searchBar: String
-                      , hasChosen: Bool }
+                      , hasChosen: Bool
+                      , dialogBox: Maybe (DialogBox () SubMsg) }
 
 type SubMsg = 
     SongClicked Pp.Song 
@@ -21,11 +28,18 @@ type SubMsg =
     | GotASong String
     | Delete Pp.Song
     | SearchBarChanged String
+    | DownloadJson
+    | JsonRequested
+    | JsonSelected File
+    | JsonLoaded String
+    | CancelDb
+    | AddFile2LocalDb (List Pp.Song)
 
 init : SubModel
 init = { library=Dict.empty
        , searchBar=""
-       , hasChosen=False }--Dict.fromList [("Blue Bossa--Dexter Gordon", Pp.Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4)]
+       , hasChosen=False
+       , dialogBox=Nothing }--Dict.fromList [("Blue Bossa--Dexter Gordon", Pp.Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4)]
 
 initCmd : Cmd msg
 initCmd = queryAllSongs ()
@@ -44,13 +58,56 @@ update msg m =
         Delete s -> let key = getKey s in (remSong m key, deleteSong key)
 
         SearchBarChanged s -> ({ m | searchBar = s }, Cmd.none)
+
+        DownloadJson -> (m, Dl.string "knivesjam_library.json" "text/json"
+                            <| Je.encode 2
+                            <| Je.list song2json (Dict.values m.library))
+
+        JsonRequested -> (m, Select.file ["text/json"] JsonSelected)
+
+        JsonSelected file -> (m, Task.perform JsonLoaded (File.toString file))
+
+        JsonLoaded str -> 
+            case Jd.decodeString (Jd.list json2song) str of
+                Err _ -> ({ m | dialogBox = Just <|
+                    DialogBox 
+                            "Error"
+                            (always (text "Cannot read file"))
+                            [ { text="OK", cmd=CancelDb } ] }, Cmd.none)
+                Ok res -> ({ m | dialogBox = Just <|
+                    DialogBox
+                        "Load database"
+                        (always (text ("Do you want to add " ++ (String.fromInt (List.length res)) ++ " songs to your Database ?")))
+                        [ { text="Yes", cmd=AddFile2LocalDb res}
+                        , { text="No", cmd=CancelDb } ] }, Cmd.none)
+        CancelDb -> ({m | dialogBox = Nothing }, Cmd.none)
+
+        AddFile2LocalDb res ->
+            let
+                library = 
+                    List.foldl
+                        (\s dic -> Dict.insert (getKey s) s dic)
+                        m.library
+                        res
+            in
+                ({ m | library = library, dialogBox = Nothing }
+                , Cmd.batch
+                <| List.map addSong2db
+                <| List.map song2json
+                <| res )
             
         _ ->(m, Cmd.none)
 
 view : SubModel -> Html SubMsg
 view m =
     div []
-        ((if m.hasChosen then div [ class "xbutton", onClick Close ] [ icon "close" ] else text "")::
+        ((if m.hasChosen then div [ class "xbutton", onClick Close ] [ icon "close" "Close" ] else text "")::
+        (
+            case m.dialogBox of
+                Nothing -> []
+                Just db -> [ displayDialog () db ]
+        )
+        ++
         [ div [ style "text-align" "center"
               , style "margin-bottom" "15px"
               , style "margin-top" "15px" ]
@@ -59,7 +116,19 @@ view m =
                                                       , placeholder "search"
                                                       , value m.searchBar
                                                       , onInput SearchBarChanged ] [] ]
-        , div [ class "newsong", onClick NewSong ] [ text "Add new song" ]
+        , div [ class "toprow", style "height" "50px" ]
+              [ div [ class "left"
+                    , class "newsong"
+                    , onClick NewSong ] [ text "Add new song" ]
+              , div [ class "right", style "padding" "15px" ] 
+                    [ span [ onClick DownloadJson
+                           , style "margin" "5px"
+                           , style "cursor" "pointer" ] [ icon "cloud_download" "Save library" ]
+                    , span [ onClick JsonRequested
+                           , style "marging" "5px"
+                           , style "cursor" "pointer" ] [ icon "cloud_upload" "Load a library file" ]
+                    ]
+              ]
         , div [ class "songlist" ]
             (Dict.values m.library
             |> List.filter
@@ -177,7 +246,7 @@ song2json song =
         , ("composer", Je.string song.composer)
         , ("beatsPerBar", Je.int song.beatsPerBar)
         , ("defaultTempo", Je.float song.defaultTempo)
-        , ("style", Je.string "Bop")
+        , ("style", Je.string (style2str song.style))
         , ("chordProg",
             Je.object
                 [ ("chords",
@@ -208,7 +277,7 @@ flatten = Maybe.andThen identity
 
 json2song : Jd.Decoder Pp.Song
 json2song =
-    Jd.map5 Pp.Song
+    Jd.map6 Pp.Song
         (Jd.field "chordProg"
             (Jd.map2 G.ChordProg
                 (Jd.field "chords"
@@ -242,6 +311,7 @@ json2song =
         (Jd.field "composer" Jd.string)
         (Jd.field "beatsPerBar" Jd.int)
         (Jd.field "defaultTempo" Jd.float)
+        (Jd.field "style" (Jd.map str2style Jd.string))
 
 
 port addSong2db : Je.Value -> Cmd msg

@@ -28,3 +28,16 @@ cumsum l i =
     case l of
         [] -> []
         h::t -> (h+i)::(cumsum t (h+i))
+
+add : Maybe Int -> Maybe Int -> Maybe Int
+add a b =
+    Maybe.andThen
+        (\a_ ->
+            Maybe.andThen
+                (\b_ ->
+                    Just (a_ + b_)
+                )
+                b
+        )
+        a
+

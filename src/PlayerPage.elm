@@ -6,9 +6,10 @@ import Html.Events exposing (..)
 import Tune
 import Random as R
 import Dict exposing (Dict)
-import JazzDrums
-import JazzBass
-import JazzPiano
+--import JazzDrums
+--import JazzBass
+--import JazzPiano
+import Styles exposing (getSeqGenerator, Style, style2str)
 import Icons exposing (icon)
 
 type alias Song = { chordProg : G.ChordProg
@@ -16,6 +17,7 @@ type alias Song = { chordProg : G.ChordProg
                   , composer : String
                   , beatsPerBar : Int
                   , defaultTempo : Float
+                  , style : Style
                   }
 asChordProgIn : Song -> G.ChordProg -> Song
 asChordProgIn s cp = { s | chordProg=cp }
@@ -31,6 +33,8 @@ setBeatsPerBar : Int -> Song -> Song
 setBeatsPerBar i s = { s | beatsPerBar=i}
 setDefTempo : Float -> Song -> Song
 setDefTempo t s = { s | defaultTempo=t }
+setStyle : Style -> Song -> Song
+setStyle st s = { s | style=st }
 
 type alias SubModel =
     { barsPerLine : Int
@@ -40,7 +44,9 @@ type alias SubModel =
     , cursor : Float
     , volPiano : Float
     , volBass : Float
-    , volDrums : Float }
+    , volDrums : Float
+    , playbackKey : Int
+    , displayKey : Int }
 
 asSongIn : SubModel -> Song -> SubModel
 asSongIn sm s = { sm | song=s }
@@ -65,16 +71,20 @@ type SubMsg =
     | SetVolume Instrument Float
     | Delete
     | DebugGenerated (List (Float, Float))
+    | TransposePlayback Bool
+    | TransposeDisplay Bool
     
 
 init = { barsPerLine = 4
-       , song = (Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4 160)
+       , song = (Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4 160 Styles.Bossa)
        , playing = False
        , bpm = 120
        , cursor = 0
        , volPiano = 100
        , volBass = 100
        , volDrums = 100
+       , playbackKey = 0
+       , displayKey = 0
        }
 initCmd = Cmd.none -- R.generate DebugGenerated (JazzPiano.genRhythm 4 64) -- Cmd.none --R.generate SequenceGenerated JazzBass.bbbass
 
@@ -111,15 +121,24 @@ update msg model =
             , Tune.setInstVolume (instStr, vol))
 
         DebugGenerated a -> let _ = Debug.log "debug" a in (model, Cmd.none)
+
+        TransposePlayback isplus ->
+            let 
+                newmod =
+                    { model | playbackKey =
+                        model.playbackKey + (if isplus then 1 else -1) }
+            in
+               ( newmod, genSequence newmod)
+
+        TransposeDisplay isplus -> ({ model | displayKey = model.displayKey + (if isplus then 1 else -1) }, Cmd.none)
+        
         _ -> (model, Cmd.none)
 
 seqgen : SubModel -> R.Generator Tune.Sequence
 seqgen m =
-    G.mergeSeqGenerators 
-        [ JazzBass.sequenceGenerator
-        , JazzDrums.sequenceGenerator
-        , JazzPiano.sequenceGenerator ] 
-        m.song.chordProg 
+    getSeqGenerator
+        m.song.style
+        (transposeChordProg m.song.chordProg m.playbackKey)
         m.song.beatsPerBar
 
 genSequence : SubModel -> Cmd SubMsg
@@ -138,15 +157,32 @@ type alias Grid = List { len : Float, chord : (Maybe G.Chord, Float) }
 view : SubModel -> Html SubMsg
 view model =
     div [ class "realbook", class "content" ]
-        [ p [] [ span [ class "button", onClick ToLibrary ] [ icon "menu" ] ]
+        [ p [] [ span [ class "button", onClick ToLibrary ] [ icon "menu" "Library" ] ]
         , h1 [ class "realbook", class "titleplayer" ] [ text model.song.title ]
-        , h2 [ class "realbook", class "composerplayer"  ] [ text model.song.composer ]
+        , div [ class "metaplayer" ]
+            [ h3 [ class "realbook", class "styleplayer"  ] [ text <| style2str model.song.style]
+            , h2 [ class "realbook", class "composerplayer"  ] [ text model.song.composer ]
+            ]
+        , div [ style "line-height" "1" ]
+                [ p [ class "transposition" ] 
+                       [ text <| "Playback key: " ++ (if model.playbackKey >= 0 then "+" else "") ++
+                                 (String.fromInt (model.playbackKey)) ++ " semitones,"
+                       , button [ onClick (TransposePlayback True) ] [ text "+"] 
+                       , button [ onClick (TransposePlayback False) ] [ text "-" ] ]
+                , p [ class "transposition" ] 
+                       [ text <| "Display key: " ++ (if model.displayKey >= 0 then "+" else "") ++
+                                 (String.fromInt (model.displayKey)) ++ " semitones (" ++
+                                 (note2str <| G.pitch2note <| -model.displayKey) ++
+                                 " instruments)"
+                       , button [ onClick (TransposeDisplay True) ] [ text "+"] 
+                       , button [ onClick (TransposeDisplay False) ] [ text "-" ] ]
+                ]
         , span [ class "button", onClick TogglePlay ] 
-             [ icon (if model.playing 
-                     then "pause" 
-                     else "play_arrow") ]
+             [ if model.playing 
+               then icon "pause" "Pause"
+               else icon "play_arrow" "Play" ]
         , span [ class "button", onClick (SetCursor 0) ]
-                 [ icon "replay" ]
+                 [ icon "replay" "Start over" ]
         , input [ Html.Attributes.type_ "range"
                 , onInput (\s -> (case String.toFloat s of
                                     Just f -> SetBpm f
@@ -158,13 +194,13 @@ view model =
         , text (" " ++ String.fromFloat model.bpm ++ " BPM")
         --, p [] [ text (String.left 4 (String.fromFloat model.cursor)) ]
         , p [ style "text-align" "right" ]
-            [ span [ class "button", onClick Edit ] [ icon "edit" ] ]
+            [ span [ class "button", onClick Edit ] [ icon "edit" "Edit song" ] ]
         , viewGrid model
         , div []
             [ rangeVolume Piano "piano" model.volPiano
             , rangeVolume Bass "bass" model.volBass
             , rangeVolume Drums "drums" model.volDrums ]
-        , span [ class "button", onClick Delete ] [ icon "delete" ]
+        , span [ class "button", onClick Delete ] [ icon "delete" "Delete song from local library" ]
         ]
 
 rangeVolume : Instrument -> String -> Float -> Html SubMsg
@@ -192,7 +228,9 @@ substract2to2 l =
 
 chordprog2grid : SubModel -> Grid
 chordprog2grid model =
-    let cp = model.song.chordProg in
+    let 
+        cp = transposeChordProg model.song.chordProg (model.displayKey + model.playbackKey)
+    in
     List.concatMap 
         (\i -> 
             let 
@@ -220,6 +258,25 @@ chordprog2grid model =
                 zip chordsLen addNothing
         )
         (List.range 0 (((floor cp.end)//model.song.beatsPerBar)-1))
+
+transposeChordProg : G.ChordProg -> Int -> G.ChordProg
+transposeChordProg cp n =
+    case n of
+        0 -> cp
+        _ -> let transnote nt = G.note2pitch 0 nt |> (+) n |> G.pitch2note in
+            { cp | chords = List.map
+                        (\{time, chord} ->
+                            { time=time
+                            , chord=
+                                G.Chord
+                                    (transnote chord.note)
+                                    chord.type_
+                                    (Maybe.map transnote chord.bass)
+                            }
+                        )
+                        cp.chords
+            }
+
 
 splitGrid : Float -> Grid -> List Grid
 splitGrid beatsPerLine grid =

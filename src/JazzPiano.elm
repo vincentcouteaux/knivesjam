@@ -23,26 +23,30 @@ compact13 = (53, [ G.getThirdOf, G.getThirteenthOf, G.getSeventhOf, G.getNinethO
 all_compact : PossibleVoicings
 all_compact c = if G.chordClass c == G.Dominant then [ compact13 ] else [ compact ]
 
-possibleBars : Int -> List (List (Float, Float))
-possibleBars signature = 
+possibleBarsMeta : Bool -> Int -> List (List (Float, Float))
+possibleBarsMeta swing signature = 
+    let s = if swing then 0.66 else 0.5 in
     case signature of
         4 -> 
-            [ [ (0,0.33), (1.66,1.33) ]
-            , [ (0.66, 0.33), (2,1.33) ]
-            , [ (0.66, 0.33), (2.66, 0.33) ]
+            [ [ (0,0.33), (1+s,1.33) ]
+            , [ (s, 0.33), (2,1.33) ]
+            , [ (s, 0.33), (2+s, 0.33) ]
             , [ (0,2), (2,2) ] ]
-        3 -> [ [ (0.66, 0.33), (2,1) ]
-             , [ (0.66, 0.33), (2,1) ]
+        3 -> [ [ (s, 0.33), (2,1) ]
+             , [ (s, 0.33), (2,1) ]
              , [ (1,1) ]
              , [ (1,0.33) ]
              , [ (2,1) ]
              ]
-        _ -> [ [ (0.66, 0.33), (2,1), (4, 0.33) ] ]
+        _ -> [ [ (s, 0.33), (2,1), (4, 0.33) ] ]
 
-genRhythm : Int -> Float -> R.Generator (List (Float, Float))
-genRhythm signature end =
+possibleBars : Int -> List (List (Float, Float))
+possibleBars = possibleBarsMeta True
+
+genRhythmMeta : Bool -> Int -> Float -> R.Generator (List (Float, Float))
+genRhythmMeta swing signature end =
     let
-        barsTemplates = possibleBars signature
+        barsTemplates = possibleBarsMeta swing signature
         pickbar = unif2 [] barsTemplates
         addbar genlist idbar =
             let
@@ -52,6 +56,8 @@ genRhythm signature end =
     in
         List.foldl
             (\i out -> addbar out i) (R.constant []) (List.range 0 ((floor end)//signature))
+
+genRhythm = genRhythmMeta True
             -- TODO filter onsets after the end
 
 getAbove : Int -> G.Note -> Int
@@ -96,9 +102,9 @@ populateRhythm l cp =
         )
     |> G.listGen2GenList
 
-sequenceGenerator : G.ChordProg -> Int -> R.Generator (Tune.Sequence)
-sequenceGenerator cp signature =
-    genRhythm signature cp.end
+sequenceGeneratorMeta : Bool -> G.ChordProg -> Int -> R.Generator (Tune.Sequence)
+sequenceGeneratorMeta swing cp signature =
+    genRhythmMeta swing signature cp.end
     |> R.andThen (\lff -> populateRhythm lff cp)
     |> R.map
         (\l ->
@@ -112,6 +118,7 @@ sequenceGenerator cp signature =
                 )
                 l
         )
+sequenceGenerator = sequenceGeneratorMeta True
 
 unif2 : a -> List a -> R.Generator a
 unif2 a la = R.weighted (0,a) (List.map (\x -> (1,x)) la)

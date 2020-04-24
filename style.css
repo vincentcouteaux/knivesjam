@@ -18,6 +18,7 @@
   word-wrap: normal;
   white-space: nowrap;
   direction: ltr;
+  cursor: pointer;
 
   /* Support for all WebKit browsers. */
   -webkit-font-smoothing: antialiased;
@@ -76,6 +77,9 @@ body {
     cursor: pointer;
     line-height: 70px;
 }
+.toprow {
+    overflow: hidden;
+}
 
 .libsongcontainer:hover {
     background-color: #ffe0e2;
@@ -99,6 +103,14 @@ body {
     overflow: hidden;
 }
 
+.metaplayer {
+    overflow: hidden;
+}
+.styleplayer {
+    float: left;
+    overflow: hidden;
+}
+
 .xbutton {
     margin: 20px;
     cursor: pointer;
@@ -115,7 +127,8 @@ body {
     font-size: 4em;
 }
 .composerplayer {
-    text-align: right;
+    float: right;
+    overflow: hidden;
 }
 
 .fulldiv {
@@ -149,4 +162,8 @@ body {
 
 .boxeditor:hover {
     border-color: red;
+}
+
+.transposition {
+    margin: 0px;
 }

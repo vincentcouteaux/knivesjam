@@ -1,9 +1,7 @@
-accords avec basse différente
-
-Transposition affichage/playback
-mesure à vide au début
-bossa nova/Fusion
-exporter/importer le json de la base de données
+Fusion
 en faire une progressive web app
-Pouvoir choisir la structure (intro, AABA...)
 
+version 2.0
+mesure à vide au début
+Pouvoir choisir la structure (intro, AABA...)
+chanson dans l'url !!

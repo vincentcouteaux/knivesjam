@@ -6,6 +6,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Array exposing (Array)
 import Icons exposing (icon)
+import Styles as S
 
 type alias Grid = Array { len : Float, chord : Maybe G.Chord }
 type alias SubModel =
@@ -16,6 +17,7 @@ type alias SubModel =
     , redoList : ModelList
     , title : String
     , composer : String
+    , style : S.Style
     , defTempo : Float
     , beatsPerBar : Int }
 
@@ -51,6 +53,7 @@ type SubMsg =
     | Redo
     | TitleChanged String
     | ComposerChanged String
+    | StyleChanged String
     | TempoChanged Float
     | SetBeatsPerBar Int
 
@@ -63,6 +66,7 @@ initwith beatsPerBar nBars title composer =
        , redoList = ModelList []
        , title = title
        , composer = composer
+       , style = S.Bop
        , defTempo = 160
        , beatsPerBar = beatsPerBar }
 
@@ -165,6 +169,8 @@ update msg model =
             ({ model | title = t}, Cmd.none)
         ComposerChanged c ->
             ({ model | composer = c}, Cmd.none)
+        StyleChanged s ->
+            ({ model | style = S.str2style s }, Cmd.none)
         TempoChanged f ->
             ({ model | defTempo = f}, Cmd.none)
         SetBeatsPerBar bpb ->
@@ -176,10 +182,18 @@ update msg model =
 view : SubModel -> Html SubMsg
 view model = div [] 
                 [ div [] 
-                      [ span [ class "button", onClick Quit ] [ icon "close" ]
-                      , span [ class "button", onClick SaveAndQuit ] [ icon "save" ] ]
+                      [ span [ class "button", onClick Quit ] [ icon "close" "Close editor without saving" ]
+                      , span [ class "button", onClick SaveAndQuit ] [ icon "save" "Save changes and quit" ] ]
                 , div [] [ text "Title: ", input [ type_ "text", value model.title, onInput TitleChanged ] [] ]
                 , div [] [ text "Composer: ", input [ type_ "text", value model.composer, onInput ComposerChanged ] [] ]
+                , div [] [ text "Style: "
+                         , select [ onInput StyleChanged ]
+                                  [ option [ value "Bop" ] [ text "Bop" ] 
+                                  , option [ value "Swing" ] [ text "Swing" ] 
+                                  , option [ value "Bossa" ] [ text "Bossa" ] 
+                                  , option [ value "Fusion" ] [ text "Fusion" ] 
+                                  ]
+                         ]
                 , signatureSelectBar model.beatsPerBar
                 , div []
                     [ text "Default tempo: "
@@ -194,13 +208,13 @@ view model = div []
                     , text <| (String.fromFloat model.defTempo) ++ " BPM"
                 , chordSelectBar (model.curChord)
                 , toolSelectBar (model.tool)
-                , span [ class "button", onClick AppendBar ] [ icon "exposure_plus_1" ]
+                , span [ class "button", onClick AppendBar ] [ icon "exposure_plus_1" "append 1 bar" ]
                 , span [ class "button"
                        , onClick Undo
                        , style "margin-left" "15px"
                        , style "margin-right" "15px"
-                       ] [ icon "undo" ]
-                , span [ class "button", onClick Redo ] [ icon "redo" ]
+                       ] [ icon "undo" "Undo" ]
+                , span [ class "button", onClick Redo ] [ icon "redo" "Redo" ]
                     ]
                 , displayGrid model.grid model.beatsPerBar ]
 
@@ -223,7 +237,7 @@ toolSelectBar tool =
                        , onClick (SetTool t) ]
     in
     div [ style "margin-top" "5px", style "margin-bottom" "5px" ]
-        [ button (buttonAttr SetChord) [ icon "brush" ]
+        [ button (buttonAttr SetChord) [ icon "brush" "Set chord" ]
         , button (buttonAttr SplitCase) [ text "split" ]
         , button (buttonAttr MergeWithBefore) [ text "merge" ]
         , button (buttonAttr InsertBar) [ text "insert bar" ]
