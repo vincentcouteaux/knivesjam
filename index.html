@@ -14,13 +14,6 @@
 
         <div id="elm"></div>
     <body>
-</html>
-<script src="immutable.min.js" ></script>
-<script src="instrument.js" ></script>
-<script src="elm.js"></script>
-<script src="dexie.js"></script>
-<script src="librarydb.js"></script>
-<script src="tune.js"></script>
 <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js')
@@ -31,6 +24,15 @@
         console.log('Registration failed: ', error);
       });
     }
+</script>
+</html>
+<script src="immutable.min.js" ></script>
+<script src="instrument.js" ></script>
+<script src="elm.js"></script>
+<script src="dexie.js"></script>
+<script src="librarydb.js"></script>
+<script src="tune.js"></script>
+<script>
     const app = Elm.Main.init({
         node: document.getElementById("elm")
     });
