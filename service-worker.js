@@ -12,6 +12,7 @@ var urlsToCache = [
   'tune.js',
   'MaterialIcons-Regular.woff',
   'texture_papier2.jpg',
+  'realbook-webfont.ttf',
   'wavs/jbass1.wav',
   'wavs/jbass2.wav',
   'wavs/jbass3.wav',
