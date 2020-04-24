@@ -1,7 +1,8 @@
 {
     "name": "KnivesJam",
     "shortname": "KnivesJam",
-    "start_url": "/",
+    "start_url": ".",
+    "scope": "/",
     "display": "fullscreen",
     "icons": [{
         "src": "knivesjam_logo.svg",
