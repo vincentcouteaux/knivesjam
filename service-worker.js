@@ -3,7 +3,7 @@ var urlsToCache = [
   '.',
   'index.html',
   'style.css',
-  'https://www.w3schools.com/w3css/4/w3.css',
+  'w3.css',
   'immutable.min.js',
   'knivesjam_logo.svg',
   'elm.js',
