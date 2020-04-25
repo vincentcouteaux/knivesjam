@@ -35,6 +35,8 @@ const initTune = (ctx, instruments, app) => {
             return;
         const curTime = ctx.currentTime;
         cursor = cursor + (curTime - prevtime)*BPM/60;
+        if (app.ports.cursorChanged)
+            app.ports.cursorChanged.send(cursor);
         const nextCursor = cursor + schedAhead*BPM/60;
         //console.log(cursor, nextCursor, nextCursor-cursor);
         let i = 0;

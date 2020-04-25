@@ -63,7 +63,6 @@ const bassBufInstrument = ctx => {
     let sources = [];
     return {
         stopNote: function(pitch, time) {
-            console.log("stop", time);
             if (pitch in sources && sources[pitch] !== null) {
                 //sources[pitch].gain.exponentialRampToValueAtTime(.01, time +.2); 
                 const gain = sources[pitch].gain;
@@ -72,7 +71,6 @@ const bassBufInstrument = ctx => {
             }
         },
         startNote: function(pitch, gain, time) {
-            console.log("start", time);
             this.stopNote(pitch, time);
             if (pitch in buffersMap) {
                 // TODO investigate when the same note is played twice consecutively
