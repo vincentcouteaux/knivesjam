@@ -88,11 +88,11 @@ self.addEventListener('fetch', function(event) {
     })
   );
   event.waitUntil(
-      caches.open(CACHE_NAME)
-      .then(function(cache) {
-        return fetch(event.request).then(function (response) {
-          return cache.put(event.request, response);
-        });
+      caches.open(CACHE_NAME).then(
+        function(cache) {
+            return fetch(event.request).then(function(response) {
+                    return cache.put(event.request, response);
+                });
       });
   );
 });
