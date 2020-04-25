@@ -87,6 +87,14 @@ self.addEventListener('fetch', function(event) {
       return response || fetchAndCache(event.request);
     })
   );
+  event.waitUntil(
+      caches.open(CACHE_NAME)
+      .then(function(cache) {
+        return fetch(event.request).then(function (response) {
+          return cache.put(event.request, response);
+        });
+      });
+  );
 });
 
 function fetchAndCache(url) {

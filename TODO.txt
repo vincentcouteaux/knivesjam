@@ -1,5 +1,5 @@
 Fusion
-en faire une progressive web app
+Service worker check une nouvelle version à chaque fois
 
 version 2.0
 mesure à vide au début
