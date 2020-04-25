@@ -87,6 +87,7 @@ self.addEventListener('fetch', function(event) {
       return response || fetchAndCache(event.request);
     })
   );
+/*
   event.waitUntil(
       caches.open(CACHE_NAME).then(
         function(cache) {
@@ -95,6 +96,12 @@ self.addEventListener('fetch', function(event) {
                 });
       });
   );
+  */
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+        .then(cache => fetch(event.request)
+                        .then(response => cache.put(event.request, response)))
+    );
 });
 
 function fetchAndCache(url) {
