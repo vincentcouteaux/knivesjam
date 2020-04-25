@@ -59,7 +59,7 @@ update msg m =
 
         SearchBarChanged s -> ({ m | searchBar = s }, Cmd.none)
 
-        DownloadJson -> (m, Dl.string "knivesjam_library.json" "text/json"
+        DownloadJson -> (m, Dl.string "knivesjam_library.json" "application/json"
                             <| Je.encode 2
                             <| Je.list song2json (Dict.values m.library))
 

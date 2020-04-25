@@ -9549,7 +9549,7 @@ var $author$project$Library$update = F2(
 					A3(
 						$elm$file$File$Download$string,
 						'knivesjam_library.json',
-						'text/json',
+						'application/json',
 						A2(
 							$elm$json$Json$Encode$encode,
 							2,

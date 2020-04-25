@@ -5,26 +5,26 @@ const midi2freq = n => 440*(2**((n-69)/12));
 const bufInstrument = (bufMap, ctx) => ({
     buffers: bufMap,
     sources: [],
-    stopNote: function(pitch) {
+    stopNote: function(pitch, time) {
         if (pitch in this.sources && this.sources[pitch] !== null) {
-            this.sources[pitch].gain.setValueAtTime(0, ctx.currentTime); 
+            this.sources[pitch].gain.setValueAtTime(0, time); 
         }
     },
-    startNote: function(pitch, gain) {
+    startNote: function(pitch, gain, time) {
         //console.log(pitch);
         //console.log(this.buffers.get(pitch));
-        this.stopNote(pitch);
+        this.stopNote(pitch, time);
         let bufferSource = ctx.createBufferSource()
         const gainNode = ctx.createGain();
         gainNode.gain.setValueAtTime(gain, ctx.currentTime);
         bufferSource.buffer = this.buffers.get(pitch);
         bufferSource.connect(gainNode);
         gainNode.connect(ctx.destination);
-        bufferSource.start();
+        bufferSource.start(time);
         this.sources[pitch] = gainNode;
     },
     stopAllNotes: function() {
-        this.sources.forEach((_, i) => this.stopNote(i));
+        this.sources.forEach((_, i) => this.stopNote(i, ctx.currentTime));
     }
 });
 
@@ -62,13 +62,18 @@ const bassBufInstrument = ctx => {
     }
     let sources = [];
     return {
-        stopNote: function(pitch) {
+        stopNote: function(pitch, time) {
+            console.log("stop", time);
             if (pitch in sources && sources[pitch] !== null) {
-                sources[pitch].gain.exponentialRampToValueAtTime(.01, ctx.currentTime+.2); 
+                //sources[pitch].gain.exponentialRampToValueAtTime(.01, time +.2); 
+                const gain = sources[pitch].gain;
+                gain.setValueAtTime(gain.value, time); 
+                gain.exponentialRampToValueAtTime(.01, time +.2); 
             }
         },
-        startNote: function(pitch, gain) {
-            this.stopNote(pitch);
+        startNote: function(pitch, gain, time) {
+            console.log("start", time);
+            this.stopNote(pitch, time);
             if (pitch in buffersMap) {
                 // TODO investigate when the same note is played twice consecutively
                 let bufferSource = ctx.createBufferSource()
@@ -83,13 +88,13 @@ const bassBufInstrument = ctx => {
                 }
                 bufferSource.connect(gainNode);
                 gainNode.connect(ctx.destination);
-                bufferSource.start();
+                bufferSource.start(time);
                 sources[pitch] = gainNode;
             }
             else console.log(pitch, " not playable");
         },
         stopAllNotes: function() {
-            sources.forEach((_, i) => this.stopNote(i));
+            sources.forEach((_, i) => this.stopNote(i, ctx.currentTime));
         },
         volume: 1
     };
@@ -123,13 +128,15 @@ const pianoBufInstrument = ctx => {
     let sources = [];
 
     return {
-        stopNote: function(pitch) {
+        stopNote: function(pitch, time) {
             if (pitch in sources && sources[pitch] !== null) {
-                sources[pitch].gain.exponentialRampToValueAtTime(.001, ctx.currentTime+1); 
+                const gain = sources[pitch].gain;
+                gain.setValueAtTime(gain.value, time); 
+                gain.exponentialRampToValueAtTime(.001, time +1); 
             }
         },
-        startNote: function(pitch, gain) {
-            this.stopNote(pitch);
+        startNote: function(pitch, gain, time) {
+            //this.stopNote(pitch, time);
             let bufferSource = ctx.createBufferSource()
             const gainNode = ctx.createGain();
             const closestnote = closest(pitch);
@@ -138,11 +145,11 @@ const pianoBufInstrument = ctx => {
             bufferSource.playbackRate.value = Math.pow(halfstep, pitch-closestnote);
             bufferSource.connect(gainNode);
             gainNode.connect(ctx.destination);
-            bufferSource.start();
+            bufferSource.start(time);
             sources[pitch] = gainNode;
         },
         stopAllNotes: function() {
-            sources.forEach((_, i) => this.stopNote(i));
+            sources.forEach((_, i) => this.stopNote(i, ctx.currentTime));
         },
         volume: 1
     };
@@ -222,9 +229,9 @@ const drumsBufInstrument = ctx => {
     };
     request6.send();
     return {
-        stopNote: function(pitch) {
+        stopNote: function(pitch, time) {
             },
-        startNote: function(pitch, gain) {
+        startNote: function(pitch, gain, time) {
             let bufferSource = ctx.createBufferSource()
             const gainNode = ctx.createGain();
             gainNode.gain.setValueAtTime(gain*this.volume, ctx.currentTime);
@@ -235,7 +242,7 @@ const drumsBufInstrument = ctx => {
                                   pitch==4?rim_buffer:crash_buffer;
             bufferSource.connect(gainNode);
             gainNode.connect(ctx.destination);
-            bufferSource.start();
+            bufferSource.start(time);
         },
         stopAllNotes: function() {
         },

@@ -17,38 +17,45 @@ const initTune = (ctx, instruments, app) => {
                    , [6, true, 50, "piano", .3]
                    , [7.5, false, 50, "piano"]];
     let nextsequence = []
+    let nextEvent2Sched = 0;
 
-    const play_recur = (seq, time) => {
-        if (seq.length <= 0)
-            return seq;
-        if (time < seq[0][0]) //or <= ?
-            return seq;
-        if (seq[0][1])
-            instruments[seq[0][3]].startNote(seq[0][2], seq[0][4]);
-        else instruments[seq[0][3]].stopNote(seq[0][2]);
-        return play_recur(seq.slice(1), time);
+    let schedAhead = 0.1;
+    let lookAhead = 20;
+
+    const scheduleEvent = evt => {
+        const evtTime = (evt[0] - cursor)*60/BPM;
+        if (evt[1])
+            instruments[evt[3]].startNote(evt[2], evt[4], ctx.currentTime + evtTime);
+        else instruments[evt[3]].stopNote(evt[2], ctx.currentTime + evtTime);
+
     };
-    const sched2 = curseq => prevtime => {
+
+    const scheduler = (prevtime) => {
         if (!inplay)
             return;
-        const curtime = ctx.currentTime;
-        cursor = cursor + (curtime - prevtime)*BPM/60;
-        if (app.ports.cursorChanged)
-            app.ports.cursorChanged.send(cursor);
-        const newseq = play_recur(curseq, cursor);
-        //console.log(cursor, curtime, newseq.length);
-        if (newseq.length > 0) {
-            timeoutid = window.setTimeout(() => sched2(newseq)(curtime), 4);
+        const curTime = ctx.currentTime;
+        cursor = cursor + (curTime - prevtime)*BPM/60;
+        const nextCursor = cursor + schedAhead*BPM/60;
+        //console.log(cursor, nextCursor, nextCursor-cursor);
+        let i = 0;
+        while (nextEvent2Sched < sequence.length && sequence[nextEvent2Sched][0] < nextCursor) {
+            scheduleEvent(sequence[nextEvent2Sched]);
+            nextEvent2Sched += 1;
+            i++;
+        }
+        //console.log(i, " events scheduled this time, last = ", sequence[nextEvent2Sched-1], cursor, nextCursor);
+        if (nextEvent2Sched < sequence.length) {
+            timeoutid = window.setTimeout(() => scheduler(curTime), lookAhead);
         }
         else {
             app.ports.sequenceFinished.send(null);
-            //console.log("finished!", ctx.currentTime);
             if (nextsequence.length > 0) {
+                const lasttime = sequence[nextEvent2Sched-1][0];
                 sequence = nextsequence;
                 nextsequence = [];
-                cursor = cursor - Math.floor(cursor);
-                const newseq2 = play_recur(sequence, cursor);
-                timeoutid = window.setTimeout(() => sched2(newseq2)(curtime), 20);
+                cursor -= lasttime;
+                nextEvent2Sched = 0;
+                scheduler(ctx.currentTime);    
             }
         }
     };
@@ -61,7 +68,8 @@ const initTune = (ctx, instruments, app) => {
         while (cut < sequence.length && sequence[cut][0] < cursor) {
             cut = cut + 1;
         }
-        sched2(sequence.slice(cut))(ctx.currentTime);
+        nextEvent2Sched = cut;
+        scheduler(ctx.currentTime);
     };
     const stopAllInst = () => {
         for (let inst in instruments) {
@@ -104,7 +112,7 @@ const initTune = (ctx, instruments, app) => {
     app.ports.setSequence.subscribe(s => {
         sequence = receiveSeq(s);
         //nextSequence = newseq.slice();
-        playFrom();
+        //playFrom();
     });
     if (app.ports.setNextSequence) {
         app.ports.setNextSequence.subscribe(s => {

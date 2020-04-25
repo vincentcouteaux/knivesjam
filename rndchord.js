@@ -5245,9 +5245,9 @@ var $author$project$Generator$Maj7 = {$: 'Maj7'};
 var $author$project$Generator$Min7 = {$: 'Min7'};
 var $author$project$Generator$Min7b5 = {$: 'Min7b5'};
 var $author$project$Generator$Natural = {$: 'Natural'};
-var $author$project$Generator$Chord = F2(
-	function (note, type_) {
-		return {note: note, type_: type_};
+var $author$project$Generator$Chord = F3(
+	function (note, type_, bass) {
+		return {bass: bass, note: note, type_: type_};
 	});
 var $author$project$Generator$Note = F2(
 	function (name, alt) {
@@ -5255,10 +5255,11 @@ var $author$project$Generator$Note = F2(
 	});
 var $author$project$Generator$chord = F3(
 	function (n, a, t) {
-		return A2(
+		return A3(
 			$author$project$Generator$Chord,
 			A2($author$project$Generator$Note, n, a),
-			t);
+			t,
+			$elm$core$Maybe$Nothing);
 	});
 var $author$project$Generator$blueBossa = A2(
 	$author$project$Generator$ChordProg,
@@ -5536,6 +5537,7 @@ var $author$project$MainRndChord$iiVIgenerator = A3(
 					[
 						{
 						chord: {
+							bass: $elm$core$Maybe$Nothing,
 							note: $author$project$Generator$pitch2note(i + 2),
 							type_: c1
 						},
@@ -5543,6 +5545,7 @@ var $author$project$MainRndChord$iiVIgenerator = A3(
 					},
 						{
 						chord: {
+							bass: $elm$core$Maybe$Nothing,
 							note: $author$project$Generator$pitch2note(i + 7),
 							type_: c2
 						},
@@ -5550,6 +5553,7 @@ var $author$project$MainRndChord$iiVIgenerator = A3(
 					},
 						{
 						chord: {
+							bass: $elm$core$Maybe$Nothing,
 							note: $author$project$Generator$pitch2note(i),
 							type_: c3
 						},
@@ -6424,6 +6428,15 @@ var $elm$core$Dict$filter = F2(
 			$elm$core$Dict$empty,
 			dict);
 	});
+var $author$project$Generator$getBass = function (c) {
+	var _v0 = c.bass;
+	if (_v0.$ === 'Nothing') {
+		return c.note;
+	} else {
+		var b = _v0.a;
+		return b;
+	}
+};
 var $author$project$JazzBass$fondaOnChange = function (cp) {
 	return A3(
 		$elm$core$List$foldl,
@@ -6432,7 +6445,8 @@ var $author$project$JazzBass$fondaOnChange = function (cp) {
 				return A3(
 					$elm$core$Dict$insert,
 					$elm$core$Basics$floor(evt.time),
-					$elm$random$Random$constant(evt.chord.note),
+					$elm$random$Random$constant(
+						$author$project$Generator$getBass(evt.chord)),
 					bassline);
 			}),
 		$elm$core$Dict$empty,
@@ -6911,70 +6925,72 @@ var $author$project$JazzBass$sequenceGenerator = F2(
 				$author$project$JazzBass$basslineToSequence,
 				A2($author$project$JazzBass$bassLineGenerator, cp, signature)));
 	});
-var $author$project$JazzPiano$possibleBars = function (signature) {
-	switch (signature) {
-		case 4:
-			return _List_fromArray(
-				[
-					_List_fromArray(
+var $author$project$JazzPiano$possibleBarsMeta = F2(
+	function (swing, signature) {
+		var s = swing ? 0.66 : 0.5;
+		switch (signature) {
+			case 4:
+				return _List_fromArray(
 					[
-						_Utils_Tuple2(0, 0.33),
-						_Utils_Tuple2(1.66, 1.33)
-					]),
-					_List_fromArray(
+						_List_fromArray(
+						[
+							_Utils_Tuple2(0, 0.33),
+							_Utils_Tuple2(1 + s, 1.33)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(s, 0.33),
+							_Utils_Tuple2(2, 1.33)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(s, 0.33),
+							_Utils_Tuple2(2 + s, 0.33)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(0, 2),
+							_Utils_Tuple2(2, 2)
+						])
+					]);
+			case 3:
+				return _List_fromArray(
 					[
-						_Utils_Tuple2(0.66, 0.33),
-						_Utils_Tuple2(2, 1.33)
-					]),
-					_List_fromArray(
+						_List_fromArray(
+						[
+							_Utils_Tuple2(s, 0.33),
+							_Utils_Tuple2(2, 1)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(s, 0.33),
+							_Utils_Tuple2(2, 1)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(1, 1)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(1, 0.33)
+						]),
+						_List_fromArray(
+						[
+							_Utils_Tuple2(2, 1)
+						])
+					]);
+			default:
+				return _List_fromArray(
 					[
-						_Utils_Tuple2(0.66, 0.33),
-						_Utils_Tuple2(2.66, 0.33)
-					]),
-					_List_fromArray(
-					[
-						_Utils_Tuple2(0, 2),
-						_Utils_Tuple2(2, 2)
-					])
-				]);
-		case 3:
-			return _List_fromArray(
-				[
-					_List_fromArray(
-					[
-						_Utils_Tuple2(0.66, 0.33),
-						_Utils_Tuple2(2, 1)
-					]),
-					_List_fromArray(
-					[
-						_Utils_Tuple2(0.66, 0.33),
-						_Utils_Tuple2(2, 1)
-					]),
-					_List_fromArray(
-					[
-						_Utils_Tuple2(1, 1)
-					]),
-					_List_fromArray(
-					[
-						_Utils_Tuple2(1, 0.33)
-					]),
-					_List_fromArray(
-					[
-						_Utils_Tuple2(2, 1)
-					])
-				]);
-		default:
-			return _List_fromArray(
-				[
-					_List_fromArray(
-					[
-						_Utils_Tuple2(0.66, 0.33),
-						_Utils_Tuple2(2, 1),
-						_Utils_Tuple2(4, 0.33)
-					])
-				]);
-	}
-};
+						_List_fromArray(
+						[
+							_Utils_Tuple2(s, 0.33),
+							_Utils_Tuple2(2, 1),
+							_Utils_Tuple2(4, 0.33)
+						])
+					]);
+		}
+	});
 var $author$project$JazzPiano$unif2 = F2(
 	function (a, la) {
 		return A2(
@@ -6987,9 +7003,9 @@ var $author$project$JazzPiano$unif2 = F2(
 				},
 				la));
 	});
-var $author$project$JazzPiano$genRhythm = F2(
-	function (signature, end) {
-		var barsTemplates = $author$project$JazzPiano$possibleBars(signature);
+var $author$project$JazzPiano$genRhythmMeta = F3(
+	function (swing, signature, end) {
+		var barsTemplates = A2($author$project$JazzPiano$possibleBarsMeta, swing, signature);
 		var pickbar = A2($author$project$JazzPiano$unif2, _List_Nil, barsTemplates);
 		var addbar = F2(
 			function (genlist, idbar) {
@@ -7180,8 +7196,8 @@ var $author$project$JazzPiano$populateRhythm = F2(
 							},
 							l)))));
 	});
-var $author$project$JazzPiano$sequenceGenerator = F2(
-	function (cp, signature) {
+var $author$project$JazzPiano$sequenceGeneratorMeta = F3(
+	function (swing, cp, signature) {
 		return A2(
 			$elm$random$Random$map,
 			function (l) {
@@ -7210,8 +7226,9 @@ var $author$project$JazzPiano$sequenceGenerator = F2(
 				function (lff) {
 					return A2($author$project$JazzPiano$populateRhythm, lff, cp);
 				},
-				A2($author$project$JazzPiano$genRhythm, signature, cp.end)));
+				A3($author$project$JazzPiano$genRhythmMeta, swing, signature, cp.end)));
 	});
+var $author$project$JazzPiano$sequenceGenerator = $author$project$JazzPiano$sequenceGeneratorMeta(true);
 var $author$project$MainRndChord$cp2seq = function (cp) {
 	return A3(
 		$author$project$Generator$mergeSeqGenerators,
@@ -7223,7 +7240,7 @@ var $author$project$MainRndChord$cp2seq = function (cp) {
 var $author$project$MainRndChord$fullGenerator = A2(
 	$elm$random$Random$andThen,
 	$author$project$MainRndChord$cp2seq,
-	$author$project$MainRndChord$append_iiVI(4));
+	$author$project$MainRndChord$append_iiVI(1));
 var $elm$random$Random$Generate = function (a) {
 	return {$: 'Generate', a: a};
 };

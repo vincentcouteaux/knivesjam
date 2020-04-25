@@ -135,9 +135,9 @@ iiVIgenerator =
                 c3 = if c==G.Min7 then G.Min7 else G.Maj7
             in
             { chords =
-                [ { time = 0, chord = { note=G.pitch2note (i+2), type_=c1 }}
-                , { time = 4, chord = { note=G.pitch2note (i+7), type_=c2 }}
-                , { time = 8, chord = { note=G.pitch2note i, type_=c3 }} ]
+                [ { time = 0, chord = { note=G.pitch2note (i+2), type_=c1, bass=Nothing }}
+                , { time = 4, chord = { note=G.pitch2note (i+7), type_=c2, bass=Nothing }}
+                , { time = 8, chord = { note=G.pitch2note i, type_=c3, bass=Nothing  }} ]
             , end = 16 }
         )
         (R.int 0 11) (R.uniform G.Maj7 [ G.Min7, G.Alt7 ])
