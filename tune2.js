@@ -108,7 +108,10 @@ const initTune = (ctx, instruments, app) => {
     const receiveSeq = s => {
         let newseq = s.map(el => [el.time , el.onset, el.pitch
                                    , el.instrument, el.gain]);
-        newseq.sort((x, y) => x[0] > y[0] ? 1:-1);
+        newseq.sort((x, y) => 
+                        x[0] > y[0] ? 1:
+                        x[0] < y[0] ? -1:
+                        x[1] && !y[1] ? 1:-1 );
         return newseq;
     };
     app.ports.setSequence.subscribe(s => {

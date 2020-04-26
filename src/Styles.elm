@@ -6,6 +6,8 @@ import JazzBass
 import BossaDrums
 import BossaBass
 import BossaPiano
+import FusionDrums
+import FusionBass
 import Random as R
 import Tune
 
@@ -18,6 +20,9 @@ getSeqGenerator s =
         Bossa -> [ BossaDrums.sequenceGenerator
                  , BossaBass.sequenceGenerator
                  , BossaPiano.sequenceGenerator ]
+        Fusion -> [ FusionDrums.sequenceGenerator
+                  , FusionBass.sequenceGenerator
+                  , BossaPiano.sequenceGenerator ]
         _ -> [ JazzBass.sequenceGenerator
              , JazzDrums.sequenceGenerator
              , JazzPiano.sequenceGenerator ]

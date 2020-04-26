@@ -10,11 +10,11 @@ bossagroove end =
     |> List.map ((*) 8)
     |> List.concatMap
         (\i -> let fb = toFloat i in
-               [ Tune.Event fb True 1 "drums" 0.5
-               , Tune.Event (fb + 1.5) True 1 "drums" 0.5
-               , Tune.Event (fb + 3) True 1 "drums" 0.5
-               , Tune.Event (fb + 5) True 1 "drums" 0.5
-               , Tune.Event (fb + 6.5) True 1 "drums" 0.5
+               [ Tune.Event fb True 4 "drums" 0.5
+               , Tune.Event (fb + 1.5) True 4 "drums" 0.5
+               , Tune.Event (fb + 3) True 4 "drums" 0.5
+               , Tune.Event (fb + 5) True 4 "drums" 0.5
+               , Tune.Event (fb + 6.5) True 4 "drums" 0.5
                , Tune.Event (fb + 1) True 3 "drums" 1
                , Tune.Event (fb + 3) True 3 "drums" 1 
                , Tune.Event (fb + 5) True 3 "drums" 1

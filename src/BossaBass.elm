@@ -20,3 +20,4 @@ sequenceGenerator cp _ =
     |> Jb.dictGen2GenDict
     |> R.map bass2Seq
     |> R.map (\l -> (Tune.Event cp.end False 40 "bass" 1)::l)
+    |> R.map (List.filter (\e -> e.time <= cp.end))

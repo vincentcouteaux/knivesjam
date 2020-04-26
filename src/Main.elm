@@ -83,7 +83,7 @@ update msg model =
                         einit = E.init
                         newEditorModel = 
                             { einit | 
-                              grid = E.chordprog2grid model.playerModel
+                              grid = E.chordprog2grid (Pp.noTranspose model.playerModel)
                             , title=model.playerModel.song.title
                             , composer=model.playerModel.song.composer
                             , beatsPerBar=model.playerModel.song.beatsPerBar

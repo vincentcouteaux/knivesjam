@@ -55,6 +55,10 @@ setBpm : Float -> SubModel -> SubModel
 setBpm t sm = { sm | bpm=t }
 setCursor : Float -> SubModel -> SubModel
 setCursor c sm = { sm | cursor=c }
+setPlayback : Int -> SubModel -> SubModel
+setPlayback i sm = { sm | playbackKey = i }
+noTranspose : SubModel -> SubModel
+noTranspose sm = { sm | playbackKey=0, displayKey=0 }
 
 type Instrument = Piano | Bass | Drums
 
