@@ -5227,15 +5227,15 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
+var $author$project$Generator$ChordProg = F2(
+	function (chords, end) {
+		return {chords: chords, end: end};
+	});
 var $author$project$Styles$Swing = {$: 'Swing'};
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $author$project$Generator$A = {$: 'A'};
 var $author$project$Generator$Alt7 = {$: 'Alt7'};
 var $author$project$Generator$C = {$: 'C'};
-var $author$project$Generator$ChordProg = F2(
-	function (chords, end) {
-		return {chords: chords, end: end};
-	});
 var $author$project$Generator$D = {$: 'D'};
 var $author$project$Generator$Dom7 = {$: 'Dom7'};
 var $author$project$Generator$E = {$: 'E'};
@@ -7706,12 +7706,17 @@ var $author$project$MainRndChord$noCrash = $elm$core$List$filter(
 	});
 var $author$project$MainRndChord$fullGenerator = function (s) {
 	return A2(
-		$elm$random$Random$map,
-		$author$project$MainRndChord$noCrash,
-		A2(
-			$elm$random$Random$andThen,
-			$author$project$MainRndChord$cp2seq(s),
-			$author$project$MainRndChord$append_iiVI(1)));
+		$elm$random$Random$andThen,
+		function (cp) {
+			return A2(
+				$elm$random$Random$pair,
+				$elm$random$Random$constant(cp),
+				A2(
+					$elm$random$Random$map,
+					$author$project$MainRndChord$noCrash,
+					A2($author$project$MainRndChord$cp2seq, s, cp)));
+		},
+		$author$project$MainRndChord$append_iiVI(1));
 };
 var $elm$random$Random$Generate = function (a) {
 	return {$: 'Generate', a: a};
@@ -7811,7 +7816,18 @@ var $author$project$MainRndChord$genSequence = function (s) {
 };
 var $author$project$MainRndChord$init = function (_v0) {
 	return _Utils_Tuple2(
-		{bpm: 120, chordProg: $author$project$Generator$blueBossa, cursor: 0, playing: false, style: $author$project$Styles$Swing, volBass: 100, volDrums: 100, volPiano: 100},
+		{
+			bpm: 120,
+			chordProg: $author$project$Generator$blueBossa,
+			curChordProg: A2($author$project$Generator$ChordProg, _List_Nil, 0),
+			cursor: 0,
+			nextChordProg: A2($author$project$Generator$ChordProg, _List_Nil, 0),
+			playing: false,
+			style: $author$project$Styles$Swing,
+			volBass: 100,
+			volDrums: 100,
+			volPiano: 100
+		},
 		$elm$core$Platform$Cmd$batch(
 			_List_fromArray(
 				[
@@ -7978,17 +7994,27 @@ var $author$project$MainRndChord$update = F2(
 					model.playing ? $author$project$Tune$pause(_Utils_Tuple0) : $author$project$Tune$play(_Utils_Tuple0));
 			case 'SeqFinished':
 				return _Utils_Tuple2(
-					model,
+					_Utils_update(
+						model,
+						{curChordProg: model.nextChordProg}),
 					$author$project$MainRndChord$genNextSequence(model.style));
 			case 'SequenceGenerated':
-				var b = msg.a;
+				var _v1 = msg.a;
+				var cp = _v1.a;
+				var b = _v1.b;
 				return _Utils_Tuple2(
-					model,
+					_Utils_update(
+						model,
+						{curChordProg: cp}),
 					$author$project$Tune$setSequence(b));
 			case 'NextSeqGenerated':
-				var b = msg.a;
+				var _v2 = msg.a;
+				var cp = _v2.a;
+				var b = _v2.b;
 				return _Utils_Tuple2(
-					model,
+					_Utils_update(
+						model,
+						{nextChordProg: cp}),
 					$author$project$Tune$setNextSequence(b));
 			case 'SetCursor':
 				var f = msg.a;
@@ -8042,6 +8068,92 @@ var $author$project$MainRndChord$StyleChanged = function (a) {
 };
 var $author$project$MainRndChord$TogglePlay = {$: 'TogglePlay'};
 var $elm$html$Html$br = _VirtualDom_node('br');
+var $author$project$PlayerPage$note2str = function (n) {
+	var name = function () {
+		var _v1 = n.name;
+		switch (_v1.$) {
+			case 'C':
+				return 'C';
+			case 'D':
+				return 'D';
+			case 'E':
+				return 'E';
+			case 'F':
+				return 'F';
+			case 'G':
+				return 'G';
+			case 'A':
+				return 'A';
+			default:
+				return 'B';
+		}
+	}();
+	var alt = function () {
+		var _v0 = n.alt;
+		switch (_v0.$) {
+			case 'Natural':
+				return '';
+			case 'Flat':
+				return 'ь';
+			default:
+				return '#';
+		}
+	}();
+	return _Utils_ap(name, alt);
+};
+var $author$project$PlayerPage$chord2text = function (mc) {
+	if (mc.$ === 'Nothing') {
+		return '%';
+	} else {
+		var c = mc.a;
+		if (_Utils_eq(c.type_, $author$project$Generator$NA)) {
+			return 'NA';
+		} else {
+			var typ = function () {
+				var _v2 = c.type_;
+				switch (_v2.$) {
+					case 'Dom7':
+						return '7';
+					case 'Min7':
+						return '-7';
+					case 'Maj7':
+						return '∆';
+					case 'Alt7':
+						return '7alt';
+					case 'Dom7b9':
+						return '7ь9';
+					case 'Dom7s5':
+						return '7#5';
+					case 'Sus4':
+						return '7sus4';
+					case 'Min7b5':
+						return '-7ь5';
+					case 'Dim':
+						return '°';
+					case 'MinMaj':
+						return '-∆';
+					case 'Maj7s5':
+						return '∆#5';
+					default:
+						return 'NA';
+				}
+			}();
+			var root = $author$project$PlayerPage$note2str(c.note);
+			var bass = function () {
+				var _v1 = c.bass;
+				if (_v1.$ === 'Nothing') {
+					return '';
+				} else {
+					var n = _v1.a;
+					return _Utils_eq(n, c.note) ? '' : ('/' + $author$project$PlayerPage$note2str(n));
+				}
+			}();
+			return _Utils_ap(
+				root,
+				_Utils_ap(typ, bass));
+		}
+	}
+};
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -8051,11 +8163,55 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$MainRndChord$chordProg2divs = function (cp) {
+	var chord2div = function (c) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					A2($elm$html$Html$Attributes$style, 'width', '25%'),
+					A2($elm$html$Html$Attributes$style, 'height', '50px'),
+					A2($elm$html$Html$Attributes$style, 'display', 'inline-block')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text(
+					$author$project$PlayerPage$chord2text(c))
+				]));
+	};
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('realbook'),
+				$elm$html$Html$Attributes$class('gridline')
+			]),
+		A2(
+			$elm$core$List$map,
+			chord2div,
+			function (l) {
+				return _Utils_ap(
+					l,
+					_List_fromArray(
+						[$elm$core$Maybe$Nothing]));
+			}(
+				A2(
+					$elm$core$List$map,
+					$elm$core$Maybe$Just,
+					A2(
+						$elm$core$List$map,
+						function ($) {
+							return $.chord;
+						},
+						cp.chords)))));
+};
 var $elm$core$String$fromFloat = _String_fromNumber;
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$i = _VirtualDom_node('i');
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$Attributes$title = $elm$html$Html$Attributes$stringProperty('title');
 var $author$project$Icons$icon = F2(
 	function (s, hover) {
@@ -8268,6 +8424,8 @@ var $author$project$MainRndChord$view = function (model) {
 				_List_Nil),
 				$elm$html$Html$text(
 				$elm$core$String$fromFloat(model.bpm) + ' BPM'),
+				$author$project$MainRndChord$chordProg2divs(model.curChordProg),
+				$author$project$MainRndChord$chordProg2divs(model.nextChordProg),
 				A2($author$project$MainRndChord$rangeVolume, 'piano', model.volPiano),
 				A2($author$project$MainRndChord$rangeVolume, 'bass', model.volBass),
 				A2($author$project$MainRndChord$rangeVolume, 'drums', model.volDrums)

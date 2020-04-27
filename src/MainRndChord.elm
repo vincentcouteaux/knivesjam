@@ -3,7 +3,7 @@ module MainRndChord exposing (..)
 import Browser
 import Html exposing (..)
 import Html.Events exposing (..)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, style)
 import Tune
 import Generator as G
 import Random as R
@@ -12,6 +12,7 @@ import JazzDrums
 import JazzPiano
 import Styles exposing (Style)
 import Icons exposing (icon)
+import PlayerPage as Pp
 
 main = Browser.element
     { init=init
@@ -29,13 +30,15 @@ type alias Model =
     , volBass : Float
     , volDrums : Float
     , style : Style
+    , curChordProg : G.ChordProg
+    , nextChordProg : G.ChordProg
     }
 
 type Msg =
     SetBpm Float
     | SeqFinished
-    | SequenceGenerated Tune.Sequence
-    | NextSeqGenerated Tune.Sequence
+    | SequenceGenerated (G.ChordProg, Tune.Sequence)
+    | NextSeqGenerated (G.ChordProg, Tune.Sequence)
     | SetCursor Float
     | TogglePlay
     | SetVolume String Float
@@ -47,7 +50,9 @@ init _ = ({ bpm = 120
           , playing = False
           , chordProg = G.blueBossa
           , volPiano = 100, volBass = 100, volDrums=100
-          , style = Styles.Swing}
+          , style = Styles.Swing
+          , curChordProg = G.ChordProg [] 0
+          , nextChordProg = G.ChordProg [] 0}
          , Cmd.batch [ genSequence Styles.Swing, genNextSequence Styles.Swing ] )
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -57,10 +62,11 @@ update msg model =
         TogglePlay -> ({ model | playing = not model.playing}
                       , if model.playing then Tune.pause () else Tune.play ()
                       )
-        SeqFinished -> ( model, genNextSequence model.style)
+        SeqFinished -> ({ model | curChordProg=model.nextChordProg }
+                       , genNextSequence model.style)
 
-        SequenceGenerated b -> (model, Tune.setSequence b)
-        NextSeqGenerated b -> (model, Tune.setNextSequence b)
+        SequenceGenerated (cp, b) -> ({ model | curChordProg=cp }, Tune.setSequence b)
+        NextSeqGenerated (cp, b) -> ({ model | nextChordProg=cp }, Tune.setNextSequence b)
 
         SetCursor f -> ({ model | cursor = f }, Cmd.none)
         SetVolume inst vol -> 
@@ -94,11 +100,25 @@ genNextSequence s =
     fullGenerator s
     |> R.generate NextSeqGenerated
 
-fullGenerator : Style -> R.Generator (Tune.Sequence)
+--fullGenerator : Style -> R.Generator (G.ChordProg, Tune.Sequence)
+--fullGenerator s =
+--    let cp = append_iiVI 1 in
+--    R.pair
+--    cp
+--    (cp 
+--    |> R.andThen (cp2seq s)
+--    |> R.map (noCrash))
+fullGenerator : Style -> R.Generator (G.ChordProg, Tune.Sequence)
 fullGenerator s =
     append_iiVI 1
-    |> R.andThen (cp2seq s)
-    |> R.map (noCrash)
+    |> R.andThen
+        (\cp ->
+            R.pair
+            (R.constant cp)
+            (cp2seq s cp
+             |> R.map (noCrash)
+            )
+        )
 
 
 subscriptions : Model -> Sub Msg
@@ -130,6 +150,8 @@ view model =
                 , Html.Attributes.value (String.fromFloat model.bpm)
                 , Html.Attributes.step "1" ] []
         , text ((String.fromFloat model.bpm) ++ " BPM")
+        , chordProg2divs model.curChordProg
+        , chordProg2divs model.nextChordProg
         , rangeVolume "piano" model.volPiano
         , rangeVolume "bass" model.volBass
         , rangeVolume "drums" model.volDrums
@@ -178,3 +200,20 @@ append_iiVI n =
     in
         List.repeat (n-1) iiVIgenerator
         |> List.foldl append iiVIgenerator
+
+chordProg2divs : G.ChordProg -> Html msg
+chordProg2divs cp = 
+    let
+        chord2div c =
+            div
+                [ style "width" "25%"
+                , style "height" "50px"
+                , style "display" "inline-block" ]
+                [ text  (Pp.chord2text c) ]
+    in
+    cp.chords
+    |> List.map .chord
+    |> List.map Just
+    |> (\l -> l ++ [ Nothing ])
+    |> List.map chord2div
+    |> div [ class "realbook", class "gridline" ]
