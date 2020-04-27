@@ -23,6 +23,23 @@ const initDixie = app => {
                 app.ports.gotASong.send(JSON.stringify(song));
             }
         );
+        db.songs.count(c => {
+            if (c == 0) {
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                      var myObj = JSON.parse(this.responseText);
+                      myObj.forEach(song => {
+                        db.songs.put(song);
+                        app.ports.gotASong.send(JSON.stringify(song));
+                      });
+                    }
+                };
+                xmlhttp.open("GET", "default_library.json", true);
+                xmlhttp.send();
+
+            };
+        });
     });
 
     app.ports.deleteSong.subscribe(s => {
@@ -31,22 +48,3 @@ const initDixie = app => {
                 ).catch(e => console.log(e));
     });
 };
-/*let request = window.indexedDB.open("LibraryDatabase", 0)
-var db;
-request.onerror = evt => { console.log("Accès à la base de données locale refusée") };
-request.onsuccess = evt => {
-    db = evt.target.result;
-};
-request.onupgradeneeded = evt => {
-    let db = evt.target.result;
-    let objectStore = db.createObjectStore("songs", {keyPath: "key"});
-    objectStore.createIndex("title", "title", {unique: false});
-    objectStore.createIndex("composer", "composer", {unique: false});
-    objectStore.createIndex("beatsPerBar", "beatsPerBar", {unique: false});
-    objectStore.createIndex("defaultTempo", "defaultTempo", {unique: false});
-    objectStore.createIndex("style", "style", {unique: false});
-    objectStore.createIndex("chordProg", "chordProg", {unique: false});
-};
-
-db.onerror = evt => { console.log("Database error: " + evt.target.errorCode) };
-*/

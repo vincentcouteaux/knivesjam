@@ -1,5 +1,4 @@
-Fusion
-Service worker check une nouvelle version à chaque fois ?
+Intégrer random chords
 
 version 2.0
 mesure à vide au début
