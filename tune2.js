@@ -115,6 +115,7 @@ const initTune = (ctx, instruments, app) => {
         return newseq;
     };
     app.ports.setSequence.subscribe(s => {
+        stopAllInst();
         sequence = receiveSeq(s);
         //nextSequence = newseq.slice();
         //playFrom();

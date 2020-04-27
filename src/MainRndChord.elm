@@ -3,13 +3,15 @@ module MainRndChord exposing (..)
 import Browser
 import Html exposing (..)
 import Html.Events exposing (..)
-import Html.Attributes
+import Html.Attributes exposing (class)
 import Tune
 import Generator as G
 import Random as R
 import JazzBass
 import JazzDrums
 import JazzPiano
+import Styles exposing (Style)
+import Icons exposing (icon)
 
 main = Browser.element
     { init=init
@@ -26,6 +28,7 @@ type alias Model =
     , volPiano : Float
     , volBass : Float
     , volDrums : Float
+    , style : Style
     }
 
 type Msg =
@@ -36,14 +39,16 @@ type Msg =
     | SetCursor Float
     | TogglePlay
     | SetVolume String Float
+    | StyleChanged String
 
 init : () -> (Model, Cmd Msg)
 init _ = ({ bpm = 120
           , cursor = 0
           , playing = False
           , chordProg = G.blueBossa
-          , volPiano = 100, volBass = 100, volDrums=100}
-         , Cmd.batch [ genSequence, genNextSequence ] )
+          , volPiano = 100, volBass = 100, volDrums=100
+          , style = Styles.Swing}
+         , Cmd.batch [ genSequence Styles.Swing, genNextSequence Styles.Swing ] )
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -52,7 +57,7 @@ update msg model =
         TogglePlay -> ({ model | playing = not model.playing}
                       , if model.playing then Tune.pause () else Tune.play ()
                       )
-        SeqFinished -> ( model, genNextSequence )
+        SeqFinished -> ( model, genNextSequence model.style)
 
         SequenceGenerated b -> (model, Tune.setSequence b)
         NextSeqGenerated b -> (model, Tune.setNextSequence b)
@@ -65,26 +70,35 @@ update msg model =
                 _ -> {model | volDrums = vol}
             , Tune.setInstVolume (inst, vol))
 
-cp2seq : G.ChordProg -> R.Generator Tune.Sequence
-cp2seq cp =
-    G.mergeSeqGenerators [ JazzBass.sequenceGenerator
-                         , JazzDrums.seqGenNoCrash
-                         , JazzPiano.sequenceGenerator ] cp 4
+        StyleChanged s ->
+            let newstyle = Styles.str2style s in
+            ({ model | style = newstyle }
+            , Cmd.batch [ genSequence newstyle
+                        , genNextSequence newstyle ])
 
-genSequence : Cmd Msg -- TODO le cas ou on n'a pas encore généré de séquence
-genSequence =
-    fullGenerator
+noCrash : Tune.Sequence -> Tune.Sequence
+noCrash =
+    List.filter (\{instrument, pitch} -> instrument /= "drums" || pitch /= 5)
+
+cp2seq : Style -> G.ChordProg -> R.Generator Tune.Sequence
+cp2seq s cp =
+    Styles.getSeqGenerator s cp 4
+
+genSequence : Style -> Cmd Msg
+genSequence s =
+    fullGenerator s
     |> R.generate SequenceGenerated
 
-genNextSequence : Cmd Msg
-genNextSequence =
-    fullGenerator
+genNextSequence : Style -> Cmd Msg
+genNextSequence s =
+    fullGenerator s
     |> R.generate NextSeqGenerated
 
-fullGenerator : R.Generator (Tune.Sequence)
-fullGenerator =
+fullGenerator : Style -> R.Generator (Tune.Sequence)
+fullGenerator s =
     append_iiVI 1
-    |> R.andThen cp2seq
+    |> R.andThen (cp2seq s)
+    |> R.map (noCrash)
 
 
 subscriptions : Model -> Sub Msg
@@ -95,8 +109,18 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ button [ onClick TogglePlay ] [ text (if model.playing then "Pause" else "Play") ]
+    div [ class "realbook", class "content", class "fulldiv"  ]
+        [ h1 [ class "realbook", class "titleplayer" ] [ text "Random ii-V-Is" ]
+        , select [ onInput StyleChanged ]
+                 [ option [ Html.Attributes.value "Swing" ] [ text "Swing" ] 
+                 , option [ Html.Attributes.value "Bossa" ] [ text "Bossa" ] 
+                 , option [ Html.Attributes.value "Fusion" ] [ text "Fusion" ] 
+                 ]
+        , br [] []
+        , span [ class "button", onClick TogglePlay ] 
+             [ if model.playing 
+               then icon "pause" "Pause"
+               else icon "play_arrow" "Play" ]
         , input [ Html.Attributes.type_ "range"
                 , onInput (\s -> (case String.toFloat s of
                                     Just f -> SetBpm f
