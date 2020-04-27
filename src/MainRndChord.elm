@@ -43,6 +43,7 @@ type Msg =
     | TogglePlay
     | SetVolume String Float
     | StyleChanged String
+    | ToMenu
 
 init : () -> (Model, Cmd Msg)
 init _ = ({ bpm = 120
@@ -81,6 +82,8 @@ update msg model =
             ({ model | style = newstyle }
             , Cmd.batch [ genSequence newstyle
                         , genNextSequence newstyle ])
+
+        ToMenu -> (model, Cmd.none)
 
 noCrash : Tune.Sequence -> Tune.Sequence
 noCrash =
@@ -130,7 +133,8 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     div [ class "realbook", class "content", class "fulldiv"  ]
-        [ h1 [ class "realbook", class "titleplayer" ] [ text "Random ii-V-Is" ]
+        [ p [] [ span [ class "button", onClick ToMenu ] [ icon "menu" "Library" ] ]
+        , h1 [ class "realbook", class "titleplayer" ] [ text "Random ii-V-Is" ]
         , select [ onInput StyleChanged ]
                  [ option [ Html.Attributes.value "Swing" ] [ text "Swing" ] 
                  , option [ Html.Attributes.value "Bossa" ] [ text "Bossa" ] 

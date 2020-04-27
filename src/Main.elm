@@ -10,6 +10,7 @@ import Random as R
 import PlayerPage as Pp
 import Editor as E
 import Library as L
+import MainRndChord as Rnc
 import DialogBox exposing (..)
 import Dict exposing (Dict)
 
@@ -20,13 +21,14 @@ main = Browser.element
     , view = view
     }
 
-type Page = Player | Editor | Library
+type Page = Player | Editor | Library | RndChord
 
 type alias Model =
     { playerModel : Pp.SubModel
     , editorModel : E.SubModel
     , libraryModel : L.SubModel
     , dialogBoxModel : ModelDB
+    , rndChordModel : Rnc.Model
     , curPage : Page
     , dialogBox : Maybe (DialogBox ModelDB Msg)
     --, dialogBox2 : Maybe (DialogBoxModel Model Msg)
@@ -52,6 +54,7 @@ type Msg =
     | PpEvent Pp.SubMsg
     | EditorEvent E.SubMsg
     | LibEvent L.SubMsg
+    | RncEvent Rnc.Msg
     | DialogEvent MsgDb
     | ChangePage Page
     | CreateSong
@@ -59,15 +62,19 @@ type Msg =
     --| DialogResult Model (Cmd Msg)
 
 init : () -> (Model, Cmd Msg)
-init _ = ({ playerModel = Pp.init
-          , editorModel = E.init
-          , libraryModel = L.init
-          , curPage = Library
-          , dialogBox = Nothing
-          , dialogBoxModel = initDb }
-         , Cmd.batch
-            [ Cmd.map (\sm -> PpEvent sm) Pp.initCmd
-            , L.initCmd ])
+init _ = 
+    let (rncMod, rncCmd) = Rnc.init () in
+    ({ playerModel = Pp.init
+     , editorModel = E.init
+     , libraryModel = L.init
+     , rndChordModel = rncMod
+     , curPage = Library
+     , dialogBox = Nothing
+     , dialogBoxModel = initDb }
+    , Cmd.batch
+    [ Cmd.map (\sm -> PpEvent sm) Pp.initCmd
+    , L.initCmd ])
+    --, Cmd.map (\sm -> RncEvent sm) rncCmd ])
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -162,6 +169,7 @@ update msg model =
                             s |> Pp.asSongIn model.playerModel
                               |> Pp.setBpm s.defaultTempo
                               |> Pp.setCursor 0
+                              |> Pp.setPlaying False
                               |> asPlayerModIn model
                               |> setLibrary (L.setChosen model.libraryModel)
                     in
@@ -169,7 +177,17 @@ update msg model =
                         , Cmd.batch
                             [ genSequence newmod
                             , Tune.setCursor 0
-                            , Tune.setBpm s.defaultTempo ] )
+                            , Tune.setBpm s.defaultTempo
+                            , Tune.pause () ] )
+                L.ToRndChord ->
+                    let (rncMod, rncCmd) = Rnc.init () in
+                    ( { model | curPage = RndChord, rndChordModel = rncMod }
+                    , Cmd.map (\sm -> RncEvent sm) 
+                    <| Cmd.batch
+                        [ Tune.pause ()
+                        , Tune.setCursor 0
+                        , Tune.setBpm rncMod.bpm
+                        , rncCmd ] )
                 L.Close ->
                     ({ model | curPage = Player }, genSequence model)
 
@@ -187,6 +205,14 @@ update msg model =
                     in
                         ({ mm | libraryModel = newmod }
                         , Cmd.map (\sm -> LibEvent sm) newcmd )
+
+        RncEvent submsg ->
+            case submsg of
+                Rnc.ToMenu -> ({ model | curPage = Library }, Cmd.none)
+                _ -> 
+                    let (rncMod, rncCmd) = Rnc.update submsg model.rndChordModel in
+                    ({ model | rndChordModel = rncMod }
+                    , Cmd.map (\sm -> RncEvent sm) rncCmd)
 
         ChangePage newp -> ({ model | curPage = newp }, Cmd.none)
 
@@ -212,8 +238,10 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch 
         [ Tune.cursorChanged SetCursor
-        , Tune.sequenceFinished (always (PpEvent Pp.SeqFinished))
-        , L.gotASong (LibEvent << L.GotASong) ]
+        , L.gotASong (LibEvent << L.GotASong)
+        , if model.curPage /= RndChord
+          then Tune.sequenceFinished (always (PpEvent Pp.SeqFinished))
+          else Sub.map (\sm -> RncEvent sm) (Rnc.subscriptions model.rndChordModel) ]
 
 view : Model -> Html Msg
 view model =
@@ -232,6 +260,9 @@ view model =
                     Html.map (\submsg -> EditorEvent submsg) (E.view model.editorModel)
                 Library ->
                     Html.map (\submsg -> LibEvent submsg) (L.view model.libraryModel)
+
+                RndChord ->
+                    Html.map (\sm -> RncEvent sm) (Rnc.view model.rndChordModel)
         ]
 
 

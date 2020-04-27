@@ -34,6 +34,7 @@ type SubMsg =
     | JsonLoaded String
     | CancelDb
     | AddFile2LocalDb (List Pp.Song)
+    | ToRndChord
 
 init : SubModel
 init = { library=Dict.empty
@@ -130,13 +131,17 @@ view m =
                     ]
               ]
         , div [ class "songlist" ]
+            ((if contains m.searchBar "random ii-v-is" then
+            [div [ class "libsongcontainer", onClick ToRndChord ]
+                 [ div [ class "left" ] [ text "Random ii-V-Is" ] ]
+            ] else []) ++ 
             (Dict.values m.library
             |> List.filter
                 (\s -> contains m.searchBar s.title || contains m.searchBar s.composer)
             |> List.map 
                  (\s -> div [ class "libsongcontainer", onClick (SongClicked s) ]
                             [ div [ class "left" ] [ text s.title ], div [ class "right" ] [ text s.composer ] ])
-            )
+            ))
         ])
 
 getKey : Pp.Song -> String

@@ -55,6 +55,8 @@ setBpm : Float -> SubModel -> SubModel
 setBpm t sm = { sm | bpm=t }
 setCursor : Float -> SubModel -> SubModel
 setCursor c sm = { sm | cursor=c }
+setPlaying : Bool -> SubModel -> SubModel
+setPlaying b sm = { sm | playing=b }
 setPlayback : Int -> SubModel -> SubModel
 setPlayback i sm = { sm | playbackKey = i }
 noTranspose : SubModel -> SubModel
