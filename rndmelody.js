@@ -5662,8 +5662,8 @@ var $elm$random$Random$uniform = F2(
 			$elm$random$Random$addOne(value),
 			A2($elm$core$List$map, $elm$random$Random$addOne, valueList));
 	});
-var $author$project$RndMelody$genSequence = F2(
-	function (intvls, len) {
+var $author$project$RndMelody$genSequence = F4(
+	function (intvls, len, low, high) {
 		return A2(
 			$elm$random$Random$generate,
 			$author$project$RndMelody$SequenceGenerated,
@@ -5688,23 +5688,24 @@ var $author$project$RndMelody$genSequence = F2(
 						return A2(
 							$elm$random$Random$map,
 							function (start) {
-								return A3(
-									$elm$core$List$foldr,
-									F2(
-										function (intvl, cuml) {
-											if (!cuml.b) {
-												return _List_Nil;
-											} else {
-												var h = cuml.a;
-												var t = cuml.b;
-												return A2($elm$core$List$cons, h + intvl, cuml);
-											}
-										}),
-									_List_fromArray(
-										[start]),
-									list);
+								return $elm$core$List$reverse(
+									A3(
+										$elm$core$List$foldl,
+										F2(
+											function (intvl, cuml) {
+												if (!cuml.b) {
+													return _List_Nil;
+												} else {
+													var h = cuml.a;
+													var t = cuml.b;
+													return A2($elm$core$List$cons, h + intvl, cuml);
+												}
+											}),
+										_List_fromArray(
+											[start]),
+										list));
 							},
-							A2($elm$random$Random$int, 48, 59));
+							A2($elm$random$Random$int, low, high));
 					},
 					A3(
 						$elm$random$Random$map2,
@@ -5742,19 +5743,23 @@ var $author$project$RndMelody$init = function (_v0) {
 			blankLength: 8,
 			bpm: 120,
 			continuous: false,
+			highend: 59,
 			intervals: $elm$core$Set$fromList(
 				_List_fromArray(
 					[1, 2])),
 			isPlayingBlank: false,
 			length: 8,
+			lowend: 48,
 			playing: false
 		},
-		A2(
+		A4(
 			$author$project$RndMelody$genSequence,
 			$elm$core$Set$fromList(
 				_List_fromArray(
 					[1, 2])),
-			8));
+			8,
+			48,
+			59));
 };
 var $author$project$RndMelody$SeqFinished = {$: 'SeqFinished'};
 var $elm$core$Basics$always = F2(
@@ -5770,7 +5775,6 @@ var $author$project$RndMelody$subscriptions = function (model) {
 		$elm$core$Basics$always($author$project$RndMelody$SeqFinished));
 };
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Debug$log = _Debug_log;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $elm$core$Basics$not = _Basics_not;
 var $elm$json$Json$Encode$null = _Json_encodeNull;
@@ -6288,13 +6292,11 @@ var $author$project$RndMelody$update = F2(
 						{bpm: b}),
 					$author$project$Tune$setBpm(b));
 			case 'SeqFinished':
-				var _v1 = A2($elm$core$Debug$log, 'continuous', model.continuous);
-				var _v2 = A2($elm$core$Debug$log, 'playingBlank', model.isPlayingBlank);
 				return model.continuous ? _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{isPlayingBlank: !model.isPlayingBlank}),
-					model.isPlayingBlank ? A2($author$project$RndMelody$genSequence, model.intervals, model.length) : $author$project$Tune$setSequenceAndPlay(
+					model.isPlayingBlank ? A4($author$project$RndMelody$genSequence, model.intervals, model.length, model.lowend, model.highend) : $author$project$Tune$setSequenceAndPlay(
 						_List_fromArray(
 							[
 								A5($author$project$Tune$Event, model.blankLength, false, 0, 'piano', 0)
@@ -6335,7 +6337,7 @@ var $author$project$RndMelody$update = F2(
 					_Utils_update(
 						model,
 						{playing: true}),
-					A2($author$project$RndMelody$genSequence, model.intervals, model.length));
+					A4($author$project$RndMelody$genSequence, model.intervals, model.length, model.lowend, model.highend));
 			case 'SetLength':
 				var l = msg.a;
 				return _Utils_Tuple2(
@@ -6358,15 +6360,35 @@ var $author$project$RndMelody$update = F2(
 						model,
 						{continuous: !model.continuous}),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'SetBlankLength':
 				var l = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{blankLength: l}),
 					$elm$core$Platform$Cmd$none);
+			case 'AddLow':
+				var n = msg.a;
+				return _Utils_Tuple2(
+					(_Utils_cmp(model.lowend + n, model.highend) < 1) ? _Utils_update(
+						model,
+						{lowend: model.lowend + n}) : model,
+					$elm$core$Platform$Cmd$none);
+			default:
+				var n = msg.a;
+				return _Utils_Tuple2(
+					(_Utils_cmp(model.lowend, model.highend + n) < 1) ? _Utils_update(
+						model,
+						{highend: model.highend + n}) : model,
+					$elm$core$Platform$Cmd$none);
 		}
 	});
+var $author$project$RndMelody$AddHigh = function (a) {
+	return {$: 'AddHigh', a: a};
+};
+var $author$project$RndMelody$AddLow = function (a) {
+	return {$: 'AddLow', a: a};
+};
 var $author$project$RndMelody$Regenerate = {$: 'Regenerate'};
 var $author$project$RndMelody$SetBlankLength = function (a) {
 	return {$: 'SetBlankLength', a: a};
@@ -6447,6 +6469,40 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
 var $elm$html$Html$p = _VirtualDom_node('p');
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $author$project$RndMelody$pitch2note = function (n) {
+	var oct = $elm$core$String$fromInt(((n / 12) | 0) - 1);
+	var name = function () {
+		var _v0 = A2($elm$core$Basics$modBy, 12, n);
+		switch (_v0) {
+			case 0:
+				return 'C ';
+			case 1:
+				return 'C#';
+			case 2:
+				return 'D ';
+			case 3:
+				return 'Eb';
+			case 4:
+				return 'E ';
+			case 5:
+				return 'F ';
+			case 6:
+				return 'F#';
+			case 7:
+				return 'G ';
+			case 8:
+				return 'Ab';
+			case 9:
+				return 'A ';
+			case 10:
+				return 'Bb';
+			default:
+				return 'B ';
+		}
+	}();
+	return _Utils_ap(name, oct);
+};
 var $elm$html$Html$Attributes$step = function (n) {
 	return A2($elm$html$Html$Attributes$stringProperty, 'step', n);
 };
@@ -6667,6 +6723,60 @@ var $author$project$RndMelody$view = function (model) {
 						'8th',
 						A2($elm$core$Set$member, 12, model.intervals),
 						$author$project$RndMelody$ToggleInterval(12))
+					])),
+				A2(
+				$elm$html$Html$p,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						'Starting note range : ' + $author$project$RndMelody$pitch2note(model.lowend)),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$RndMelody$AddLow(-1))
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('-')
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$RndMelody$AddLow(1))
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('+')
+							])),
+						$elm$html$Html$text(
+						' to ' + $author$project$RndMelody$pitch2note(model.highend)),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$RndMelody$AddHigh(-1))
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('-')
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$RndMelody$AddHigh(1))
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('+')
+							]))
 					]))
 			]));
 };

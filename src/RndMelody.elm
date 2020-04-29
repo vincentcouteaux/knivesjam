@@ -24,6 +24,8 @@ type alias Model =
     , continuous : Bool
     , isPlayingBlank : Bool
     , blankLength : Int
+    , lowend : Int
+    , highend : Int
     }
 
 type Msg =
@@ -37,6 +39,8 @@ type Msg =
     | ToggleInterval Int
     | ToggleContinuous
     | SetBlankLength Int
+    | AddLow Int
+    | AddHigh Int
 
 init : () -> (Model, Cmd Msg)
 init _ = ({ bpm = 120
@@ -46,23 +50,21 @@ init _ = ({ bpm = 120
           , length = 8
           , continuous = False
           , isPlayingBlank = False
-          , blankLength = 8 }
-         , genSequence (Set.fromList [1,2]) 8)
+          , blankLength = 8
+          , lowend = 48
+          , highend = 59 }
+         , genSequence (Set.fromList [1,2]) 8 48 59)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
         SetBpm b -> ({ model | bpm=b }, Tune.setBpm b)
         SeqFinished -> 
-            let 
-                _ = Debug.log "continuous"  model.continuous
-                _ = Debug.log "playingBlank"  model.isPlayingBlank
-            in
             if model.continuous
             then
                 ({ model | isPlayingBlank = not model.isPlayingBlank }
                 , if model.isPlayingBlank
-                  then genSequence model.intervals model.length
+                  then genSequence model.intervals model.length model.lowend model.highend
                   else Tune.setSequenceAndPlay [ Tune.Event (toFloat (model.blankLength)) False 0 "piano" 0 ]
                 )
             else
@@ -83,7 +85,7 @@ update msg model =
         Reset -> (model, Tune.setCursor 0) 
 
         Regenerate -> ( { model | playing = True }
-                      , genSequence model.intervals model.length)
+                      , genSequence model.intervals model.length model.lowend model.highend)
 
         SetLength l -> ({ model | length=l }, Cmd.none)
 
@@ -93,12 +95,16 @@ update msg model =
 
         SetBlankLength l -> ({ model | blankLength = l }, Cmd.none)
 
+        AddLow n -> (if model.lowend + n <= model.highend then { model | lowend = model.lowend + n } else model, Cmd.none)
+
+        AddHigh n -> (if model.lowend <= model.highend + n then { model | highend = model.highend + n } else model, Cmd.none)
+
 toggleSet : comparable -> Set comparable -> Set comparable
 toggleSet c s =
     if Set.member c s then Set.remove c s else Set.insert c s
 
-genSequence : Set Int -> Int -> Cmd Msg --R.Generator Tune.Sequence
-genSequence intvls len = 
+genSequence : Set Int -> Int -> Int -> Int -> Cmd Msg --R.Generator Tune.Sequence
+genSequence intvls len low high = 
     Set.toList intvls
     |> (\l -> case l of
                 [] -> R.constant 0
@@ -109,10 +115,10 @@ genSequence intvls len =
             (\it x -> it*x))
         (R.list (len-1) (R.map (\t -> 2*t-1) (R.int 0 1)))
     |> R.andThen
-        (\list -> R.int 48 59
+        (\list -> R.int low high
             |> R.map
             (\start ->
-                List.foldr
+                List.foldl
                     (\intvl cuml -> 
                         case cuml of
                             [] -> []
@@ -120,6 +126,7 @@ genSequence intvls len =
                     )
                     [start]
                     list
+                |> List.reverse
             )
         )
     |> R.map
@@ -188,6 +195,14 @@ view model =
             , togBtn "7th M" (Set.member 11 model.intervals) (ToggleInterval 11)
             , togBtn "8th" (Set.member 12 model.intervals) (ToggleInterval 12)
             ]
+        , p [] 
+            [ text ("Starting note range : " ++ pitch2note model.lowend)
+            , button [ onClick (AddLow -1) ] [ text "-" ]
+            , button [ onClick (AddLow 1) ] [ text "+" ]
+            , text (" to " ++ pitch2note model.highend)
+            , button [ onClick (AddHigh -1) ] [ text "-" ]
+            , button [ onClick (AddHigh 1) ] [ text "+" ]
+            ]
         ]
 
 togBtn : String -> Bool -> msg -> Html msg
@@ -200,3 +215,23 @@ togBtn t b m =
 subscriptions : Model -> Sub Msg
 subscriptions model =
         Tune.sequenceFinished (always SeqFinished)
+
+pitch2note n = 
+    let
+        name = 
+            case modBy 12 n of
+                0 -> "C "
+                1 -> "C#"
+                2 -> "D "
+                3 -> "Eb"
+                4 -> "E "
+                5 -> "F "
+                6 -> "F#"
+                7 -> "G "
+                8 -> "Ab"
+                9 -> "A "
+                10 -> "Bb"
+                _ -> "B "
+        oct = String.fromInt (n//12 - 1)
+    in 
+        name ++ oct
