@@ -5740,9 +5740,11 @@ var $author$project$RndMelody$init = function (_v0) {
 	return _Utils_Tuple2(
 		{
 			bpm: 120,
+			continuous: false,
 			intervals: $elm$core$Set$fromList(
 				_List_fromArray(
 					[1, 2])),
+			isPlayingBlank: false,
 			length: 8,
 			playing: false
 		},
@@ -5767,6 +5769,7 @@ var $author$project$RndMelody$subscriptions = function (model) {
 		$elm$core$Basics$always($author$project$RndMelody$SeqFinished));
 };
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Debug$log = _Debug_log;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $elm$core$Basics$not = _Basics_not;
 var $elm$json$Json$Encode$null = _Json_encodeNull;
@@ -5810,6 +5813,30 @@ var $elm$json$Json$Encode$object = function (pairs) {
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$Tune$setSequence = _Platform_outgoingPort(
 	'setSequence',
+	$elm$json$Json$Encode$list(
+		function ($) {
+			return $elm$json$Json$Encode$object(
+				_List_fromArray(
+					[
+						_Utils_Tuple2(
+						'gain',
+						$elm$json$Json$Encode$float($.gain)),
+						_Utils_Tuple2(
+						'instrument',
+						$elm$json$Json$Encode$string($.instrument)),
+						_Utils_Tuple2(
+						'onset',
+						$elm$json$Json$Encode$bool($.onset)),
+						_Utils_Tuple2(
+						'pitch',
+						$elm$json$Json$Encode$int($.pitch)),
+						_Utils_Tuple2(
+						'time',
+						$elm$json$Json$Encode$float($.time))
+					]));
+		}));
+var $author$project$Tune$setSequenceAndPlay = _Platform_outgoingPort(
+	'setSequenceAndPlay',
 	$elm$json$Json$Encode$list(
 		function ($) {
 			return $elm$json$Json$Encode$object(
@@ -6260,7 +6287,17 @@ var $author$project$RndMelody$update = F2(
 						{bpm: b}),
 					$author$project$Tune$setBpm(b));
 			case 'SeqFinished':
-				return _Utils_Tuple2(
+				var _v1 = A2($elm$core$Debug$log, 'continuous', model.continuous);
+				var _v2 = A2($elm$core$Debug$log, 'playingBlank', model.isPlayingBlank);
+				return model.continuous ? _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{isPlayingBlank: !model.isPlayingBlank}),
+					model.isPlayingBlank ? A2($author$project$RndMelody$genSequence, model.intervals, model.length) : $author$project$Tune$setSequenceAndPlay(
+						_List_fromArray(
+							[
+								A5($author$project$Tune$Event, model.length + 1, false, 0, 'piano', 0)
+							]))) : _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{playing: false}),
@@ -6284,15 +6321,19 @@ var $author$project$RndMelody$update = F2(
 			case 'SequenceGenerated':
 				var b = msg.a;
 				return _Utils_Tuple2(
-					model,
-					$author$project$Tune$setSequence(b));
+					_Utils_update(
+						model,
+						{isPlayingBlank: false}),
+					model.playing ? $author$project$Tune$setSequenceAndPlay(b) : $author$project$Tune$setSequence(b));
 			case 'Reset':
 				return _Utils_Tuple2(
 					model,
 					$author$project$Tune$setCursor(0));
 			case 'Regenerate':
 				return _Utils_Tuple2(
-					model,
+					_Utils_update(
+						model,
+						{playing: true}),
 					A2($author$project$RndMelody$genSequence, model.intervals, model.length));
 			case 'SetLength':
 				var l = msg.a;
@@ -6301,7 +6342,7 @@ var $author$project$RndMelody$update = F2(
 						model,
 						{length: l}),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'ToggleInterval':
 				var i = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -6309,6 +6350,12 @@ var $author$project$RndMelody$update = F2(
 						{
 							intervals: A2($author$project$RndMelody$toggleSet, i, model.intervals)
 						}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{continuous: !model.continuous}),
 					$elm$core$Platform$Cmd$none);
 		}
 	});
@@ -6319,6 +6366,7 @@ var $author$project$RndMelody$SetBpm = function (a) {
 var $author$project$RndMelody$SetLength = function (a) {
 	return {$: 'SetLength', a: a};
 };
+var $author$project$RndMelody$ToggleContinuous = {$: 'ToggleContinuous'};
 var $author$project$RndMelody$ToggleInterval = function (a) {
 	return {$: 'ToggleInterval', a: a};
 };
@@ -6391,11 +6439,11 @@ var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$Attributes$step = function (n) {
 	return A2($elm$html$Html$Attributes$stringProperty, 'step', n);
 };
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$core$String$toFloat = _String_toFloat;
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $author$project$RndMelody$togBtn = F3(
 	function (t, b, m) {
 		return A2(
@@ -6430,8 +6478,35 @@ var $author$project$RndMelody$view = function (model) {
 				_List_fromArray(
 					[
 						$elm$html$Html$text(
-						model.playing ? 'Pause' : 'Play')
+						model.playing ? 'Pause' : 'Replay')
 					])),
+				(!model.playing) ? A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick($author$project$RndMelody$Regenerate)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Play new')
+					])) : $elm$html$Html$text(''),
+				A2($elm$html$Html$br, _List_Nil, _List_Nil),
+				A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$Attributes$style,
+						'background-color',
+						model.continuous ? 'red' : 'white'),
+						$elm$html$Html$Events$onClick($author$project$RndMelody$ToggleContinuous)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Continuous generation')
+					])),
+				A2($elm$html$Html$br, _List_Nil, _List_Nil),
+				A2($elm$html$Html$br, _List_Nil, _List_Nil),
 				A2(
 				$elm$html$Html$input,
 				_List_fromArray(
@@ -6551,16 +6626,6 @@ var $author$project$RndMelody$view = function (model) {
 						'8th',
 						A2($elm$core$Set$member, 12, model.intervals),
 						$author$project$RndMelody$ToggleInterval(12))
-					])),
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick($author$project$RndMelody$Regenerate)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Generate!')
 					]))
 			]));
 };

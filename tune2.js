@@ -114,12 +114,24 @@ const initTune = (ctx, instruments, app) => {
                         x[1] && !y[1] ? 1:-1 );
         return newseq;
     };
-    app.ports.setSequence.subscribe(s => {
-        stopAllInst();
-        sequence = receiveSeq(s);
-        //nextSequence = newseq.slice();
-        //playFrom();
-    });
+    if (app.ports.setSequence) {
+        app.ports.setSequence.subscribe(s => {
+            stopAllInst();
+            sequence = receiveSeq(s);
+            //nextSequence = newseq.slice();
+            //playFrom();
+        });
+    }
+    if (app.ports.setSequenceAndPlay) {
+        app.ports.setSequenceAndPlay.subscribe(s => {
+            stopAllInst();
+            sequence = receiveSeq(s);
+            //nextSequence = newseq.slice();
+            inplay = true;
+            cursor = 0;
+            playFrom();
+        });
+    }
     if (app.ports.setNextSequence) {
         app.ports.setNextSequence.subscribe(s => {
             nextsequence = receiveSeq(s);

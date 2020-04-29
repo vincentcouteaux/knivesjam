@@ -21,6 +21,8 @@ type alias Model =
     , playing : Bool
     , intervals : Set Int
     , length : Int
+    , continuous : Bool
+    , isPlayingBlank : Bool
     }
 
 type Msg =
@@ -32,35 +34,59 @@ type Msg =
     | Regenerate
     | SetLength Int
     | ToggleInterval Int
+    | ToggleContinuous
 
 init : () -> (Model, Cmd Msg)
 init _ = ({ bpm = 120
           --, cursor = 0
           , playing = False
           , intervals = Set.fromList [1,2]
-          , length = 8 }, genSequence (Set.fromList [1,2]) 8)
+          , length = 8
+          , continuous = False
+          , isPlayingBlank = False }
+         , genSequence (Set.fromList [1,2]) 8)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
         SetBpm b -> ({ model | bpm=b }, Tune.setBpm b)
-        SeqFinished -> ({ model | playing = False }
-                       , Cmd.batch [ Tune.setCursor 0, Tune.pause () ])
+        SeqFinished -> 
+            let 
+                _ = Debug.log "continuous"  model.continuous
+                _ = Debug.log "playingBlank"  model.isPlayingBlank
+            in
+            if model.continuous
+            then
+                ({ model | isPlayingBlank = not model.isPlayingBlank }
+                , if model.isPlayingBlank
+                  then genSequence model.intervals model.length
+                  else Tune.setSequenceAndPlay [ Tune.Event (toFloat (model.length+1)) False 0 "piano" 0 ]
+                )
+            else
+                ({ model | playing = False }
+                , Cmd.batch [ Tune.setCursor 0, Tune.pause () ])
+
         TogglePlay -> ({ model | playing = not model.playing}
                       , if model.playing 
                         then 
                             Cmd.batch [ Tune.pause (), Tune.setCursor 0 ]
                         else Tune.play ()
                       )
-        SequenceGenerated b -> (model, Tune.setSequence b)
+        SequenceGenerated b -> 
+            ({ model | isPlayingBlank = False }
+            --, Tune.setSequenceAndPlay b)
+            , if model.playing then Tune.setSequenceAndPlay b else Tune.setSequence b)
 
         Reset -> (model, Tune.setCursor 0) 
 
-        Regenerate -> (model, genSequence model.intervals model.length)
+        Regenerate -> ( { model | playing = True }
+                      , genSequence model.intervals model.length)
 
         SetLength l -> ({ model | length=l }, Cmd.none)
 
         ToggleInterval i -> ({ model | intervals=toggleSet i model.intervals }, Cmd.none)
+
+        ToggleContinuous -> ({ model | continuous = not model.continuous }, Cmd.none)
 
 toggleSet : comparable -> Set comparable -> Set comparable
 toggleSet c s =
@@ -103,7 +129,12 @@ genSequence intvls len =
 view : Model -> Html Msg
 view model =
     div []
-        [ button [ onClick TogglePlay ] [ text (if model.playing then "Pause" else "Play") ]
+        [ button [ onClick TogglePlay ] [ text (if model.playing then "Pause" else "Replay") ]
+        , if not model.playing then button [ onClick Regenerate ] [ text "Play new" ] else text ""
+        , br [] []
+        , button [ Html.Attributes.style "background-color" (if model.continuous then "red" else "white")
+                 , onClick ToggleContinuous ] [ text "Continuous generation" ]
+        , br [] [], br [] []
         , input [ Html.Attributes.type_ "range"
                 , onInput (\s -> (case String.toFloat s of
                                     Just f -> SetBpm f
@@ -138,7 +169,6 @@ view model =
             , togBtn "7th M" (Set.member 11 model.intervals) (ToggleInterval 11)
             , togBtn "8th" (Set.member 12 model.intervals) (ToggleInterval 12)
             ]
-        , button [ onClick Regenerate ] [ text "Generate!" ]
         ]
 
 togBtn : String -> Bool -> msg -> Html msg
