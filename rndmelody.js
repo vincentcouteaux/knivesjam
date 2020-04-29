@@ -5739,6 +5739,7 @@ var $author$project$RndMelody$genSequence = F2(
 var $author$project$RndMelody$init = function (_v0) {
 	return _Utils_Tuple2(
 		{
+			blankLength: 8,
 			bpm: 120,
 			continuous: false,
 			intervals: $elm$core$Set$fromList(
@@ -6296,7 +6297,7 @@ var $author$project$RndMelody$update = F2(
 					model.isPlayingBlank ? A2($author$project$RndMelody$genSequence, model.intervals, model.length) : $author$project$Tune$setSequenceAndPlay(
 						_List_fromArray(
 							[
-								A5($author$project$Tune$Event, model.length + 1, false, 0, 'piano', 0)
+								A5($author$project$Tune$Event, model.blankLength, false, 0, 'piano', 0)
 							]))) : _Utils_Tuple2(
 					_Utils_update(
 						model,
@@ -6351,15 +6352,25 @@ var $author$project$RndMelody$update = F2(
 							intervals: A2($author$project$RndMelody$toggleSet, i, model.intervals)
 						}),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'ToggleContinuous':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{continuous: !model.continuous}),
 					$elm$core$Platform$Cmd$none);
+			default:
+				var l = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{blankLength: l}),
+					$elm$core$Platform$Cmd$none);
 		}
 	});
 var $author$project$RndMelody$Regenerate = {$: 'Regenerate'};
+var $author$project$RndMelody$SetBlankLength = function (a) {
+	return {$: 'SetBlankLength', a: a};
+};
 var $author$project$RndMelody$SetBpm = function (a) {
 	return {$: 'SetBpm', a: a};
 };
@@ -6505,6 +6516,36 @@ var $author$project$RndMelody$view = function (model) {
 					[
 						$elm$html$Html$text('Continuous generation')
 					])),
+				model.continuous ? A2(
+				$elm$html$Html$p,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Blank duration: '),
+						A2(
+						$elm$html$Html$input,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$type_('number'),
+								$elm$html$Html$Attributes$min('0'),
+								$elm$html$Html$Events$onInput(
+								function (s) {
+									return $author$project$RndMelody$SetBlankLength(
+										function () {
+											var _v0 = $elm$core$String$toInt(s);
+											if (_v0.$ === 'Just') {
+												var i = _v0.a;
+												return i;
+											} else {
+												return 0;
+											}
+										}());
+								}),
+								$elm$html$Html$Attributes$value(
+								$elm$core$String$fromInt(model.blankLength))
+							]),
+						_List_Nil)
+					])) : $elm$html$Html$text(''),
 				A2($elm$html$Html$br, _List_Nil, _List_Nil),
 				A2($elm$html$Html$br, _List_Nil, _List_Nil),
 				A2(
@@ -6514,9 +6555,9 @@ var $author$project$RndMelody$view = function (model) {
 						$elm$html$Html$Attributes$type_('range'),
 						$elm$html$Html$Events$onInput(
 						function (s) {
-							var _v0 = $elm$core$String$toFloat(s);
-							if (_v0.$ === 'Just') {
-								var f = _v0.a;
+							var _v1 = $elm$core$String$toFloat(s);
+							if (_v1.$ === 'Just') {
+								var f = _v1.a;
 								return $author$project$RndMelody$SetBpm(f);
 							} else {
 								return $author$project$RndMelody$SetBpm(model.bpm);
@@ -6543,9 +6584,9 @@ var $author$project$RndMelody$view = function (model) {
 						function (s) {
 							return $author$project$RndMelody$SetLength(
 								function () {
-									var _v1 = $elm$core$String$toInt(s);
-									if (_v1.$ === 'Just') {
-										var i = _v1.a;
+									var _v2 = $elm$core$String$toInt(s);
+									if (_v2.$ === 'Just') {
+										var i = _v2.a;
 										return i;
 									} else {
 										return 0;

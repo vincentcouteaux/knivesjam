@@ -23,6 +23,7 @@ type alias Model =
     , length : Int
     , continuous : Bool
     , isPlayingBlank : Bool
+    , blankLength : Int
     }
 
 type Msg =
@@ -35,6 +36,7 @@ type Msg =
     | SetLength Int
     | ToggleInterval Int
     | ToggleContinuous
+    | SetBlankLength Int
 
 init : () -> (Model, Cmd Msg)
 init _ = ({ bpm = 120
@@ -43,7 +45,8 @@ init _ = ({ bpm = 120
           , intervals = Set.fromList [1,2]
           , length = 8
           , continuous = False
-          , isPlayingBlank = False }
+          , isPlayingBlank = False
+          , blankLength = 8 }
          , genSequence (Set.fromList [1,2]) 8)
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -60,7 +63,7 @@ update msg model =
                 ({ model | isPlayingBlank = not model.isPlayingBlank }
                 , if model.isPlayingBlank
                   then genSequence model.intervals model.length
-                  else Tune.setSequenceAndPlay [ Tune.Event (toFloat (model.length+1)) False 0 "piano" 0 ]
+                  else Tune.setSequenceAndPlay [ Tune.Event (toFloat (model.blankLength)) False 0 "piano" 0 ]
                 )
             else
                 ({ model | playing = False }
@@ -87,6 +90,8 @@ update msg model =
         ToggleInterval i -> ({ model | intervals=toggleSet i model.intervals }, Cmd.none)
 
         ToggleContinuous -> ({ model | continuous = not model.continuous }, Cmd.none)
+
+        SetBlankLength l -> ({ model | blankLength = l }, Cmd.none)
 
 toggleSet : comparable -> Set comparable -> Set comparable
 toggleSet c s =
@@ -134,6 +139,20 @@ view model =
         , br [] []
         , button [ Html.Attributes.style "background-color" (if model.continuous then "red" else "white")
                  , onClick ToggleContinuous ] [ text "Continuous generation" ]
+        , if model.continuous
+          then 
+              p [] 
+                [ text "Blank duration: "
+                , input [ Html.Attributes.type_ "number" 
+                        , Html.Attributes.min "0"
+                        , onInput (\s -> SetBlankLength
+                           (case String.toInt s of
+                               Just i -> i
+                               _ -> 0))
+                        , Html.Attributes.value <| String.fromInt model.blankLength
+                        ] [] 
+                ]
+          else text ""
         , br [] [], br [] []
         , input [ Html.Attributes.type_ "range"
                 , onInput (\s -> (case String.toFloat s of
