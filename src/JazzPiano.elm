@@ -11,17 +11,19 @@ sweep =
         (\i -> [ Tune.Event (toFloat i) True (i+50) "piano" 1
                , Tune.Event ((toFloat i)+0.5) False (i+50) "piano" 1 ])
 
-type alias Voicing = (Int, List (G.Chord -> G.Note)) --the int is the low pitch
+type alias Voicing = List (Int, List (G.Chord -> G.Note)) --the int is the low pitch
 type alias PossibleVoicings = G.ChordType -> List Voicing
 
 compact : Voicing
-compact = (53, [ G.getThirdOf, G.getFifthOf, G.getSeventhOf, G.getNinethOf ] )
+compact = [ (51, [ G.getThirdOf, G.getSeventhOf ] ), ( 58, [ G.getFifthOf, G.getNinethOf ] ) ]
 
 compact13 : Voicing
-compact13 = (53, [ G.getThirdOf, G.getThirteenthOf, G.getSeventhOf, G.getNinethOf ] )
+compact13 = [ (51, [ G.getThirdOf, G.getSeventhOf ] ), ( 58, [ G.getThirteenthOf, G.getNinethOf ] ) ]
+compact13_11 : Voicing
+compact13_11 = [ (51, [ G.getThirdOf, G.getSeventhOf ] ), ( 58, [ G.getThirteenthOf, G.getNinethOf, G.getEleventhOf ] ) ]
 
 all_compact : PossibleVoicings
-all_compact c = if G.chordClass c == G.Dominant then [ compact13 ] else [ compact ]
+all_compact c = if G.chordClass c == G.Dominant then [ compact13, compact13_11 ] else [ compact ]
 
 possibleBarsMeta : Bool -> Int -> List (List (Float, Float))
 possibleBarsMeta swing signature = 
@@ -79,15 +81,17 @@ populateRhythm l cp =
         (\(onset, duration) ->
             let
                 chord = G.getChordAt cp (onset+0.4)
-                voicing = unif2 (0,[]) (all_compact (chord.type_))
+                voicing = unif2 [(0,[])] (all_compact (chord.type_))
                 notes =
                     R.map
-                        (\(lowest, funcs) ->
-                            List.map (\f -> f chord) funcs
-                            |> List.map (\n -> getAbove lowest n)
+                        (List.concatMap
+                            (\(lowest, funcs) ->
+                                List.map (\f -> f chord) funcs
+                                |> List.map (\n -> getAbove lowest n)
+                            )
                         )
                         voicing
-                volume = R.float 0.05 0.2
+                volume = R.float 0.5 2
             in
                 { onset = onset, duration = duration, chord = notes, volume = volume }
         )

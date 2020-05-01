@@ -117,6 +117,16 @@ getSeventhOf c = case c.type_ of
     Maj7s5 -> getSemitonesOf 11 c
     _ -> getSemitonesOf 10 c
 
+getEleventhOf : Chord -> Note
+getEleventhOf c = case c.type_ of
+    Dom7 -> getSemitonesOf 6 c
+    Alt7 -> getSemitonesOf 6 c
+    Dom7b9 -> getSemitonesOf 6 c
+    Dom7s5 -> getSemitonesOf 6 c
+    Maj7s5 -> getSemitonesOf 6 c
+    _ -> getSemitonesOf 5 c
+
+
 getThirteenthOf : Chord -> Note
 getThirteenthOf c = case c.type_ of
     Alt7 -> getSemitonesOf 8 c
