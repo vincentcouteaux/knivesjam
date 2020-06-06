@@ -1,4 +1,3 @@
-Corriger bug random chord -> Play -> library -> PlayerPage
 
 version 2.0
 mesure à vide au début
