@@ -91,7 +91,7 @@ noCrash =
 
 cp2seq : Style -> G.ChordProg -> R.Generator Tune.Sequence
 cp2seq s cp =
-    Styles.getSeqGenerator s cp 4
+    Styles.getSeqGenerator s 130 cp 4
 
 genSequence : Style -> Cmd Msg
 genSequence s =
@@ -139,6 +139,7 @@ view model =
                  [ option [ Html.Attributes.value "Swing" ] [ text "Swing" ] 
                  , option [ Html.Attributes.value "Bossa" ] [ text "Bossa" ] 
                  , option [ Html.Attributes.value "Fusion" ] [ text "Fusion" ] 
+                 , option [ Html.Attributes.value "Trap" ] [ text "Trap" ] 
                  ]
         , br [] []
         , span [ class "button", onClick TogglePlay ] 

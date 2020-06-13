@@ -11,8 +11,8 @@ type alias ShortEvt =
    , octave: Bool
    , velocity: Float }
 
-possibleRhythms : List (List ShortEvt)
-possibleRhythms =
+fusionPossibleRhythms : List (List ShortEvt)
+fusionPossibleRhythms =
     [ [ ShortEvt 0.05 0.5 False 0.6, ShortEvt 0.55 0.5 False 1
       , ShortEvt 1.05 0.5 False 0.6, ShortEvt 1.55 0.5 False 1
       , ShortEvt 3.75 0.25 False 0.6 ] 
@@ -34,8 +34,8 @@ possibleRhythms =
 --                  ]
 
 --randomBarAt : Int -> Float -> R.Generator (List (Float, Bool))
-randomBarAt : Int -> Float -> R.Generator (List ShortEvt)
-randomBarAt sig start =
+randomBarAt : List (List ShortEvt) -> Int -> Float -> R.Generator (List ShortEvt)
+randomBarAt possibleRhythms sig start =
     let sig_ = toFloat sig in
     unifl possibleRhythms
     |> R.map (List.filter (\e -> e.time <= sig_))
@@ -48,31 +48,33 @@ randomBarAt sig start =
     --            (R.weighted (0.2, False) [(0.8, True)])))
     --    >> G.listGen2GenList)
 
-allBars : Float -> Int -> R.Generator (List ShortEvt)
-allBars end sig =
+allBars : List (List ShortEvt) -> Float -> Int -> R.Generator (List ShortEvt)
+allBars possibleRhythms end sig =
     List.range 0 (floor ((end-1)/(toFloat sig)))
     |> List.map ((*) sig)
     |> List.map toFloat
-    |> List.map (randomBarAt sig)
+    |> List.map (randomBarAt possibleRhythms sig)
     |> G.listGen2GenList
     |> R.map List.concat
     |> R.map (List.filter (\e -> e.time + e.duration <= end))
 
-sequenceGenerator : G.ChordProg -> Int -> R.Generator (Tune.Sequence)
-sequenceGenerator cp sig =
-    allBars cp.end sig
+metaSequenceGenerator : List (List ShortEvt) -> String -> G.ChordProg -> Int -> R.Generator (Tune.Sequence)
+metaSequenceGenerator possibleRhythms inst cp sig =
+    allBars possibleRhythms cp.end sig
     |> R.map (
         (List.concatMap (\{time, duration, octave, velocity} -> 
             let 
                 note = G.getBass (G.getChordAt cp time)
                 p = n2pitch octave note
             in
-            [ Tune.Event time True p "bass" velocity
-            , Tune.Event (time+duration) False p "bass" velocity ]
+            [ Tune.Event time True p inst velocity
+            , Tune.Event (time+duration) False p inst velocity ]
             )
         ))
     |> R.map (List.filter (\e -> e.time <= cp.end))
     |> R.map (List.filter (\e -> (G.getChordAt cp (e.time+0.2)).type_ /= G.NA))
+
+sequenceGenerator = metaSequenceGenerator fusionPossibleRhythms "bass"
        
 n2pitch : Bool -> G.Note -> Int
 n2pitch oct note =

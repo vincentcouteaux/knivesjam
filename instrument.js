@@ -153,6 +153,98 @@ const pianoBufInstrument = ctx => {
     };
 };
 
+const bass808 = ctx => {
+    let buffer;
+    let request1 = new XMLHttpRequest();
+    request1.open("GET", "wavs/808/kickpitch.wav", true);
+    request1.responseType = "arraybuffer";
+    request1.onload = () => {
+        ctx.decodeAudioData(request1.response,
+                            buf => {
+                                buffer = buf;
+                            },
+                            e => console.log("error: ", e));
+    };
+    request1.send();
+    const halfstep = Math.pow(2, 1/12);
+    let source = null;
+    return {
+        stopNote: function(pitch, time) {
+            if (source !== null) {
+                const gain = source.gain;
+                gain.setValueAtTime(gain.value, time); 
+                gain.exponentialRampToValueAtTime(.001, time +1); 
+            };
+        },
+        startNote: function(pitch, gain, time) {
+            this.stopNote(0, time);
+            let bufferSource = ctx.createBufferSource()
+            const gainNode = ctx.createGain();
+            gainNode.gain.setValueAtTime(gain*this.volume, ctx.currentTime);
+            bufferSource.buffer = buffer;
+            bufferSource.playbackRate.value = Math.pow(halfstep, pitch-31);
+            bufferSource.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            bufferSource.start(time);
+            source = gainNode;
+        },
+        stopAllNotes: function() {
+            this.stopNote(0, ctx.currentTime);
+        },
+        volume: 1
+    };
+};
+const tr808BufInstrument = ctx => {
+    let buffers = {};
+    const load_in = (fname, reference) => {
+        let request1 = new XMLHttpRequest();
+        request1.open("GET", fname, true);
+        request1.responseType = "arraybuffer";
+        request1.onload = () => {
+            ctx.decodeAudioData(request1.response,
+                                buf => {
+                                    buffers[reference] = buf;
+                                },
+                                e => console.log("error: ", e));
+        };
+        request1.send();
+    };
+    load_in("wavs/808/BD.WAV", "kick");
+    load_in("wavs/808/SD.WAV", "snare");
+    load_in("wavs/808/CH.WAV", "hh");
+    load_in("wavs/808/OH.WAV", "oh");
+    buffers.oh_source = null;
+    return {
+        stopNote: function(pitch, time) {
+                if (buffers.oh_source !== null) {
+                    const gain = buffers.oh_source.gain;
+                    gain.setValueAtTime(gain.value, time); 
+                    gain.exponentialRampToValueAtTime(.001, time +0.01); 
+                };
+            },
+        startNote: function(pitch, gain, time) {
+            if (pitch > 1) {
+                this.stopNote(pitch, time);
+            };
+            let bufferSource = ctx.createBufferSource()
+            const gainNode = ctx.createGain();
+            gainNode.gain.setValueAtTime(gain*this.volume, ctx.currentTime);
+            bufferSource.buffer = pitch==0?buffers.kick:
+                                  pitch==1?buffers.snare:
+                                  pitch==2?buffers.hh:buffers.oh;
+            bufferSource.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            bufferSource.start(time);
+            if (pitch==3) {
+                buffers.oh_source = gainNode;
+            }
+        },
+        stopAllNotes: function() {
+            this.stopNote(3, ctx.currentTime);
+        },
+        volume: 1
+    };
+};
 const drumsBufInstrument = ctx => {
     let ride_buffer;
     let snare_buffer;

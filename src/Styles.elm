@@ -8,13 +8,14 @@ import BossaBass
 import BossaPiano
 import FusionDrums
 import FusionBass
+import TR808
 import Random as R
 import Tune
 
-type Style = Swing | Bop | Bossa | Fusion
+type Style = Swing | Bop | Bossa | Fusion | Trap
 
-getSeqGenerator : Style -> G.ChordProg -> Int -> R.Generator (Tune.Sequence)
-getSeqGenerator s =
+getSeqGenerator : Style -> Float -> G.ChordProg -> Int -> R.Generator (Tune.Sequence)
+getSeqGenerator s bpm =
     G.mergeSeqGenerators <|
     case s of
         Bossa -> [ BossaDrums.sequenceGenerator
@@ -23,6 +24,9 @@ getSeqGenerator s =
         Fusion -> [ FusionDrums.sequenceGenerator
                   , FusionBass.sequenceGenerator
                   , BossaPiano.sequenceGenerator ]
+        Trap -> [ TR808.sequenceGenerator bpm
+                , TR808.bassSeqGen bpm
+                , BossaPiano.sequenceGenerator ]
         _ -> [ JazzBass.sequenceGenerator
              , JazzDrums.sequenceGenerator
              , JazzPiano.sequenceGenerator ]
@@ -33,6 +37,7 @@ str2style s =
         "Bossa" -> Bossa
         "Fusion" -> Fusion
         "Bop" -> Bop
+        "Trap" -> Trap
         _ -> Swing
 
 style2str : Style -> String
@@ -42,4 +47,5 @@ style2str s =
         Bop -> "Bop"
         Bossa -> "Bossa"
         Fusion -> "Fusion"
+        Trap -> "Trap"
 

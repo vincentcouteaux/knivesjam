@@ -189,7 +189,8 @@ update msg model =
                         , Tune.setBpm rncMod.bpm
                         , rncCmd ] )
                 L.Close ->
-                    ({ model | curPage = Player }, genSequence model)
+                    ({ model | curPage = Player, libraryModel = L.setChosen model.libraryModel }
+                    , genSequence model)
 
                 L.NewSong ->
                     ( newSongDialog DialogEvent CreateSong ResetDialog

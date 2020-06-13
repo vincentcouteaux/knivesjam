@@ -1,5 +1,6 @@
+corriger bug randomChords -> burger -> close
+swing dépendant du tempo
 
 version 2.0
-mesure à vide au début
 Pouvoir choisir la structure (intro, AABA...)
 chanson dans l'url !!

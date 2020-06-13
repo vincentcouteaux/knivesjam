@@ -192,6 +192,7 @@ view model = div []
                                   , option [ value "Swing" ] [ text "Swing" ] 
                                   , option [ value "Bossa" ] [ text "Bossa" ] 
                                   , option [ value "Fusion" ] [ text "Fusion" ] 
+                                  , option [ value "Trap" ] [ text "Trap" ] 
                                   ]
                          ]
                 , signatureSelectBar model.beatsPerBar

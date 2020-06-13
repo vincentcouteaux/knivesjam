@@ -144,6 +144,7 @@ seqgen : SubModel -> R.Generator Tune.Sequence
 seqgen m =
     getSeqGenerator
         m.song.style
+        m.bpm
         (transposeChordProg m.song.chordProg m.playbackKey)
         m.song.beatsPerBar
 

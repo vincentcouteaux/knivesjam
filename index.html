@@ -40,6 +40,8 @@
 
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const instruments = { bass: bassBufInstrument(ctx)
+                        , bass808: bass808(ctx)
+                        , tr808: tr808BufInstrument(ctx)
                         , drums: drumsBufInstrument(ctx)
                         , piano: pianoBufInstrument(ctx) };
     initDixie(app);
