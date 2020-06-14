@@ -69,7 +69,12 @@ var urlsToCache = [
   'wavs/drums/kick.wav',
   'wavs/drums/snare.wav',
   'wavs/drums/ride.wav',
-  'wavs/drums/rim.wav'
+  'wavs/drums/rim.wav',
+  'wavs/808/BD.WAV',
+  'wavs/808/SD.WAV',
+  'wavs/808/CH.WAV',
+  'wavs/808/OH.WAV',
+  'wavs/808/kickpitch.wav'
 ];
 self.addEventListener('install', function(event) {
   event.waitUntil(

@@ -5510,9 +5510,10 @@ var $author$project$Editor$initwith = F4(
 		};
 	});
 var $author$project$Editor$init = A4($author$project$Editor$initwith, 4, 12, 'New song', 'Unknown');
+var $author$project$Library$None = {$: 'None'};
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
-var $author$project$Library$init = {dialogBox: $elm$core$Maybe$Nothing, hasChosen: false, library: $elm$core$Dict$empty, searchBar: ''};
+var $author$project$Library$init = {dialogBox: $elm$core$Maybe$Nothing, library: $elm$core$Dict$empty, searchBar: '', underPage: $author$project$Library$None};
 var $author$project$Generator$ChordProg = F2(
 	function (chords, end) {
 		return {chords: chords, end: end};
@@ -8569,8 +8570,10 @@ var $author$project$Main$Editor = {$: 'Editor'};
 var $author$project$Main$EditorEvent = function (a) {
 	return {$: 'EditorEvent', a: a};
 };
+var $author$project$Library$Player = {$: 'Player'};
 var $author$project$Main$Player = {$: 'Player'};
 var $author$project$Main$ResetDialog = {$: 'ResetDialog'};
+var $author$project$Library$RndChord = {$: 'RndChord'};
 var $elm$core$String$cons = _String_cons;
 var $elm$core$String$foldr = _String_foldr;
 var $author$project$Library$escape = function (s) {
@@ -9088,11 +9091,6 @@ var $author$project$PlayerPage$setBpm = F2(
 	});
 var $elm$json$Json$Encode$float = _Json_wrap;
 var $author$project$Tune$setBpm = _Platform_outgoingPort('setBpm', $elm$json$Json$Encode$float);
-var $author$project$Library$setChosen = function (m) {
-	return _Utils_update(
-		m,
-		{hasChosen: true});
-};
 var $author$project$PlayerPage$setComposer = F2(
 	function (c, s) {
 		return _Utils_update(
@@ -9145,6 +9143,12 @@ var $author$project$PlayerPage$asTitleIn = F2(
 var $author$project$PlayerPage$setTitle = F2(
 	function (t, s) {
 		return A2($author$project$PlayerPage$asTitleIn, s, t);
+	});
+var $author$project$Library$setUPage = F2(
+	function (u, m) {
+		return _Utils_update(
+			m,
+			{underPage: u});
 	});
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$list = F2(
@@ -10994,7 +10998,7 @@ var $author$project$Main$update = F2(
 						var s = submsg.a;
 						var newmod = A2(
 							$author$project$Main$setLibrary,
-							$author$project$Library$setChosen(model.libraryModel),
+							A2($author$project$Library$setUPage, $author$project$Library$Player, model.libraryModel),
 							A2(
 								$author$project$Main$asPlayerModIn,
 								model,
@@ -11027,7 +11031,11 @@ var $author$project$Main$update = F2(
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
-								{curPage: $author$project$Main$RndChord, rndChordModel: rncMod}),
+								{
+									curPage: $author$project$Main$RndChord,
+									libraryModel: A2($author$project$Library$setUPage, $author$project$Library$RndChord, model.libraryModel),
+									rndChordModel: rncMod
+								}),
 							A2(
 								$elm$core$Platform$Cmd$map,
 								function (sm) {
@@ -11046,10 +11054,16 @@ var $author$project$Main$update = F2(
 							_Utils_update(
 								model,
 								{
-									curPage: $author$project$Main$Player,
-									libraryModel: $author$project$Library$setChosen(model.libraryModel)
+									curPage: function () {
+										var _v7 = model.libraryModel.underPage;
+										if (_v7.$ === 'RndChord') {
+											return $author$project$Main$RndChord;
+										} else {
+											return $author$project$Main$Player;
+										}
+									}()
 								}),
-							$author$project$Main$genSequence(model));
+							_Utils_eq(model.libraryModel.underPage, $author$project$Library$Player) ? $author$project$Main$genSequence(model) : $elm$core$Platform$Cmd$none);
 					case 'NewSong':
 						return _Utils_Tuple2(
 							A2(
@@ -11070,9 +11084,9 @@ var $author$project$Main$update = F2(
 								return model;
 							}
 						}();
-						var _v7 = A2($author$project$Library$update, submsg, model.libraryModel);
-						var newmod = _v7.a;
-						var newcmd = _v7.b;
+						var _v8 = A2($author$project$Library$update, submsg, model.libraryModel);
+						var newmod = _v8.a;
+						var newcmd = _v8.b;
 						return _Utils_Tuple2(
 							_Utils_update(
 								mm,
@@ -11093,9 +11107,9 @@ var $author$project$Main$update = F2(
 							{curPage: $author$project$Main$Library}),
 						$elm$core$Platform$Cmd$none);
 				} else {
-					var _v10 = A2($author$project$MainRndChord$update, submsg, model.rndChordModel);
-					var rncMod = _v10.a;
-					var rncCmd = _v10.b;
+					var _v11 = A2($author$project$MainRndChord$update, submsg, model.rndChordModel);
+					var rncMod = _v11.a;
+					var rncCmd = _v11.b;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
@@ -12200,7 +12214,7 @@ var $author$project$Library$view = function (m) {
 		_List_Nil,
 		A2(
 			$elm$core$List$cons,
-			m.hasChosen ? A2(
+			(!_Utils_eq(m.underPage, $author$project$Library$None)) ? A2(
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
@@ -12822,7 +12836,7 @@ var $author$project$PlayerPage$view = function (model) {
 						_List_fromArray(
 							[
 								$elm$html$Html$text(
-								$author$project$Styles$style2str(model.song.style))
+								$author$project$Styles$style2str(model.song.style) + ('  (' + ($elm$core$String$fromInt(model.song.beatsPerBar) + '/4)')))
 							])),
 						A2(
 						$elm$html$Html$h2,

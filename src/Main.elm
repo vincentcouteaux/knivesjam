@@ -171,7 +171,7 @@ update msg model =
                               |> Pp.setCursor 0
                               |> Pp.setPlaying False
                               |> asPlayerModIn model
-                              |> setLibrary (L.setChosen model.libraryModel)
+                              |> setLibrary (L.setUPage L.Player model.libraryModel)
                     in
                         ( { newmod | curPage = Player }
                         , Cmd.batch
@@ -181,7 +181,9 @@ update msg model =
                             , Tune.pause () ] )
                 L.ToRndChord ->
                     let (rncMod, rncCmd) = Rnc.init () in
-                    ( { model | curPage = RndChord, rndChordModel = rncMod }
+                    ( { model | curPage = RndChord
+                              , rndChordModel = rncMod
+                              , libraryModel = L.setUPage L.RndChord model.libraryModel }
                     , Cmd.map (\sm -> RncEvent sm) 
                     <| Cmd.batch
                         [ Tune.pause ()
@@ -189,8 +191,10 @@ update msg model =
                         , Tune.setBpm rncMod.bpm
                         , rncCmd ] )
                 L.Close ->
-                    ({ model | curPage = Player, libraryModel = L.setChosen model.libraryModel }
-                    , genSequence model)
+                    ({ model | curPage = case model.libraryModel.underPage of
+                                L.RndChord -> RndChord
+                                _ -> Player }
+                    , if model.libraryModel.underPage == L.Player then genSequence model else Cmd.none)
 
                 L.NewSong ->
                     ( newSongDialog DialogEvent CreateSong ResetDialog

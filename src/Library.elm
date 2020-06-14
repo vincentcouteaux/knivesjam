@@ -16,9 +16,10 @@ import File exposing (File)
 import Task
 import DialogBox exposing (..)
 
+type UnderPage = None | Player | RndChord
 type alias SubModel = { library: Dict String Pp.Song
                       , searchBar: String
-                      , hasChosen: Bool
+                      , underPage: UnderPage
                       , dialogBox: Maybe (DialogBox () SubMsg) }
 
 type SubMsg = 
@@ -39,7 +40,7 @@ type SubMsg =
 init : SubModel
 init = { library=Dict.empty
        , searchBar=""
-       , hasChosen=False
+       , underPage=None
        , dialogBox=Nothing }--Dict.fromList [("Blue Bossa--Dexter Gordon", Pp.Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4)]
 
 initCmd : Cmd msg
@@ -102,7 +103,7 @@ update msg m =
 view : SubModel -> Html SubMsg
 view m =
     div []
-        ((if m.hasChosen then div [ class "xbutton", onClick Close ] [ icon "close" "Close" ] else text "")::
+        ((if m.underPage /= None then div [ class "xbutton", onClick Close ] [ icon "close" "Close" ] else text "")::
         (
             case m.dialogBox of
                 Nothing -> []
@@ -154,8 +155,8 @@ remSong : SubModel -> String -> SubModel
 remSong m k =
     { m | library=Dict.remove k m.library }
 
-setChosen : SubModel -> SubModel
-setChosen m = { m | hasChosen = True }
+setUPage : UnderPage -> SubModel -> SubModel
+setUPage u m = { m | underPage=u }
 
 escape : String -> String
 escape s = String.foldr 

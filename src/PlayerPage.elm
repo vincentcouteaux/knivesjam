@@ -167,7 +167,9 @@ view model =
         [ p [] [ span [ class "button", onClick ToLibrary ] [ icon "menu" "Library" ] ]
         , h1 [ class "realbook", class "titleplayer" ] [ text model.song.title ]
         , div [ class "metaplayer" ]
-            [ h3 [ class "realbook", class "styleplayer"  ] [ text <| style2str model.song.style]
+            [ h3 [ class "realbook", class "styleplayer"  ] 
+                 [ text <| (style2str model.song.style) ++ "  (" 
+                    ++ (String.fromInt model.song.beatsPerBar) ++ "/4)" ]
             , h2 [ class "realbook", class "composerplayer"  ] [ text model.song.composer ]
             ]
         , div [ style "line-height" "1" ]
