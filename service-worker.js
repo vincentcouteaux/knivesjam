@@ -9,11 +9,11 @@ var urlsToCache = [
   '/elm.js',
   '/dexie.js',
   '/librarydb.js',
-  '/tune.js',
+  '/tune2.js',
   '/MaterialIcons-Regular.woff',
-  '/texture_papier2.jpg'];
- /*   
+  '/texture_papier2.jpg',
   '/realbook-webfont.ttf',
+    '/manifest.webmanifest',
   '/wavs/jbass1.wav',
   '/wavs/jbass2.wav',
   '/wavs/jbass3.wav',
@@ -41,7 +41,6 @@ var urlsToCache = [
   '/wavs/jbass25.wav',
   '/wavs/piano/102.wav',
   '/wavs/piano/105.wav',
-  '/wavs/piano/107.wav',
   '/wavs/piano/24.wav',
   '/wavs/piano/30.wav',
   '/wavs/piano/35.wav',
@@ -77,7 +76,7 @@ var urlsToCache = [
   '/wavs/808/OH.WAV',
   '/wavs/808/kickpitch.wav'
 ];
-*/
+
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME)
