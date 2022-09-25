@@ -11,7 +11,8 @@ var urlsToCache = [
   '/librarydb.js',
   '/tune.js',
   '/MaterialIcons-Regular.woff',
-  '/texture_papier2.jpg',
+  '/texture_papier2.jpg'];
+ /*   
   '/realbook-webfont.ttf',
   '/wavs/jbass1.wav',
   '/wavs/jbass2.wav',
@@ -76,6 +77,7 @@ var urlsToCache = [
   '/wavs/808/OH.WAV',
   '/wavs/808/kickpitch.wav'
 ];
+*/
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME)
