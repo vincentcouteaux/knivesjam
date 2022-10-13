@@ -6,12 +6,13 @@ import Html.Events exposing (..)
 import Tune
 import Random as R
 import Dict exposing (Dict)
---import JazzDrums
---import JazzBass
---import JazzPiano
+
 import Styles exposing (getSeqGenerator, Style, style2str)
 import Icons exposing (icon)
 
+-- MODEL 
+
+type Instrument = Piano | Bass | Drums
 type alias Song = { chordProg : G.ChordProg
                   , title : String
                   , composer : String
@@ -19,6 +20,20 @@ type alias Song = { chordProg : G.ChordProg
                   , defaultTempo : Float
                   , style : Style
                   }
+type alias Grid = List { len : Float, chord : (Maybe G.Chord, Float) }
+
+type alias SubModel =
+    { barsPerLine : Int
+    , song : Song
+    , playing : Bool
+    , bpm : Float
+    , cursor : Float
+    , volPiano : Float
+    , volBass : Float
+    , volDrums : Float
+    , playbackKey : Int
+    , displayKey : Int }
+
 asChordProgIn : Song -> G.ChordProg -> Song
 asChordProgIn s cp = { s | chordProg=cp }
 asTitleIn : Song -> String -> Song
@@ -36,18 +51,6 @@ setDefTempo t s = { s | defaultTempo=t }
 setStyle : Style -> Song -> Song
 setStyle st s = { s | style=st }
 
-type alias SubModel =
-    { barsPerLine : Int
-    , song : Song
-    , playing : Bool
-    , bpm : Float
-    , cursor : Float
-    , volPiano : Float
-    , volBass : Float
-    , volDrums : Float
-    , playbackKey : Int
-    , displayKey : Int }
-
 asSongIn : SubModel -> Song -> SubModel
 asSongIn sm s = { sm | song=s }
 
@@ -61,8 +64,22 @@ setPlayback : Int -> SubModel -> SubModel
 setPlayback i sm = { sm | playbackKey = i }
 noTranspose : SubModel -> SubModel
 noTranspose sm = { sm | playbackKey=0, displayKey=0 }
+    
 
-type Instrument = Piano | Bass | Drums
+init = { barsPerLine = 4
+       , song = (Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4 160 Styles.Bossa)
+       , playing = False
+       , bpm = 120
+       , cursor = 0
+       , volPiano = 100
+       , volBass = 100
+       , volDrums = 100
+       , playbackKey = 0
+       , displayKey = 0
+       }
+initCmd = Cmd.none -- R.generate DebugGenerated (JazzPiano.genRhythm 4 64) -- Cmd.none --R.generate SequenceGenerated JazzBass.bbbass
+
+-- UPDATE
 
 type SubMsg = 
     CaseClicked Float
@@ -79,20 +96,6 @@ type SubMsg =
     | DebugGenerated (List (Float, Float))
     | TransposePlayback Bool
     | TransposeDisplay Bool
-    
-
-init = { barsPerLine = 4
-       , song = (Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4 160 Styles.Bossa)
-       , playing = False
-       , bpm = 120
-       , cursor = 0
-       , volPiano = 100
-       , volBass = 100
-       , volDrums = 100
-       , playbackKey = 0
-       , displayKey = 0
-       }
-initCmd = Cmd.none -- R.generate DebugGenerated (JazzPiano.genRhythm 4 64) -- Cmd.none --R.generate SequenceGenerated JazzBass.bbbass
 
 update : SubMsg -> SubModel -> (SubModel, Cmd SubMsg)
 update msg model = 
@@ -159,7 +162,6 @@ genNextSeqOnly : SubModel -> Cmd SubMsg
 genNextSeqOnly m = R.generate NextSeqGenerated <| seqgen m
 
 
-type alias Grid = List { len : Float, chord : (Maybe G.Chord, Float) }
 
 view : SubModel -> Html SubMsg
 view model =
@@ -227,6 +229,39 @@ rangeVolume inst str vol =
          ]
 
 
+{-| View a Grid. We render it as a table containing chords text representations. 
+Todo: add symbols 
+-}
+viewGrid : SubModel -> Html SubMsg
+viewGrid model =
+    let gridlist = splitGrid (toFloat (model.barsPerLine*model.song.beatsPerBar)) <|
+                        chordprog2grid model
+    in
+        div []
+            (List.map
+                (\line -> div [ class "gridline" ]
+                     (List.map 
+                        (\box -> div 
+                            [ style "width" <| 
+                                (String.fromFloat (100*box.len/(toFloat model.song.beatsPerBar)/(toFloat model.barsPerLine)))++"%"
+                            --, style "text-align" "center"
+                            , style "margin-top" "auto"
+                            , style "display" "inline-block"
+                            , style "color" 
+                                    (if 
+                                        model.cursor >= (Tuple.second box.chord)
+                                        && model.cursor < (Tuple.second box.chord) + box.len
+                                     then "red" else "black")
+                            , onClick (SetCursor (Tuple.second box.chord))
+                            ]
+                            [ text <| chord2text (Tuple.first box.chord) ])
+                        line)
+                    )
+                gridlist
+            )
+
+-- UTILS
+
 substract2to2 : List number -> List number
 substract2to2 l =
     case l of
@@ -234,7 +269,8 @@ substract2to2 l =
         h::[] -> []
         a::b::t -> (b-a)::(substract2to2 (b::t))
 
-
+{--| Convert a chord progression to a grid. 
+-}
 chordprog2grid : SubModel -> Grid
 chordprog2grid model =
     let 
@@ -268,6 +304,9 @@ chordprog2grid model =
         )
         (List.range 0 (((floor cp.end)//model.song.beatsPerBar)-1))
 
+
+{-| Transpose the chords of a progression given a number of semitones. 
+-}
 transposeChordProg : G.ChordProg -> Int -> G.ChordProg
 transposeChordProg cp n =
     case n of
@@ -287,6 +326,8 @@ transposeChordProg cp n =
             }
 
 
+{-| Split a grid in rows containing a given number of beats. 
+-}
 splitGrid : Float -> Grid -> List Grid
 splitGrid beatsPerLine grid =
     let 
@@ -302,34 +343,8 @@ splitGrid beatsPerLine grid =
     in
         recurPart [] grid beatsPerLine |> List.reverse
 
-viewGrid : SubModel -> Html SubMsg
-viewGrid model =
-    let gridlist = splitGrid (toFloat (model.barsPerLine*model.song.beatsPerBar)) <|
-                        chordprog2grid model
-    in
-        div []
-            (List.map
-                (\line -> div [ class "gridline" ]
-                     (List.map 
-                        (\box -> div 
-                            [ style "width" <| 
-                                (String.fromFloat (100*box.len/(toFloat model.song.beatsPerBar)/(toFloat model.barsPerLine)))++"%"
-                            --, style "text-align" "center"
-                            , style "margin-top" "auto"
-                            , style "display" "inline-block"
-                            , style "color" 
-                                    (if 
-                                        model.cursor >= (Tuple.second box.chord)
-                                        && model.cursor < (Tuple.second box.chord) + box.len
-                                     then "red" else "black")
-                            , onClick (SetCursor (Tuple.second box.chord))
-                            ]
-                            [ text <| chord2text (Tuple.first box.chord) ])
-                        line)
-                    )
-                gridlist
-            )
-
+{-| Convert a note to a text representation to be displayed on chart. 
+-}
 note2str : G.Note -> String
 note2str n =
     let 
@@ -348,6 +363,8 @@ note2str n =
     in
         name++alt
 
+{-| Convert a chord to a text representation to be displayed on chart. 
+-}
 chord2text : Maybe G.Chord -> String
 chord2text mc =
     case mc of
