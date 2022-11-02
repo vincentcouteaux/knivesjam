@@ -1,4 +1,8 @@
 module Generator exposing (..)
+
+{-|  Functions and types to manipulate elements of music theory.
+-}
+
 import Random as R
 import Dict exposing (Dict)
 import Tune
@@ -165,6 +169,7 @@ mergeSeqGenerators l cp signature =
         l
 
 --- UTILS
+
 insertNoReplace : comparable -> v -> Dict comparable v -> Dict comparable v
 insertNoReplace k v d =
     if Dict.member k d then d else (Dict.insert k v d)

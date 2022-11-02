@@ -1,4 +1,8 @@
 module Editor exposing (..)
+
+{-| Contains the data modeling & processing utils of the Editor Page.
+-}
+
 import Generator as G
 import PlayerPage as Pp
 import Html exposing (..)
@@ -8,7 +12,10 @@ import Array exposing (Array)
 import Icons exposing (icon)
 import Styles as S
 
+-- MODEL
+
 type alias Grid = Array { len : Float, chord : Maybe G.Chord }
+
 type alias SubModel =
     { grid : Grid
     , tool : Tool
@@ -21,12 +28,7 @@ type alias SubModel =
     , defTempo : Float
     , beatsPerBar : Int }
 
-setBeatsPerBar : Int -> SubModel -> SubModel
-setBeatsPerBar n m = { m | beatsPerBar=n }
-
 type ModelList = ModelList (List SubModel)
-unwrap : ModelList -> List SubModel
-unwrap ml = (\(ModelList l) -> l)(ml)
 
 type Tool = SplitCase 
             | MergeWithBefore
@@ -35,6 +37,23 @@ type Tool = SplitCase
             | SetToNothing
             | InsertBar
 
+initwith : Int -> Int -> String -> String -> SubModel
+initwith beatsPerBar nBars title composer =
+       { grid = Array.fromList <| List.repeat nBars { len = toFloat beatsPerBar, chord=Nothing }
+       , tool = SetChord
+       , curChord = G.chord G.C G.Natural G.Dom7
+       , undoList = ModelList []
+       , redoList = ModelList []
+       , title = title
+       , composer = composer
+       , style = S.Bop
+       , defTempo = 160
+       , beatsPerBar = beatsPerBar }
+
+init : SubModel
+init = initwith 4 12 "New song" "Unknown"
+
+-- UPDATE
 
 type SubMsg =
     CaseClicked Int
@@ -56,39 +75,6 @@ type SubMsg =
     | StyleChanged String
     | TempoChanged Float
     | SetBeatsPerBar Int
-
-initwith : Int -> Int -> String -> String -> SubModel
-initwith beatsPerBar nBars title composer =
-       { grid = Array.fromList <| List.repeat nBars { len = toFloat beatsPerBar, chord=Nothing }
-       , tool = SetChord
-       , curChord = G.chord G.C G.Natural G.Dom7
-       , undoList = ModelList []
-       , redoList = ModelList []
-       , title = title
-       , composer = composer
-       , style = S.Bop
-       , defTempo = 160
-       , beatsPerBar = beatsPerBar }
-
-init : SubModel
-init = initwith 4 12 "New song" "Unknown"
-
-pushUndo : SubModel -> SubModel -> SubModel
-pushUndo oldmod newmod =
-    { newmod | undoList=ModelList (oldmod::unwrap(newmod.undoList)) }
-pushRedo : SubModel -> SubModel -> SubModel
-pushRedo oldmod newmod =
-    { newmod | redoList=ModelList (oldmod::unwrap(newmod.redoList)) }
-popUndo : SubModel -> SubModel
-popUndo newmod =
-    case unwrap(newmod.undoList) of
-        [] -> newmod
-        h::t -> h
-popRedo : SubModel -> SubModel
-popRedo newmod =
-    case unwrap(newmod.redoList) of
-        [] -> newmod
-        h::t -> h
 
 update : SubMsg -> SubModel -> (SubModel, Cmd SubMsg)
 update msg model = 
@@ -178,6 +164,8 @@ update msg model =
 
 
         _ -> (model, Cmd.none)
+
+-- VIEW
 
 view : SubModel -> Html SubMsg
 view model = div [] 
@@ -308,9 +296,8 @@ chordSelectBar c =
                , button (maybeButtonAttr (Maybe.map .alt c.bass) G.Sharp SetBassAlteration) [ text "♯" ]
                , button (maybeButtonAttr (Maybe.map .alt c.bass) G.Flat SetBassAlteration) [ text "♭" ] ]
         ]
-
-               
-
+            
+-- UTILS
 
 chordprog2grid : Pp.SubModel -> Grid
 chordprog2grid model = Array.fromList 
@@ -381,7 +368,8 @@ setChord g i c =
         Just cell -> --let prevc = cell.chord in
             Array.set i { cell | chord=c } g
 
-
+{-| Convert a chord to a text representation to be displayed on chart. 
+-}
 grid2chordprog : Grid -> G.ChordProg
 grid2chordprog g =
     let
@@ -418,3 +406,26 @@ grid2chordprog g =
 --                [] -> []
 --                h::t ->
 --                    if h.len + c > 
+
+setBeatsPerBar : Int -> SubModel -> SubModel
+setBeatsPerBar n m = { m | beatsPerBar=n }
+
+unwrap : ModelList -> List SubModel
+unwrap ml = (\(ModelList l) -> l)(ml)
+
+pushUndo : SubModel -> SubModel -> SubModel
+pushUndo oldmod newmod = { newmod | undoList=ModelList (oldmod::unwrap(newmod.undoList)) }
+
+pushRedo : SubModel -> SubModel -> SubModel
+pushRedo oldmod newmod = { newmod | redoList=ModelList (oldmod::unwrap(newmod.redoList)) }
+
+popUndo : SubModel -> SubModel
+popUndo newmod =
+    case unwrap(newmod.undoList) of
+        [] -> newmod
+        h::t -> h
+popRedo : SubModel -> SubModel
+popRedo newmod =
+    case unwrap(newmod.redoList) of
+        [] -> newmod
+        h::t -> h

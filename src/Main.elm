@@ -14,12 +14,7 @@ import MainRndChord as Rnc
 import DialogBox exposing (..)
 import Dict exposing (Dict)
 
-main = Browser.element
-    { init=init
-    , update = update
-    , subscriptions = subscriptions
-    , view = view
-    }
+-- MODEL
 
 type Page = Player | Editor | Library | RndChord
 
@@ -33,33 +28,6 @@ type alias Model =
     , dialogBox : Maybe (DialogBox ModelDB Msg)
     --, dialogBox2 : Maybe (DialogBoxModel Model Msg)
     }
-
-asPlayerModIn : Model -> Pp.SubModel -> Model
-asPlayerModIn mod ppmod = { mod | playerModel = ppmod }
-asEditModIn : Model -> Pp.SubModel -> Model
-asEditModIn mod ppmod = { mod | playerModel = ppmod }
-setLibrary : L.SubModel -> Model -> Model
-setLibrary l m = { m | libraryModel = l }
-asDialogBoxIn : Model -> DialogBox ModelDB Msg -> Model
-asDialogBoxIn m d = { m | dialogBox = Just d }
-setDbModel : ModelDB -> Model -> Model
-setDbModel mdldb m = { m | dialogBoxModel = mdldb }
---asDialogBox2In : Model -> DialogBoxModel Msg -> Model
---asDialogBoxIn m d = { m | dialogBox2 = Just d }
-resetDialog : Model -> Model
-resetDialog m = { m | dialogBox = Nothing }
-
-type Msg =
-    SetCursor Float
-    | PpEvent Pp.SubMsg
-    | EditorEvent E.SubMsg
-    | LibEvent L.SubMsg
-    | RncEvent Rnc.Msg
-    | DialogEvent MsgDb
-    | ChangePage Page
-    | CreateSong
-    | ResetDialog
-    --| DialogResult Model (Cmd Msg)
 
 init : () -> (Model, Cmd Msg)
 init _ = 
@@ -75,6 +43,20 @@ init _ =
     [ Cmd.map (\sm -> PpEvent sm) Pp.initCmd
     , L.initCmd ])
     --, Cmd.map (\sm -> RncEvent sm) rncCmd ])
+
+-- UPDATE
+
+type Msg =
+    SetCursor Float
+    | PpEvent Pp.SubMsg
+    | EditorEvent E.SubMsg
+    | LibEvent L.SubMsg
+    | RncEvent Rnc.Msg
+    | DialogEvent MsgDb
+    | ChangePage Page
+    | CreateSong
+    | ResetDialog
+    --| DialogResult Model (Cmd Msg)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -248,6 +230,8 @@ subscriptions model =
           then Tune.sequenceFinished (always (PpEvent Pp.SeqFinished))
           else Sub.map (\sm -> RncEvent sm) (Rnc.subscriptions model.rndChordModel) ]
 
+-- VIEW
+
 view : Model -> Html Msg
 view model =
     div [ Html.Attributes.classList [("fulldiv", True), ("coffee", model.curPage == Library) ] ] <|
@@ -270,5 +254,28 @@ view model =
                     Html.map (\sm -> RncEvent sm) (Rnc.view model.rndChordModel)
         ]
 
+-- MAIN 
+
+main = Browser.element
+    { init=init
+    , update = update
+    , subscriptions = subscriptions
+    , view = view
+    }
 
 -- UTILS
+
+asPlayerModIn : Model -> Pp.SubModel -> Model
+asPlayerModIn mod ppmod = { mod | playerModel = ppmod }
+asEditModIn : Model -> Pp.SubModel -> Model
+asEditModIn mod ppmod = { mod | playerModel = ppmod }
+setLibrary : L.SubModel -> Model -> Model
+setLibrary l m = { m | libraryModel = l }
+asDialogBoxIn : Model -> DialogBox ModelDB Msg -> Model
+asDialogBoxIn m d = { m | dialogBox = Just d }
+setDbModel : ModelDB -> Model -> Model
+setDbModel mdldb m = { m | dialogBoxModel = mdldb }
+--asDialogBox2In : Model -> DialogBoxModel Msg -> Model
+--asDialogBoxIn m d = { m | dialogBox2 = Just d }
+resetDialog : Model -> Model
+resetDialog m = { m | dialogBox = Nothing }
