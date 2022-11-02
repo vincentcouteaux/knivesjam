@@ -1,5 +1,8 @@
 port module Library exposing (..)
 
+{-| Contains the data modeling & processing utils of the Library Page.
+-}
+
 import PlayerPage as Pp
 import Generator as G
 import Html exposing (..)
@@ -16,11 +19,25 @@ import File exposing (File)
 import Task
 import DialogBox exposing (..)
 
+-- MODEL 
+
 type UnderPage = None | Player | RndChord
+type Style = Bop | Bossa
 type alias SubModel = { library: Dict String Pp.Song
                       , searchBar: String
                       , underPage: UnderPage
                       , dialogBox: Maybe (DialogBox () SubMsg) }
+
+init : SubModel
+init = { library=Dict.empty
+       , searchBar=""
+       , underPage=None
+       , dialogBox=Nothing }--Dict.fromList [("Blue Bossa--Dexter Gordon", Pp.Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4)]
+
+initCmd : Cmd msg
+initCmd = queryAllSongs ()
+
+-- UPDATE
 
 type SubMsg = 
     SongClicked Pp.Song 
@@ -36,15 +53,6 @@ type SubMsg =
     | CancelDb
     | AddFile2LocalDb (List Pp.Song)
     | ToRndChord
-
-init : SubModel
-init = { library=Dict.empty
-       , searchBar=""
-       , underPage=None
-       , dialogBox=Nothing }--Dict.fromList [("Blue Bossa--Dexter Gordon", Pp.Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4)]
-
-initCmd : Cmd msg
-initCmd = queryAllSongs ()
 
 update : SubMsg -> SubModel -> (SubModel, Cmd SubMsg)
 update msg m = 
@@ -100,6 +108,8 @@ update msg m =
             
         _ ->(m, Cmd.none)
 
+-- VIEW
+
 view : SubModel -> Html SubMsg
 view m =
     div []
@@ -145,15 +155,17 @@ view m =
             ))
         ])
 
+
+-- UTILS
+
 getKey : Pp.Song -> String
 getKey s = (escape s.title) ++ "--" ++ (escape s.composer)
 
 addSong : SubModel -> Pp.Song -> SubModel
-addSong m s =
-    { m | library=Dict.insert (getKey s) s m.library }
+addSong m s = { m | library=Dict.insert (getKey s) s m.library }
+
 remSong : SubModel -> String -> SubModel
-remSong m k =
-    { m | library=Dict.remove k m.library }
+remSong m k = { m | library=Dict.remove k m.library }
 
 setUPage : UnderPage -> SubModel -> SubModel
 setUPage u m = { m | underPage=u }
@@ -168,8 +180,6 @@ contains : String -> String -> Bool
 contains s1 s2 =
     String.contains (String.toLower s1) (String.toLower s2)
     
-type Style = Bop | Bossa
-
 note2str : G.Note -> String
 note2str n =
     let 
@@ -335,8 +345,3 @@ port deleteSong : String -> Cmd msg
        --           , defaultTempo : Float
        --           , style : Style
        --           , chordProg : G.ChordProg } -> Cmd msg
-
-
-
-
-

@@ -44,47 +44,6 @@ init _ =
     , L.initCmd ])
     --, Cmd.map (\sm -> RncEvent sm) rncCmd ])
 
-
-asPlayerModIn : Model -> Pp.SubModel -> Model
-asPlayerModIn mod ppmod = { mod | playerModel = ppmod }
-asEditModIn : Model -> Pp.SubModel -> Model
-asEditModIn mod ppmod = { mod | playerModel = ppmod }
-setLibrary : L.SubModel -> Model -> Model
-setLibrary l m = { m | libraryModel = l }
-asDialogBoxIn : Model -> DialogBox ModelDB Msg -> Model
-asDialogBoxIn m d = { m | dialogBox = Just d }
-setDbModel : ModelDB -> Model -> Model
-setDbModel mdldb m = { m | dialogBoxModel = mdldb }
---asDialogBox2In : Model -> DialogBoxModel Msg -> Model
---asDialogBoxIn m d = { m | dialogBox2 = Just d }
-resetDialog : Model -> Model
-resetDialog m = { m | dialogBox = Nothing }
-
--- VIEW
-
-view : Model -> Html Msg
-view model =
-    div [ Html.Attributes.classList [("fulldiv", True), ("coffee", model.curPage == Library) ] ] <|
-        (
-            case model.dialogBox of
-                Nothing -> []
-                Just db -> [ displayDialog model.dialogBoxModel db ]
-        )
-        ++
-        [ 
-            case model.curPage of
-                Player ->
-                    Html.map (\submsg -> PpEvent submsg) (Pp.view model.playerModel)
-                Editor ->
-                    Html.map (\submsg -> EditorEvent submsg) (E.view model.editorModel)
-                Library ->
-                    Html.map (\submsg -> LibEvent submsg) (L.view model.libraryModel)
-
-                RndChord ->
-                    Html.map (\sm -> RncEvent sm) (Rnc.view model.rndChordModel)
-        ]
-
-
 -- UPDATE
 
 type Msg =
@@ -271,6 +230,29 @@ subscriptions model =
           then Tune.sequenceFinished (always (PpEvent Pp.SeqFinished))
           else Sub.map (\sm -> RncEvent sm) (Rnc.subscriptions model.rndChordModel) ]
 
+-- VIEW
+
+view : Model -> Html Msg
+view model =
+    div [ Html.Attributes.classList [("fulldiv", True), ("coffee", model.curPage == Library) ] ] <|
+        (
+            case model.dialogBox of
+                Nothing -> []
+                Just db -> [ displayDialog model.dialogBoxModel db ]
+        )
+        ++
+        [ 
+            case model.curPage of
+                Player ->
+                    Html.map (\submsg -> PpEvent submsg) (Pp.view model.playerModel)
+                Editor ->
+                    Html.map (\submsg -> EditorEvent submsg) (E.view model.editorModel)
+                Library ->
+                    Html.map (\submsg -> LibEvent submsg) (L.view model.libraryModel)
+
+                RndChord ->
+                    Html.map (\sm -> RncEvent sm) (Rnc.view model.rndChordModel)
+        ]
 
 -- MAIN 
 
@@ -280,3 +262,20 @@ main = Browser.element
     , subscriptions = subscriptions
     , view = view
     }
+
+-- UTILS
+
+asPlayerModIn : Model -> Pp.SubModel -> Model
+asPlayerModIn mod ppmod = { mod | playerModel = ppmod }
+asEditModIn : Model -> Pp.SubModel -> Model
+asEditModIn mod ppmod = { mod | playerModel = ppmod }
+setLibrary : L.SubModel -> Model -> Model
+setLibrary l m = { m | libraryModel = l }
+asDialogBoxIn : Model -> DialogBox ModelDB Msg -> Model
+asDialogBoxIn m d = { m | dialogBox = Just d }
+setDbModel : ModelDB -> Model -> Model
+setDbModel mdldb m = { m | dialogBoxModel = mdldb }
+--asDialogBox2In : Model -> DialogBoxModel Msg -> Model
+--asDialogBoxIn m d = { m | dialogBox2 = Just d }
+resetDialog : Model -> Model
+resetDialog m = { m | dialogBox = Nothing }

@@ -1,4 +1,8 @@
 module PlayerPage exposing (..)
+
+{-| Contains the data modeling & processing utils of the Player Page.
+-}
+
 import Generator as G
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -33,38 +37,6 @@ type alias SubModel =
     , volDrums : Float
     , playbackKey : Int
     , displayKey : Int }
-
-asChordProgIn : Song -> G.ChordProg -> Song
-asChordProgIn s cp = { s | chordProg=cp }
-asTitleIn : Song -> String -> Song
-asTitleIn s t = { s | title=t }
-asDefTempoIn : Song -> Float -> Song
-asDefTempoIn s t = { s | defaultTempo=t}
-
-setTitle t s = asTitleIn s t
-setComposer : String -> Song -> Song
-setComposer c s = { s | composer=c}
-setBeatsPerBar : Int -> Song -> Song
-setBeatsPerBar i s = { s | beatsPerBar=i}
-setDefTempo : Float -> Song -> Song
-setDefTempo t s = { s | defaultTempo=t }
-setStyle : Style -> Song -> Song
-setStyle st s = { s | style=st }
-
-asSongIn : SubModel -> Song -> SubModel
-asSongIn sm s = { sm | song=s }
-
-setBpm : Float -> SubModel -> SubModel
-setBpm t sm = { sm | bpm=t }
-setCursor : Float -> SubModel -> SubModel
-setCursor c sm = { sm | cursor=c }
-setPlaying : Bool -> SubModel -> SubModel
-setPlaying b sm = { sm | playing=b }
-setPlayback : Int -> SubModel -> SubModel
-setPlayback i sm = { sm | playbackKey = i }
-noTranspose : SubModel -> SubModel
-noTranspose sm = { sm | playbackKey=0, displayKey=0 }
-    
 
 init = { barsPerLine = 4
        , song = (Song G.blueBossa "Blue Bossa" "Dexter Gordon" 4 160 Styles.Bossa)
@@ -230,7 +202,6 @@ rangeVolume inst str vol =
 
 
 {-| View a Grid. We render it as a table containing chords text representations. 
-Todo: add symbols 
 -}
 viewGrid : SubModel -> Html SubMsg
 viewGrid model =
@@ -343,7 +314,7 @@ splitGrid beatsPerLine grid =
     in
         recurPart [] grid beatsPerLine |> List.reverse
 
-{-| Convert a note to a text representation to be displayed on chart. 
+{-| Convert a note to a text representation.
 -}
 note2str : G.Note -> String
 note2str n =
@@ -363,7 +334,7 @@ note2str n =
     in
         name++alt
 
-{-| Convert a chord to a text representation to be displayed on chart. 
+{-| Convert a chord to a text representation. 
 -}
 chord2text : Maybe G.Chord -> String
 chord2text mc =
@@ -391,3 +362,34 @@ chord2text mc =
                     Just n -> if n == c.note then "" else "/"++note2str n
             in
                 root++typ++bass
+
+asChordProgIn : Song -> G.ChordProg -> Song
+asChordProgIn s cp = { s | chordProg=cp }
+asTitleIn : Song -> String -> Song
+asTitleIn s t = { s | title=t }
+asDefTempoIn : Song -> Float -> Song
+asDefTempoIn s t = { s | defaultTempo=t}
+
+setTitle t s = asTitleIn s t
+setComposer : String -> Song -> Song
+setComposer c s = { s | composer=c}
+setBeatsPerBar : Int -> Song -> Song
+setBeatsPerBar i s = { s | beatsPerBar=i}
+setDefTempo : Float -> Song -> Song
+setDefTempo t s = { s | defaultTempo=t }
+setStyle : Style -> Song -> Song
+setStyle st s = { s | style=st }
+
+asSongIn : SubModel -> Song -> SubModel
+asSongIn sm s = { sm | song=s }
+
+setBpm : Float -> SubModel -> SubModel
+setBpm t sm = { sm | bpm=t }
+setCursor : Float -> SubModel -> SubModel
+setCursor c sm = { sm | cursor=c }
+setPlaying : Bool -> SubModel -> SubModel
+setPlaying b sm = { sm | playing=b }
+setPlayback : Int -> SubModel -> SubModel
+setPlayback i sm = { sm | playbackKey = i }
+noTranspose : SubModel -> SubModel
+noTranspose sm = { sm | playbackKey=0, displayKey=0 }   
