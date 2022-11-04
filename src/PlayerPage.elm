@@ -257,12 +257,13 @@ chordprog2grid model =
                 maybeChords = List.map 
                     (\evt -> (Just evt.chord, evt.time)) 
                     chordsInBar
-                addNothing = case maybeChords of
+                -- If the first chord of the bar does not match the first beat, prepend a Nothing chord
+                addNothing = case maybeChords of 
                     [] -> [(Nothing, toFloat firstbeat)]
                     h::t -> if (Tuple.second h) <= (toFloat firstbeat)
                                 then maybeChords 
                                 else (Nothing, toFloat firstbeat)::maybeChords
-                times = List.map Tuple.second addNothing --addNothing = good
+                times = List.map Tuple.second addNothing
                 rolled = List.append times [toFloat lastbeat]
                 chordsLen = substract2to2 rolled
                 zip l1 l2 =
@@ -273,7 +274,7 @@ chordprog2grid model =
             in
                 zip chordsLen addNothing
         )
-        (List.range 0 (((floor cp.end)//model.song.beatsPerBar)-1))
+        (List.range 0 (((floor cp.end)//model.song.beatsPerBar)-1)) -- bars indices 
 
 
 {-| Transpose the chords of a progression given a number of semitones. 
